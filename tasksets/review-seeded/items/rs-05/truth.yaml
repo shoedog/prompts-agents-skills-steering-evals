@@ -3,7 +3,7 @@ defects:
 - id: rs-05-d1
   defect_class: resource leak on error path
   location: io_utils.py:6
-  hunk_lines: 2-12
+  hunk_lines: 2-22
   description: the file is opened manually without a context manager or try/finally, so if `parse_line`
     raises the `f.close()` below is skipped and the handle leaks.
   root_cause: no exception-safe cleanup around the manual open(); close() only runs on the success path.

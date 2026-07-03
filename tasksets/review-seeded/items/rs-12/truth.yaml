@@ -3,7 +3,7 @@ defects:
 - id: rs-12-d1
   defect_class: truthiness / falsy-value bug
   location: settings.py:6
-  hunk_lines: 1-10
+  hunk_lines: 1-25
   description: '`requested or DEFAULT_RETENTION_DAYS` treats `requested == 0` as falsy and replaces it
     with the default; only `None` should trigger the default.'
   root_cause: '`or` tests truthiness, and 0 is falsy, so the meaningful 0 (''retain nothing'') is swallowed;

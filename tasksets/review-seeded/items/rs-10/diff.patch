@@ -1,6 +1,6 @@
 --- a/text_utils.py
 +++ b/text_utils.py
-@@ -4,8 +4,14 @@ def byte_len(text):
+@@ -4,5 +4,27 @@ def byte_len(text):
      return len(text.encode("utf-8"))
  
  
@@ -13,3 +13,18 @@
 +
  def slugify(text):
      return "-".join(text.lower().split())
++
++
++def is_ascii(text):
++    """True if `text` is pure ASCII (one byte per character)."""
++    return all(ord(c) < 128 for c in text)
++
++
++def fits_in_bytes(text, max_bytes):
++    """True if the UTF-8 encoding of `text` is within `max_bytes`."""
++    return len(text.encode("utf-8")) <= max_bytes
++
++
++def has_multibyte(text):
++    """True if `text` contains any non-ASCII (multi-byte) character."""
++    return any(ord(c) >= 128 for c in text)

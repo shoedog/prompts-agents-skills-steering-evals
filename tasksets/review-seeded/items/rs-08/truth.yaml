@@ -3,7 +3,7 @@ defects:
 - id: rs-08-d1
   defect_class: operator precedence / missing parentheses
   location: finance.py:15
-  hunk_lines: 10-20
+  hunk_lines: 10-35
   description: '`principal * 1 + rate ** years` evaluates as `principal + (rate ** years)` because `**`
     binds tighter than `*`/`+`; the intended `principal * (1 + rate) ** years` is missing its parentheses.'
   root_cause: missing parentheses around `1 + rate`; operator precedence gives a completely different

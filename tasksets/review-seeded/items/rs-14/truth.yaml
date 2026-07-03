@@ -3,7 +3,7 @@ defects:
 - id: rs-14-d1
   defect_class: wrong variable (stale month) / boundary
   location: billing_dates.py:12
-  hunk_lines: 1-18
+  hunk_lines: 1-28
   description: the clamp calls `calendar.monthrange(year, d.month)` using the SOURCE month `d.month` instead
     of the target `month`, so it clamps to the wrong month's length.
   root_cause: '`d.month` should be `month` (the following month); using the source month gives the wrong

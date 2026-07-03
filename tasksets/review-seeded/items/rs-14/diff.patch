@@ -1,6 +1,6 @@
 --- a/billing_dates.py
 +++ b/billing_dates.py
-@@ -1,5 +1,17 @@
+@@ -1,6 +1,28 @@
  import calendar
  from datetime import date
  
@@ -19,3 +19,13 @@
 +
  def prev_billing_date(d):
      ...
++
++
++def is_month_end(d):
++    """True if `d` is the last day of its own month."""
++    return d.day == calendar.monthrange(d.year, d.month)[1]
++
++
++def is_december(d):
++    """True if `d` falls in December."""
++    return d.month == 12

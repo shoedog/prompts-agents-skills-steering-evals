@@ -1,10 +1,14 @@
 seeded: false
 defects: []
-clean_rationale: 'The except does not swallow: it rolls back and re-raises the original exception; finally
-  closes exactly once on every path; the try''s return value is preserved because finally has no return.'
+clean_rationale: 'On the success path the code commits before returning (the result is captured in a local,
+  then `conn.commit()` runs, then the local is returned), so successful writes are persisted, not discarded;
+  if `fn` raises, it rolls back and re-raises the original exception (no swallow); `finally` closes exactly
+  once on every path.'
 tempting_non_defects:
-- the `except Exception` does NOT swallow the error - it calls rollback() and then `raise` re-raises the
-  original exception.
-- '`return fn(conn)` in try plus `finally: conn.close()` still returns fn''s value; finally has no return
-  statement, so it does not override it.'
+- '`conn.commit()` IS called on the success path (after `fn` returns, before `return result`), so successful
+  writes are committed - they are NOT silently discarded.'
+- 'the `except Exception` does NOT swallow the error: it calls `rollback()` and then `raise`, which re-raises
+  the original exception.'
+- 'the result is stored in a local before commit and returned afterwards; `finally: conn.close()` has no
+  return statement, so it does not override the returned value.'
 - close() runs once (in finally) and is idempotent per the contract, so there is no double-close problem.

@@ -3,7 +3,7 @@ defects:
 - id: rs-02-d1
   defect_class: inverted condition (wrong comparison operator)
   location: access.py:23
-  hunk_lines: 18-27
+  hunk_lines: 18-42
   description: the ownership check uses `!=` where it should use `==`, so a non-admin is allowed precisely
     when they are NOT the owner.
   root_cause: '`user.id != resource.owner_id` inverts the ownership predicate (should be `==`).'

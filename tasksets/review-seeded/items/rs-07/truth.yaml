@@ -3,7 +3,7 @@ defects:
 - id: rs-07-d1
   defect_class: timezone / UTC confusion
   location: tokens.py:6
-  hunk_lines: 1-7
+  hunk_lines: 1-22
   description: '`datetime.now()` returns naive LOCAL time, but `token.expires_at` is naive UTC; the two
     are compared as if both UTC.'
   root_cause: should use `datetime.utcnow()` (or an aware UTC now); `datetime.now()` silently carries

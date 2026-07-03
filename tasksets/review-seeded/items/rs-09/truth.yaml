@@ -3,7 +3,7 @@ defects:
 - id: rs-09-d1
   defect_class: stale cache / missing invalidation
   location: profile_cache.py:13
-  hunk_lines: 8-19
+  hunk_lines: 8-31
   description: '`save` writes to storage but never updates or invalidates `self._cache[uid]`, so a previously
     cached value stays after a save.'
   root_cause: missing `self._cache[uid] = profile` (or a `del self._cache[uid]`) after save_profile.

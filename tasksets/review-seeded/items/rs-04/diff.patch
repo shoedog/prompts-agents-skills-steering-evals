@@ -1,6 +1,6 @@
 --- a/validate.py
 +++ b/validate.py
-@@ -3,9 +3,16 @@ MAX_NAME = 80
+@@ -3,11 +3,25 @@ MAX_NAME = 80
  
  
 -def collect_warnings(record):
@@ -13,3 +13,18 @@
      if record.get("qty", 0) < 0:
          warnings.append("negative qty")
      return warnings
++
++
++def record_id(record):
++    """Return the record's id (None if absent)."""
++    return record.get("id")
++
++
++def name_length(record):
++    """Length of the record's name field (0 if absent)."""
++    return len(record.get("name", ""))
++
++
++def quantity(record):
++    """The record's quantity, defaulting to 0."""
++    return record.get("qty", 0)

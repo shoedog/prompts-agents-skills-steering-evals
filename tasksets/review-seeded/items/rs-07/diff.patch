@@ -1,6 +1,6 @@
 --- a/tokens.py
 +++ b/tokens.py
-@@ -1,9 +1,12 @@
+@@ -1,5 +1,22 @@
  from datetime import datetime
  
  
@@ -9,3 +9,18 @@
 +    # Compare the stored UTC expiry against the current time.
 +    now = datetime.now()
 +    return now >= token.expires_at
++
++
++def expiry_label(token):
++    """ISO-8601 timestamp string for the token's expiry."""
++    return token.expires_at.isoformat()
++
++
++def has_expiry(token):
++    """True if the token carries an expiry timestamp."""
++    return token.expires_at is not None
++
++
++def expiry_year(token):
++    """Calendar year in which the token expires."""
++    return token.expires_at.year

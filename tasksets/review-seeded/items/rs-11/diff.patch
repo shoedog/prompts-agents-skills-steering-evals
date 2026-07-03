@@ -1,6 +1,6 @@
 --- a/batching.py
 +++ b/batching.py
-@@ -1,7 +1,12 @@
+@@ -1,7 +1,23 @@
  def windows(seq, size):
      return [seq[i:i + size] for i in range(len(seq) - size + 1)]
  
@@ -14,3 +14,13 @@
  
  def flatten(chunks):
      return [x for c in chunks for x in c]
++
++
++def is_empty(seq):
++    """True if the sequence has no elements."""
++    return len(seq) == 0
++
++
++def total_length(chunks):
++    """Total number of elements across all chunks."""
++    return sum(len(c) for c in chunks)

@@ -1,6 +1,6 @@
 --- a/io_utils.py
 +++ b/io_utils.py
-@@ -2,8 +2,14 @@ from .parsing import parse_line
+@@ -2,5 +2,21 @@ from .parsing import parse_line
  
  
  def read_records(path):
@@ -14,3 +14,13 @@
 +            records.append(parse_line(line))
 +    f.close()
 +    return records
++
++
++def is_blank(line):
++    """True if a line has no non-whitespace content."""
++    return not line.strip()
++
++
++def non_empty_lines(lines):
++    """Keep only the lines that have non-whitespace content."""
++    return [line for line in lines if line.strip()]

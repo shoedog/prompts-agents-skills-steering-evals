@@ -1,6 +1,6 @@
 --- a/access.py
 +++ b/access.py
-@@ -18,8 +18,10 @@ class Resource:
+@@ -18,9 +18,25 @@ class Resource:
      owner_id: int
  
  
@@ -13,3 +13,18 @@
  
  def audit(user, resource):
      log.info("access %s -> %s", user.id, resource.owner_id)
++
++
++def is_admin(user):
++    """True if the user has administrator privileges."""
++    return bool(user.is_admin)
++
++
++def access_tag(user, resource):
++    """Short user->owner tag for audit logging."""
++    return "{}->{}".format(user.id, resource.owner_id)
++
++
++def default_decision():
++    """Access decision when no rule grants access."""
++    return False

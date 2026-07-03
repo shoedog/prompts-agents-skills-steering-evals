@@ -3,7 +3,7 @@ defects:
 - id: rs-10-d1
   defect_class: unicode / bytes boundary
   location: text_utils.py:11
-  hunk_lines: 4-15
+  hunk_lines: 4-30
   description: '`encoded[:max_bytes]` can cut a multi-byte UTF-8 character in the middle; `.decode(''utf-8'')`
     on the truncated bytes then raises UnicodeDecodeError.'
   root_cause: slicing raw UTF-8 bytes at an arbitrary byte offset does not respect character boundaries

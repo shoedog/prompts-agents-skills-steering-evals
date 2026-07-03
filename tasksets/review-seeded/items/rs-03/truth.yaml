@@ -3,7 +3,7 @@ defects:
 - id: rs-03-d1
   defect_class: wrong dict key
   location: ratelimit.py:15
-  hunk_lines: 10-17
+  hunk_lines: 10-32
   description: reads `X-RateLimit-Limit` (the total quota) into `remaining` instead of `X-RateLimit-Remaining`.
   root_cause: 'wrong header key: Limit vs Remaining. Both keys exist and are ints, so no exception - just
     a wrong value.'

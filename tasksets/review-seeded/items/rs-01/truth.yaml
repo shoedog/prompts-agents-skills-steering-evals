@@ -3,7 +3,7 @@ defects:
 - id: rs-01-d1
   defect_class: off-by-one / boundary
   location: pagination.py:15
-  hunk_lines: 8-20
+  hunk_lines: 8-30
   description: '`total_items // page_size + 1` is not a correct ceiling; it over-counts by one whenever
     total_items is an exact multiple of page_size, and returns 1 for 0 items.'
   root_cause: floor division plus a constant 1 instead of ceiling division ((total_items + page_size -

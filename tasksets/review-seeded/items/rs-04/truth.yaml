@@ -3,7 +3,7 @@ defects:
 - id: rs-04-d1
   defect_class: mutable default argument
   location: validate.py:5
-  hunk_lines: 3-12
+  hunk_lines: 3-27
   description: '`warnings=[]` is a mutable default evaluated once and shared across all calls that omit
     the argument.'
   root_cause: the default list object persists between calls, so warnings accumulate.

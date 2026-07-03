@@ -1,6 +1,6 @@
 --- a/profile_cache.py
 +++ b/profile_cache.py
-@@ -8,10 +8,17 @@ class ProfileCache:
+@@ -8,7 +8,24 @@ class ProfileCache:
      def get(self, uid):
          if uid not in self._cache:
              self._cache[uid] = load_profile(uid)
@@ -13,3 +13,15 @@
 +
      def clear(self):
          self._cache.clear()
++
++    def is_cached(self, uid):
++        """True if a profile for `uid` is currently in the cache."""
++        return uid in self._cache
++
++    def cached_ids(self):
++        """The uids currently held in the cache."""
++        return list(self._cache)
++
++    def size(self):
++        """Number of cached profiles."""
++        return len(self._cache)

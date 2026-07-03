@@ -1,6 +1,6 @@
 --- a/pagination.py
 +++ b/pagination.py
-@@ -8,9 +8,14 @@ def page_bounds(page, page_size):
+@@ -8,8 +8,23 @@ def page_bounds(page, page_size):
      start = (page - 1) * page_size
      end = start + page_size
      return start, end
@@ -14,3 +14,13 @@
  def clamp_page(page, page_size, total_items):
      last = total_pages(total_items, page_size)
      return max(1, min(page, last))
++
++
++def offset_for(page, page_size):
++    """Zero-based item offset where 1-indexed `page` begins."""
++    return (page - 1) * page_size
++
++
++def fits_on_one_page(total_items, page_size):
++    """True if every item fits on a single page."""
++    return total_items <= page_size

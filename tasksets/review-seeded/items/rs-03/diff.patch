@@ -1,6 +1,6 @@
 --- a/ratelimit.py
 +++ b/ratelimit.py
-@@ -10,7 +10,12 @@ class RateLimit:
+@@ -10,6 +10,23 @@ class RateLimit:
      remaining: int
      reset_at: int
  
@@ -11,3 +11,18 @@
 +    remaining = int(headers["X-RateLimit-Limit"])
 +    reset = int(headers["X-RateLimit-Reset"])
 +    return RateLimit(remaining=remaining, reset_at=reset)
++
++
++def seconds_until_reset(rl, now):
++    """Seconds until the window resets; never negative."""
++    return max(0, rl.reset_at - now)
++
++
++def reset_after(rl, now):
++    """True if the reset timestamp is still in the future."""
++    return rl.reset_at > now
++
++
++def window_key(rl):
++    """Cache key for a rate-limit window, keyed on its reset time."""
++    return "rl:{}".format(rl.reset_at)

@@ -1,6 +1,6 @@
 --- a/list_view.py
 +++ b/list_view.py
-@@ -1,6 +1,12 @@
+@@ -1,5 +1,26 @@
  from math import ceil
  
  
@@ -12,3 +12,18 @@
 +
  def page_count(total, page_size):
      return ceil(total / page_size)
++
++
++def has_next_page(page, page_size, total):
++    """True if a page exists after 1-indexed `page`."""
++    return page * page_size < total
++
++
++def is_first_page(page):
++    """True for the first (1-indexed) page."""
++    return page == 1
++
++
++def last_index(total):
++    """Zero-based index of the final item (or -1 when empty)."""
++    return total - 1

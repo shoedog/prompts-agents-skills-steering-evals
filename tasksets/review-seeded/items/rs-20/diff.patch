@@ -1,6 +1,6 @@
 --- a/config_cache.py
 +++ b/config_cache.py
-@@ -6,6 +6,14 @@ class ConfigCache:
+@@ -6,7 +6,27 @@ class ConfigCache:
      def get(self, key):
          if key not in self._cache:
              self._cache[key] = load_config(key)
@@ -16,3 +16,15 @@
 +
      def keys(self):
          return list(self._cache)
++
++    def has(self, key):
++        """True if `key` is currently cached."""
++        return key in self._cache
++
++    def size(self):
++        """Number of cached entries."""
++        return len(self._cache)
++
++    def is_empty(self):
++        """True if the cache holds no entries."""
++        return len(self._cache) == 0

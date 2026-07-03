@@ -1,6 +1,6 @@
 --- a/http_client.py
 +++ b/http_client.py
-@@ -6,8 +6,17 @@ _session = requests.Session()
+@@ -6,6 +6,23 @@ _session = requests.Session()
  
  
  def get_json(url, retries=3):
@@ -17,3 +17,13 @@
 +                return None
 +            time.sleep(0.5 * (attempt + 1))
 +    return None
++
++
++def response_ok(resp):
++    """True if the response status code is a 2xx success."""
++    return 200 <= resp.status_code < 300
++
++
++def is_server_error(resp):
++    """True if the response status code is a 5xx server error."""
++    return 500 <= resp.status_code < 600

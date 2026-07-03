@@ -3,7 +3,7 @@ defects:
 - id: rs-06-d1
   defect_class: swallowed / over-broad exception
   location: http_client.py:14
-  hunk_lines: 6-18
+  hunk_lines: 6-28
   description: the bare `except Exception` catches non-transient errors (4xx via raise_for_status, JSON
     decode errors, and even bugs) and, after exhausting retries, returns None instead of propagating them.
   root_cause: catching Exception treats every failure as retryable and converts permanent failures into
