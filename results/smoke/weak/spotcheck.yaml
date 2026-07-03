@@ -8,40 +8,6 @@ items:
   false_findings: 0
   item_pass: true
   agree: null
-- task_id: sm-02
-  arm: baseline
-  seeded: true
-  verdict_flagged: true
-  found:
-  - sm-02-d1
-  false_findings: 0
-  item_pass: true
-  agree: null
-- task_id: sm-03
-  arm: baseline
-  seeded: true
-  verdict_flagged: true
-  found:
-  - sm-03-d1
-  false_findings: 0
-  item_pass: true
-  agree: null
-- task_id: sm-04
-  arm: baseline
-  seeded: false
-  verdict_flagged: false
-  found: []
-  false_findings: 0
-  item_pass: true
-  agree: null
-- task_id: sm-05
-  arm: baseline
-  seeded: false
-  verdict_flagged: false
-  found: []
-  false_findings: 0
-  item_pass: true
-  agree: null
 - task_id: sm-01
   arm: treatment
   seeded: true
@@ -52,11 +18,29 @@ items:
   item_pass: true
   agree: null
 - task_id: sm-02
+  arm: baseline
+  seeded: true
+  verdict_flagged: true
+  found:
+  - sm-02-d1
+  false_findings: 0
+  item_pass: true
+  agree: null
+- task_id: sm-02
   arm: treatment
   seeded: true
   verdict_flagged: true
   found:
   - sm-02-d1
+  false_findings: 0
+  item_pass: true
+  agree: null
+- task_id: sm-03
+  arm: baseline
+  seeded: true
+  verdict_flagged: true
+  found:
+  - sm-03-d1
   false_findings: 0
   item_pass: true
   agree: null
@@ -70,7 +54,23 @@ items:
   item_pass: true
   agree: null
 - task_id: sm-04
+  arm: baseline
+  seeded: false
+  verdict_flagged: false
+  found: []
+  false_findings: 0
+  item_pass: true
+  agree: null
+- task_id: sm-04
   arm: treatment
+  seeded: false
+  verdict_flagged: false
+  found: []
+  false_findings: 0
+  item_pass: true
+  agree: null
+- task_id: sm-05
+  arm: baseline
   seeded: false
   verdict_flagged: false
   found: []
