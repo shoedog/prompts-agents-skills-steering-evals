@@ -9,9 +9,9 @@ defects:
   root_cause: step should equal the slice width (`size`); `size - 1` advances one element too few each
     iteration.
   bad_behavior: boundary elements are duplicated across adjacent chunks (and elements are not covered
-    exactly once).
+    exactly once); the same step also makes size == 1 raise ValueError (range step 0).
   minimal_trigger: 'chunk([0,1,2,3,4], 3) -> [[0,1,2],[2,3,4],[4]]: element 2 (and 4) appear in two chunks.'
-  acceptable_match: any finding naming that the range step is `size - 1` (should be `size`), causing overlapping
-    chunks / duplicated boundary elements; also acceptable is naming that this same `size - 1` step becomes
-    0 when size == 1, so `range(0, len(seq), 0)` raises ValueError.
+  acceptable_match: any finding that identifies the loop step `size - 1` as wrong (should be `size`), evidenced
+    either by overlapping/duplicated chunks or by the step becoming 0 when size == 1 (range ValueError); do not
+    credit a report of either symptom that does not attribute it to the size-1 step.
   reject_if: a generic 'chunking looks wrong' without naming the step of size-1 / the overlap or duplication.
