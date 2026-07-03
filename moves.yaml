@@ -1,0 +1,194 @@
+# Source of truth: Reasoning-Capture Formats for SWE Tasks_ Element-Level Evidence Triage and Structural Moves Catalog.md. Do not edit without re-checking the catalog.
+#
+# Move list = the doc's own numbered "THE STRUCTURAL-MOVES CATALOG" (18 items, section ~L119-161)
+# plus 5 items that the doc's centerpiece "ELEMENT x EVIDENCE TRIAGE TABLE" (~L89-106) and the
+# "What to build vs. what to test" matrix (~L165-190) each separately triage with their own
+# verdict/confidence but which the numbered catalog folds into a sibling move rather than
+# numbering standalone: goal-restatement, pruned-dead-ends, rejected-alternatives, sensitivity-notes,
+# and the context-file narrative/overview form (the doc's own declared "single most important
+# negative", Executive summary L7). See task-2-report.md for the full reconciliation of the
+# "18 vs 19" discrepancy and the rule used to decide these 5 additions. Final count: 23.
+moves:
+  - id: decomposition-plan
+    name: "Decomposition (ordered resolved-decision plan)"
+    classification: element
+    verdict: build
+    eval_shape: ablation
+    evidence_tier: swe
+    notes: "Strongest weaker-executor evidence in the catalog: least-to-most and COPE prove an ordered, resolved plan helps a weaker executor on code (MBPP 66.4% vs 64.0%) and repository code (MutaGReP). Listed first in 'BUILD NOW' as the compact ordered resolved-decision plan."
+
+  - id: goal-restatement
+    name: "Goal / problem restatement"
+    classification: element
+    verdict: build
+    eval_shape: ablation
+    evidence_tier: swe
+    notes: "COPE shows small executors benefit MORE from a GOAL than a how-to guideline (Llama-1B 25.2%->30.2%); triage table verdict is 'include (resolved-helps)', and it is its own separate 'BUILD NOW' bullet distinct from the plan itself."
+
+  - id: abstraction-first
+    name: "Abstraction-first (step-back / governing principle)"
+    classification: runtime
+    verdict: test_cheap
+    eval_shape: adherence
+    evidence_tier: general
+    notes: "Step-back prompting shows strong general/STEM gains (MMLU Physics +7%, Chemistry +11%, TimeQA +27-34%) but the doc marks it 'likely helps but UNTESTED on code'. Classified runtime when self-generated; the doc notes it becomes an element only if the governing principle is pre-computed and handed over."
+
+  - id: disconfirmation
+    name: "Disconfirmation / competing hypotheses"
+    classification: runtime
+    verdict: build
+    eval_shape: adherence
+    evidence_tier: swe
+    notes: "Verdict HELPS, realized in production via BitsAI-CR and Defect-Focused Review's filtering/verification layers; explicitly a RUNTIME strategy the executor must generate/score, though the criteria checklist that triggers it is a separate capture element."
+
+  - id: reference-class
+    name: "Reference-class / outside-view data"
+    classification: element
+    verdict: test_cheap
+    eval_shape: ablation
+    evidence_tier: human
+    notes: "Strongest human debiasing result for estimation (Kahneman & Tversky planning-fallacy / outside-view literature) but the doc calls the LLM analog 'weak, under-explored' and verdict 'UNKNOWN - worth testing'; listed under 'reference-class data for estimation' in TEST-IF-CHEAP."
+
+  - id: analogical-worked-example
+    name: "Analogical transfer (one nearby worked example)"
+    classification: element
+    verdict: test_cheap
+    eval_shape: ablation
+    evidence_tier: general
+    notes: "Analogical prompting beats 0-shot/few-shot CoT on GSM8K, MATH and Codeforces, but the doc flags an expertise-reversal anchoring risk for capable models; TEST-IF-CHEAP verdict explicitly carries this anchoring-risk caveat."
+
+  - id: multiple-attempts
+    name: "Multiple independent attempts + aggregation"
+    classification: runtime
+    verdict: build
+    eval_shape: adherence
+    evidence_tier: general
+    notes: "Verdict HELPS, robust across reasoning and code per self-consistency; the doc is explicit this is a RUNTIME strategy and 'explicitly NOT a capture element' - it cannot be handed as static text, only triggered."
+
+  - id: failure-signature-list
+    name: "Named failure-signature list (prospective failure imagination)"
+    classification: element
+    verdict: test_cheap
+    eval_shape: ablation
+    evidence_tier: human
+    notes: "Pre-mortem/prospective-hindsight improves failure-cause identification ~30% in humans, but CogniGent's SWE evidence is 'in-episode only' - it validates hypothesis-testing at runtime, not handing a static failure-signature artifact to a weaker executor. Verdict TEST-IF-CHEAP."
+
+  - id: executable-checks
+    name: "Constraint propagation / invariants as executable checks"
+    classification: element
+    verdict: build
+    eval_shape: ablation
+    evidence_tier: swe
+    notes: "Agentic Rubrics (rubric-as-verifier) and COPE's divisibility+inequality example show executable checks help; the doc pairs this with an explicit exclude for the prose form ('Invariants/checks AS prose' triage row: 'exclude-or-minimize', AGENTS.md negative) - build the check, do not substitute prose for it."
+
+  - id: context-narrative-overview
+    name: "Repository context file: narrative/overview form"
+    classification: element
+    verdict: exclude
+    eval_shape: negative_control
+    evidence_tier: swe
+    notes: "The doc's declared single most important negative: the ETH AGENTS.md study (2602.11988) shows narrative/overview context files do not generally improve task success and raise inference cost >20%, deepened by drift (23.0% stale refs) and configuration-smell findings; triage verdict 'exclude-or-minimize', High confidence."
+
+  - id: differential-diagnosis
+    name: "Differential / bisection diagnosis"
+    classification: runtime
+    verdict: test_cheap
+    eval_shape: adherence
+    evidence_tier: swe
+    notes: "CogniGent and LLM4FL show hypothesis-ordering and Reflexion-style refinement help fault localization within an episode ('HELPS as a runtime procedure'), but the doc flags it as 'unknown as transferred artifact' - no evidence it helps when handed as static content."
+
+  - id: self-explanation
+    name: "Rubber-duck / self-explanation"
+    classification: runtime
+    verdict: test_cheap
+    eval_shape: adherence
+    evidence_tier: human
+    notes: "Chi et al.'s self-explanation effect is a solid human-learning result, but the doc cautions LLM 'explanation != faithful belief' (post-hoc rationalization); classified RUNTIME (the act of explaining, not transferable as static text), verdict TEST-IF-CHEAP."
+
+  - id: types-contracts
+    name: "Type-driven / contract-driven reasoning"
+    classification: element
+    verdict: must_test
+    eval_shape: ablation
+    evidence_tier: human
+    notes: "The doc states this move is 'under-studied' with LLM analog overlapping the executable-checks move; explicitly listed as 'type/contract statements' in MUST-TEST - a GAP, not a recommendation, per the doc's own definition of that verdict."
+
+  - id: counterfactual-ablation
+    name: "Counterfactual / ablation reasoning"
+    classification: runtime
+    verdict: must_test
+    eval_shape: adherence
+    evidence_tier: general
+    notes: "Distraction studies (GSM-IC) show the inverse effect (irrelevant context hurts) rather than testing counterfactual ablation directly on code; MUST-TEST verdict, listed under 'counterfactual/inversion/Fermi as transferred content' in the must-test bullet."
+
+  - id: inversion
+    name: "Inversion (solve the inverse / avoid-stupidity)"
+    classification: runtime
+    verdict: must_test
+    eval_shape: adherence
+    evidence_tier: human
+    notes: "Human tier only (Munger's inversion, overlaps pre-mortem); the doc states 'LLM analog: none located' and gives a flat MUST-TEST verdict."
+
+  - id: parsimony-constraint
+    name: "Occam / minimum-description-length parsimony"
+    classification: element
+    verdict: build
+    eval_shape: ablation
+    evidence_tier: swe
+    notes: "Metacognitive Reuse and RoT implicitly reward brevity, and the AGENTS.md Configuration Smells study shows verbosity/bloat hurts (Context Bloat 42%); verdict HELPS ('keep artifacts compact'), echoed in BUILD NOW as 'keep the artifact compact and imperative'."
+
+  - id: criteria-checklist
+    name: "Checklist-driven reasoning"
+    classification: element
+    verdict: build
+    eval_shape: ablation
+    evidence_tier: swe
+    notes: "The doc's best-evidenced per-type shape: WHO Surgical Safety Checklist analog plus BitsAI-CR's rule taxonomy and Agentic Rubrics' repo-grounded checklists (+3.5pp SWE-bench Verified); verdict HELPS, and 'explicit criteria checklist' is its own BUILD NOW bullet for review/eval."
+
+  - id: fermi-estimation
+    name: "Fermi estimation / order-of-magnitude bounding"
+    classification: runtime
+    verdict: must_test
+    eval_shape: adherence
+    evidence_tier: human
+    notes: "Human tier only; the doc states 'LLM analog: none strong located' and gives a flat MUST-TEST verdict, grouped with inversion/counterfactual under 'transferred content' in the must-test bullet."
+
+  - id: specs-first
+    name: "Specification-first / test-first reasoning"
+    classification: element
+    verdict: test_cheap
+    eval_shape: ablation
+    evidence_tier: swe
+    notes: "TDD-as-reasoning-discipline is 'SWE-adjacent'; test-pass is COPE's code confidence signal and Agentic Rubrics uses pre-specified acceptance criteria, so the doc reasons 'specifications/tests as supplied text plausibly help' - verdict TEST-IF-CHEAP, listed as 'specs/tests-first' in that bucket."
+
+  - id: stop-criterion
+    name: "Satisficing vs optimizing (stop-criterion move)"
+    classification: element
+    verdict: build
+    eval_shape: ablation
+    evidence_tier: swe
+    notes: "COPE's confidence-threshold escalation (accept when consensus/test-pass exceeds a threshold) plus Simon's satisficing; verdict HELPS - 'an explicit stop criterion prevents over-exploration, the exact failure AGENTS.md induces' - and is its own BUILD NOW bullet."
+
+  - id: pruned-dead-ends
+    name: "Pruned dead-ends"
+    classification: element
+    verdict: test_cheap
+    eval_shape: ablation
+    evidence_tier: general
+    notes: "Retrieval-of-Thought reduces redundant exploration by reusing a thought-graph, but the doc notes 'no code-specific ablation'; triage verdict test-if-cheap, Low-medium confidence, and it is its own TEST-IF-CHEAP bullet ('pruned dead-ends [RoT]')."
+
+  - id: rejected-alternatives
+    name: "Rejected-alternatives-with-boundary-conditions"
+    classification: element
+    verdict: must_test
+    eval_shape: ablation
+    evidence_tier: human
+    notes: "The differentiator for the design/architecture shape; ADR/MADR is the human donor and AgenticAKM generates ADRs but 'doesn't test rationale-transfer lift' - triage verdict must-test, Low confidence, the GAP the doc calls out for design."
+
+  - id: sensitivity-notes
+    name: "Sensitivity notes"
+    classification: element
+    verdict: must_test
+    eval_shape: ablation
+    evidence_tier: general
+    notes: "The weakest-evidenced row in the triage table: 'No located evidence', Very low confidence; kept as its own must-test move because the doc explicitly triages it as a distinct, separately-verdicted element rather than folding it into rejected-alternatives."
