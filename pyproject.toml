@@ -1,0 +1,8 @@
+[project]
+name = "human-moves-eval"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = ["pyyaml>=6.0", "tiktoken>=0.8", "deepeval>=3.0", "opik>=1.7", "pytest>=8.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["ci", "harness"]
