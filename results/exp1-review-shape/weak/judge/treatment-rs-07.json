@@ -1,0 +1,28 @@
+{
+  "exp_id": "exp1-review-shape",
+  "arm": "treatment",
+  "task_id": "rs-07",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": true,
+    "disconfirm": true,
+    "verify": true
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-07/truth.yaml",
+  "truth_defect_ids": [
+    "rs-07-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. tokens.py:5 — `is_expired()` uses `datetime.now()` which returns local time, not UTC; violates the contract requirement to evaluate expiry in UTC regardless of host timezone, causing incorrect expiry on non-UTC hosts.\n2. tokens.py:10 — `expiry_label()` will raise `AttributeError` if `token.expires_at` is None; the presence of `has_expiry()` suggests None is valid, so this function should guard against it.\n3. tokens.py:19 — `expiry_year()` will raise `AttributeError` if `token.expires_at` is None; same issue as `expiry_label()`.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-07-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 2,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false
+}

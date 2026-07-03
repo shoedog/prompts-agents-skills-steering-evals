@@ -1,0 +1,28 @@
+{
+  "exp_id": "exp1-review-shape",
+  "arm": "treatment",
+  "task_id": "rs-06",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": true,
+    "disconfirm": true,
+    "verify": true
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-06/truth.yaml",
+  "truth_defect_ids": [
+    "rs-06-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. http_client.py:15 — `except Exception:` catches non-transient failures (HTTP 4xx, JSON decode errors) that the contract requires to propagate to the caller for distinguishability.\n2. http_client.py:17 — `return None` instead of re-raising non-transient errors violates the contract requirement that they be \"distinguishable from a valid empty response.\"\n3. http_client.py:18 — `time.sleep()` is called but `time` module is not imported, causing `NameError` at runtime when a retry is triggered.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-06-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 1,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false
+}

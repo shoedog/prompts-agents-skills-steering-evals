@@ -1,0 +1,28 @@
+{
+  "exp_id": "exp1-review-shape",
+  "arm": "baseline",
+  "task_id": "rs-01",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-01/truth.yaml",
+  "truth_defect_ids": [
+    "rs-01-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. pagination.py:13 — `total_pages` returns 1 when `total_items == 0`, but contract specifies it should return 0\n2. pagination.py:13 — `total_pages` adds 1 unconditionally, causing it to return extra pages for exact multiples (e.g., 3 pages instead of 2 for 10 items at 5 per page)\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-01-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}

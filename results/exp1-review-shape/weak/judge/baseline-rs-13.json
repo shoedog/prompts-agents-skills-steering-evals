@@ -1,0 +1,33 @@
+{
+  "exp_id": "exp1-review-shape",
+  "arm": "baseline",
+  "task_id": "rs-13",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-13/truth.yaml",
+  "truth_defect_ids": [
+    "rs-13-d1",
+    "rs-13-d2"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. ledger.py:8 — `kind == \"credit\"` should be `kind == \"CREDIT\"` to match the contract's requirement for upper-case type strings; current code silently fails to accumulate any CREDIT totals.\n2. ledger.py:6 — `int(float(amount) * 100)` truncates instead of rounding; should use `round(float(amount) * 100)` per the contract's \"correctly rounded\" requirement to avoid losing precision on fractional cents.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-13-d1",
+      "found": true
+    },
+    {
+      "defect_id": "rs-13-d2",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}

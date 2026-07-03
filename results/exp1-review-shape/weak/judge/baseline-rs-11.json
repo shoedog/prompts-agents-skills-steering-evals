@@ -1,0 +1,28 @@
+{
+  "exp_id": "exp1-review-shape",
+  "arm": "baseline",
+  "task_id": "rs-11",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-11/truth.yaml",
+  "truth_defect_ids": [
+    "rs-11-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. batching.py:6 — `range(0, len(seq), size - 1)` should be `range(0, len(seq), size)` to produce non-overlapping chunks; the current implementation creates overlapping chunks where elements repeat across multiple outputs.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-11-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}

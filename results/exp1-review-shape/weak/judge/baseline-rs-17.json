@@ -1,0 +1,21 @@
+{
+  "exp_id": "exp1-review-shape",
+  "arm": "baseline",
+  "task_id": "rs-17",
+  "tier": "weak",
+  "seeded": false,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-17/truth.yaml",
+  "truth_defect_ids": [],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. txn.py:7 — If `conn.rollback()` raises an exception, it will mask the original exception, causing the caller to see the wrong error instead of the original failure from `fn` or `commit`, violating the contract requirement to re-raise the original exception.\n",
+  "parse_ok": true,
+  "defects": [],
+  "false_findings": 1,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false
+}

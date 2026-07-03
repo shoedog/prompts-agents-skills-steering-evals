@@ -1,0 +1,28 @@
+{
+  "exp_id": "exp1-review-shape",
+  "arm": "treatment",
+  "task_id": "rs-10",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": true,
+    "disconfirm": true,
+    "verify": true
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-10/truth.yaml",
+  "truth_defect_ids": [
+    "rs-10-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. text_utils.py:8 — `truncate_utf8()` raises `UnicodeDecodeError` when truncating in the middle of a multi-byte UTF-8 character, violating the contract to \"never raise\" and \"never split a multi-byte character\"\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-10-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}
