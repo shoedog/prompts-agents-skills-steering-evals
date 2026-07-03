@@ -373,7 +373,7 @@ negative_control: false            # smoke.yaml: same but taskset: tasksets/smok
 
 - [ ] **Step 2: `config.py`** — dataclass + loader + validation per the schema above (paths must exist; exactly one varied element; budget keys required).
 
-- [ ] **Step 3: promptfoo layer — TWO one-arm configs, arm hard-coded everywhere.** `gen_promptfoo.py`: given a config, for each arm in (`baseline`, `treatment`): (a) compose the arm prompt file under `results/<id>/<tier>/prompts/<arm>.txt` — baseline = concat of `baseline_prompt` files + `\n\n{{task_input}}`; treatment = same + the single artifact `artifacts/<varied_element>/<form>.md` inserted after the baseline prompt files (before the task input); (b) emit `results/<id>/<tier>/promptfoo-<arm>.yaml`:
+- [ ] **Step 3: promptfoo layer — TWO one-arm configs, arm hard-coded everywhere.** `gen_promptfoo.py`: given a config, for each arm in (`baseline`, `treatment`): (a) compose the arm prompt file under `results/<id>/<tier>/prompts/<arm>.txt` — baseline = concat of `baseline_prompt` files + `\n\n{{task_input}}`; treatment = same + the single artifact `artifacts/<varied_element>/<form>.md` inserted after the baseline prompt files (before the task input); GUARD: after composition, if the treatment prompt still contains an unfilled `<…>` template slot, raise `ConfigError` ("task-specific element requires per-task instantiation — not supported yet") — several element artifacts are deliberately templated and must not reach an executor raw (exp #1's composite is fully concrete); (b) emit `results/<id>/<tier>/promptfoo-<arm>.yaml`:
 
 ```yaml
 prompts:
