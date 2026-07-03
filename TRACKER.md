@@ -12,6 +12,7 @@ Owner-approved backlog (2026-07-03). Items move to "Done" with the commit that c
 - [ ] ci/test_smoke.py: content-level (not existence-only) checks on report.md/spotcheck.yaml.
 - [ ] judge_assert: probe exotic verdict markdown (tables, heading-verdicts) beyond current variants.
 - [ ] Stratify spotcheck sampling by seeded/clean as well as arm — the rs-01..10 deterministic sample contained zero clean items (compensated manually this round).
+- [ ] rejudge.py: stamp rescored judge records with the output exp_id (currently carry source exp_id) and emit a per-call trace file natively.
 
 ## Scope extension (owner-added 2026-07-03)
 - [ ] Custom agents as a 4th deployment form — initial scope covered prompts/skills/steering only. Two experiment surfaces: (a) `agent.md` form per element artifact (`.claude/agents/*.md` body = system-prompt home for the same ≤150-token snippet; codex analog = AGENTS.md section) → same ablation harness, new form enum value in config `varied_element_form`; (b) agent DESCRIPTION as a delegation-triggering surface → triggering classifier eval (30–50 queries, half should trigger; `triggering_metrics` in harness/metrics.py already computes P/R-with-base-rate). Needs: form added to artifact library + lint, config enum, and a triggering query set. Note: eval_framework Tier 2 profile 5 (Agents/Agent Loops) covers the loop-level evals — out of scope here; this item is only the artifact-deployment + triggering angle.
