@@ -81,6 +81,10 @@ def run_codex(
                 f"codex CLI timed out after {timeout}s",
                 stderr_tail=_stderr_tail(getattr(e, "stderr", None)),
             ) from e
+        except OSError as e:
+            raise ProviderError(
+                f"codex CLI failed to start: {e}",
+            ) from e
 
         if proc.returncode != 0:
             raise ProviderError(

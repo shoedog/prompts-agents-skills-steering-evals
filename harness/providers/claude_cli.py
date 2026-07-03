@@ -63,6 +63,10 @@ def run_claude(prompt: str, model: str, cwd: str, timeout: int = 300) -> dict:
             f"claude CLI timed out after {timeout}s",
             stderr_tail=_stderr_tail(getattr(e, "stderr", None)),
         ) from e
+    except OSError as e:
+        raise ProviderError(
+            f"claude CLI failed to start: {e}",
+        ) from e
 
     if proc.returncode != 0:
         raise ProviderError(
@@ -77,6 +81,12 @@ def run_claude(prompt: str, model: str, cwd: str, timeout: int = 300) -> dict:
             f"claude CLI stdout was not valid JSON: {e}",
             stderr_tail=_stderr_tail(proc.stderr),
         ) from e
+
+    if not isinstance(data, dict):
+        raise ProviderError(
+            f"claude CLI stdout was valid JSON but not an object (got {type(data).__name__})",
+            stderr_tail=_stderr_tail(proc.stderr),
+        )
 
     if data.get("is_error"):
         raise ProviderError(

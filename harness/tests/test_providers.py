@@ -95,6 +95,25 @@ class TestRunClaude:
             with pytest.raises(ProviderError):
                 run_claude("hi", "claude-haiku-4-5-20251001", cwd="/tmp")
 
+    def test_missing_binary_raises_provider_error(self):
+        with patch("harness.providers.claude_cli.subprocess.run") as mock_run:
+            mock_run.side_effect = FileNotFoundError("no such file: claude")
+            with pytest.raises(ProviderError):
+                run_claude("hi", "claude-haiku-4-5-20251001", cwd="/tmp")
+
+    def test_non_dict_json_raises_provider_error(self):
+        with patch("harness.providers.claude_cli.subprocess.run") as mock_run:
+            mock_run.return_value = _completed(stdout=json.dumps([1, 2]), stderr="")
+            with pytest.raises(ProviderError):
+                run_claude("hi", "claude-haiku-4-5-20251001", cwd="/tmp")
+
+    def test_timeout_kwarg_reaches_subprocess_run(self):
+        with patch("harness.providers.claude_cli.subprocess.run") as mock_run:
+            mock_run.return_value = _completed(stdout=json.dumps(CANNED_CLAUDE_JSON))
+            run_claude("hi", "claude-haiku-4-5-20251001", cwd="/tmp", timeout=7)
+
+        assert mock_run.call_args.kwargs["timeout"] == 7
+
 
 class TestRunCodex:
     def _mock_run_writing_output_file(self, stdout_extra="", stderr="", returncode=0,
@@ -173,3 +192,16 @@ class TestRunCodex:
             with pytest.raises(ProviderError) as exc_info:
                 run_codex("hi")
         assert "codex boom" in exc_info.value.stderr_tail
+
+    def test_missing_binary_raises_provider_error(self):
+        with patch("harness.providers.codex_cli.subprocess.run") as mock_run:
+            mock_run.side_effect = FileNotFoundError("no such file: codex")
+            with pytest.raises(ProviderError):
+                run_codex("hi")
+
+    def test_timeout_kwarg_reaches_subprocess_run(self):
+        with patch("harness.providers.codex_cli.subprocess.run") as mock_run:
+            mock_run.side_effect = self._mock_run_writing_output_file(stdout_extra="tokens used\n1\n")
+            run_codex("hi", timeout=7)
+
+        assert mock_run.call_args.kwargs["timeout"] == 7
