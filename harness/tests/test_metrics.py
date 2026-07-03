@@ -126,6 +126,24 @@ def test_confusion_hand_built_six_rows():
     assert c["defect_recall"]["rate"] == pytest.approx(0.75)
     assert c["defect_recall"]["judge_id_mismatches"] == 0
     assert c["false_findings_total"] == 1
+    assert c["neutral_matched_total"] == 0  # no rows carried neutral matches
+
+
+def test_confusion_sums_neutral_matched_across_rows_separate_from_false_findings():
+    # Neutral matches are summed independently of false findings: a seeded row
+    # can carry neutral_matched>0 while contributing 0 to false_findings_total.
+    rows = [
+        _judge_row(seeded=True, verdict_flagged=True, truth_defect_ids=["a"],
+                   defects=[{"defect_id": "a", "found": True}],
+                   false_findings=0, neutral_matched=2),
+        _judge_row(seeded=True, verdict_flagged=True, truth_defect_ids=["b"],
+                   defects=[{"defect_id": "b", "found": True}],
+                   false_findings=1, neutral_matched=1),
+        _judge_row(seeded=False, verdict_flagged=False),  # no neutral key -> 0
+    ]
+    c = confusion(rows, "baseline")
+    assert c["neutral_matched_total"] == 3
+    assert c["false_findings_total"] == 1
 
 
 def test_defect_recall_anchored_to_truth_not_judge_ids():

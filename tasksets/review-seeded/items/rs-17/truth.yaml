@@ -12,3 +12,8 @@ tempting_non_defects:
 - 'the result is stored in a local before commit and returned afterwards; `finally: conn.close()` has no
   return statement, so it does not override the returned value.'
 - close() runs once (in finally) and is idempotent per the contract, so there is no double-close problem.
+- 'the `except Exception:` runs `conn.rollback()` then a bare `raise`; observing that IF `rollback()`
+  itself raised it could mask the original exception is a pedantic point about a standard idiom. The
+  contract only requires the ORIGINAL exception be re-raised - which the bare `raise` does - and does not
+  require guarding against a failing rollback, so flagging rollback-masking is a non-defect on this clean
+  diff.'

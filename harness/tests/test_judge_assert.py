@@ -182,7 +182,8 @@ def test_get_assert_pins_judge_cwd_to_results_dir_scratch_not_repo_root(tmp_path
     }}
     output = "workspace text\n## FINDINGS\nVERDICT: APPROVE\nNo findings."
     payload = json.dumps({
-        "parse_ok": True, "defects": [], "false_findings": 0, "verdict_flagged": False,
+        "parse_ok": True, "defects": [], "false_findings": 0,
+        "neutral_matched": 0, "verdict_flagged": False,
     })
 
     with patch("harness.judge.run_codex") as mock_run:
@@ -190,3 +191,78 @@ def test_get_assert_pins_judge_cwd_to_results_dir_scratch_not_repo_root(tmp_path
         get_assert(output, context)
 
     assert mock_run.call_args.kwargs["cwd"] == os.path.join(str(results_dir), "judge_scratch")
+
+
+def test_get_assert_stores_neutral_matched_and_neutral_never_blocks_pass(tmp_path):
+    # A seeded item whose only extra finding matches a neutral_findings entry:
+    # neutral_matched is stored on the row, false_findings stays 0, and the item
+    # still PASSES (all defects found, flagged, no false findings). A neutral
+    # match neither credits nor blocks — the item-pass rule is unchanged.
+    truth = tmp_path / "truth.yaml"
+    truth.write_text(
+        "seeded: true\n"
+        "defects:\n  - id: d1\n"
+        "neutral_findings:\n  - an out-of-scope true observation\n"
+    )
+    rubric = tmp_path / "rubric.md"
+    rubric.write_text("Grade the findings block.")
+    results_dir = tmp_path / "results"
+    results_dir.mkdir()
+
+    judge_cfg = {
+        "provider": "codex", "model": "gpt-5.5", "effort": "medium",
+        "rubric": str(rubric), "schema": None,
+    }
+    context = {"vars": {
+        "task_id": "t1", "arm": "treatment", "exp_id": "e1", "tier": "weak",
+        "seeded": True, "truth_path": str(truth), "results_dir": str(results_dir),
+        "judge_json": json.dumps(judge_cfg),
+    }}
+    output = (
+        "workspace text\n## FINDINGS\nVERDICT: REJECT\n"
+        "1. real.py:1 — the seeded defect\n"
+        "2. real.py:9 — an out-of-scope true observation"
+    )
+    payload = json.dumps({
+        "parse_ok": True,
+        "defects": [{"defect_id": "d1", "found": True}],
+        "false_findings": 0,
+        "neutral_matched": 1,
+        "verdict_flagged": True,
+    })
+
+    with patch("harness.judge.run_codex") as mock_run:
+        mock_run.return_value = {"output": payload}
+        res = get_assert(output, context)
+
+    assert res["pass"] is True
+    rec = json.loads((results_dir / "judge" / "treatment-t1.json").read_text())
+    assert rec["neutral_matched"] == 1
+    assert rec["false_findings"] == 0
+    assert rec["item_pass"] is True
+
+
+def test_get_assert_parse_failure_row_carries_zero_neutral_matched(tmp_path):
+    truth = tmp_path / "truth.yaml"
+    truth.write_text("seeded: true\ndefects:\n  - id: d1\n")
+    rubric = tmp_path / "rubric.md"
+    rubric.write_text("Grade the findings block.")
+    results_dir = tmp_path / "results"
+    results_dir.mkdir()
+    judge_cfg = {
+        "provider": "codex", "model": "gpt-5.5", "effort": "medium",
+        "rubric": str(rubric), "schema": None,
+    }
+    context = {"vars": {
+        "task_id": "t1", "arm": "baseline", "exp_id": "e1", "tier": "weak",
+        "seeded": True, "truth_path": str(truth), "results_dir": str(results_dir),
+        "judge_json": json.dumps(judge_cfg),
+    }}
+    # No VERDICT line -> parse failure -> no judge call.
+    output = "workspace text\n## FINDINGS\nnothing parseable here"
+    with patch("harness.judge.run_codex") as mock_run:
+        res = get_assert(output, context)
+    assert res["pass"] is False
+    assert mock_run.call_count == 0
+    rec = json.loads((results_dir / "judge" / "baseline-t1.json").read_text())
+    assert rec["neutral_matched"] == 0

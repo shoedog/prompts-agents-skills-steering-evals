@@ -167,7 +167,7 @@ def _collect_caveats(s: dict) -> list[str]:
     return out
 
 
-def render_report_md(cfg: ExperimentConfig, s: dict) -> str:
+def render_report_md(cfg: ExperimentConfig, s: dict, note: str | None = None) -> str:
     L = []
     L.append("# Experiment report — PROVISIONAL")
     L.append("")
@@ -176,6 +176,9 @@ def render_report_md(cfg: ExperimentConfig, s: dict) -> str:
         "then run `scripts/check_spotcheck.py`."
     )
     L.append("")
+    if note:
+        L.append(f"> NOTE — {note}")
+        L.append("")
     L.append(_ESTIMAND)
     L.append("")
 
@@ -253,14 +256,14 @@ def render_report_md(cfg: ExperimentConfig, s: dict) -> str:
 
     L.append("## Confusion matrix (verdict) + base rate")
     L.append("")
-    L.append("| arm | TP | FP | TN | FN | base rate | defect recall | false findings |")
-    L.append("|---|---|---|---|---|---|---|---|")
+    L.append("| arm | TP | FP | TN | FN | base rate | defect recall | false findings | neutral matched |")
+    L.append("|---|---|---|---|---|---|---|---|---|")
     for arm, c in (("baseline", s["baseline_confusion"]), ("treatment", s["treatment_confusion"])):
         dr = c["defect_recall"]
         L.append(
             f"| {arm} | {c['tp']} | {c['fp']} | {c['tn']} | {c['fn']} | "
             f"{c['base_rate']:.3f} | {dr['found']}/{dr['total']} = {dr['rate']:.3f} | "
-            f"{c['false_findings_total']} |"
+            f"{c['false_findings_total']} | {c.get('neutral_matched_total', 0)} |"
         )
     L.append("")
     L.append(
@@ -378,14 +381,17 @@ def render_spotcheck(judges) -> tuple[str, list[dict]]:
     return "\n".join(md), yaml_rows
 
 
-def render(cfg: ExperimentConfig, results_dir) -> dict:
+def render(cfg: ExperimentConfig, results_dir, note: str | None = None) -> dict:
     """Compute metrics and write report.md, spotcheck.md, spotcheck.yaml.
+
+    `note`, if given, is rendered as a provenance blockquote near the top of
+    report.md (e.g. a rescore's "executor calls shared verbatim with ..." note).
 
     Returns the summary dict (so run.py can read flags/judge_errors)."""
     results_dir = str(results_dir)
     s = summarize(cfg, results_dir)
 
-    report_md = render_report_md(cfg, s)
+    report_md = render_report_md(cfg, s, note=note)
     with open(os.path.join(results_dir, "report.md"), "w") as f:
         f.write(report_md)
 

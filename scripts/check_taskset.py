@@ -42,6 +42,10 @@ def main(root):
             if "--- " not in t or "+++ " not in t or "@@" not in t:
                 errors.append(f"{iid}: diff.patch missing ---/+++/@@ markers")
         defects = truth.get("defects") or []
+        # neutral_findings (OPTIONAL, seeded-only): true-but-out-of-scope
+        # observations the judge treats as neither credit nor false finding.
+        # Clean items stay strict — they may NOT carry any neutral_findings.
+        neutral = truth.get("neutral_findings")
         if seeded:
             seeded_n += 1
             if not (1 <= len(defects) <= 2):
@@ -56,10 +60,19 @@ def main(root):
                 if df.get("id") in did:
                     errors.append(f"{iid}: duplicate defect id {df.get('id')!r}")
                 did.add(df.get("id"))
+            if neutral is not None:
+                if not isinstance(neutral, list) or not neutral:
+                    errors.append(f"{iid}: neutral_findings must be a non-empty list when present")
+                else:
+                    for j, nf in enumerate(neutral):
+                        if not isinstance(nf, str) or not nf.strip():
+                            errors.append(f"{iid} neutral_findings[{j}]: must be a non-empty string")
         else:
             clean_n += 1
             if defects:
                 errors.append(f"{iid}: clean item must have 0 defects, has {len(defects)}")
+            if neutral is not None:
+                errors.append(f"{iid}: clean item must not carry neutral_findings (seeded-only field)")
             if not (truth.get("clean_rationale") or "").strip():
                 errors.append(f"{iid}: clean item missing clean_rationale")
             tnd = truth.get("tempting_non_defects")

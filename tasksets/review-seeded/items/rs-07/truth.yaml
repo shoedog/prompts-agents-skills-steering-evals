@@ -17,3 +17,9 @@ defects:
     (should be utcnow()/UTC-aware), skewing expiry by the timezone offset.
   reject_if: a generic 'timezone handling could be improved' without naming now() vs UTC or the local-offset
     skew.
+neutral_findings:
+- '`expiry_label()` / `expiry_year()` dereference `token.expires_at` (via `.isoformat()` / `.year`) and
+  would raise AttributeError if `expires_at` were None, and the sibling `has_expiry()` returning
+  `expires_at is not None` suggests None is a valid state. This is a true secondary observation about the
+  newly added helper functions, but it is out of scope for the `is_expired` UTC-comparison contract under
+  review — neither the seeded timezone defect nor a false alarm.'

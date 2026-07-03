@@ -168,7 +168,7 @@ def _pr(k, n, lo, hi):
     }
 
 
-def _conf(found, total, rate=None):
+def _conf(found, total, rate=None, false_findings=0, neutral_matched=0):
     """Synthetic confusion()-shaped dict — only the defect_recall sub-dict
     matters to the caveat logic under test; the other fields are zeroed."""
     if rate is None:
@@ -178,7 +178,8 @@ def _conf(found, total, rate=None):
         "defect_recall": {
             "found": found, "total": total, "rate": rate, "judge_id_mismatches": 0,
         },
-        "false_findings_total": 0,
+        "false_findings_total": false_findings,
+        "neutral_matched_total": neutral_matched,
     }
 
 
@@ -404,3 +405,33 @@ def test_render_report_md_deltas_include_output_and_fresh_input_rows():
     assert "output tokens: 35741 (+68.8%)" in deltas_section
     assert "fresh input tokens: 0 (+0.0%)" in deltas_section
     assert "cost USD: +0.1852 (+30.3%)" in deltas_section
+
+
+def test_render_report_md_confusion_table_surfaces_neutral_matched_column():
+    s = _full_summary(
+        baseline_confusion=_conf(15, 15, false_findings=2, neutral_matched=1),
+        treatment_confusion=_conf(14, 15, false_findings=1, neutral_matched=3),
+    )
+    md = render_report_md(_cfg(), s)
+    conf_section = md.split("## Confusion matrix")[1].split("## Paired flip")[0]
+    header = [ln for ln in conf_section.splitlines() if ln.startswith("| arm |")][0]
+    assert "neutral matched" in header
+    body = [ln for ln in conf_section.splitlines()
+            if ln.startswith("| baseline |") or ln.startswith("| treatment |")]
+    # trailing cell is the neutral count (baseline=1, treatment=3)
+    assert body[0].rstrip().endswith("| 1 |")
+    assert body[1].rstrip().endswith("| 3 |")
+
+
+def test_render_report_md_renders_provenance_note_when_given():
+    s = _full_summary()
+    note = "Rescore of exp1-review-shape executor outputs under neutral-findings scoring"
+    md = render_report_md(_cfg(), s, note=note)
+    assert f"> NOTE — {note}" in md
+    # note precedes the estimand line
+    assert md.index("> NOTE —") < md.index("Estimand:")
+
+
+def test_render_report_md_omits_note_line_when_none():
+    md = render_report_md(_cfg(), _full_summary())
+    assert "> NOTE —" not in md

@@ -16,3 +16,8 @@ defects:
     (4xx / decode errors) and returns None instead of propagating them.
   reject_if: a finding that only flags the sleep constant or the retry count, not the over-broad except
     that hides permanent errors.
+neutral_findings:
+- 'the retry branch calls `time.sleep(...)` and the shown diff hunk contains no `import time`, so a finding
+  that `time` is unimported and will raise NameError is UNVERIFIABLE from this hunk alone (the import may
+  already exist above the hunk in http_client.py). It is a true-but-out-of-scope import-visibility
+  observation, not the seeded over-broad-except defect and not a false alarm.'

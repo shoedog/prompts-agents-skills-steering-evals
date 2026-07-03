@@ -4,8 +4,9 @@
     "parse_ok": {"type": "boolean"},
     "defects": {"type": "array", "items": {"type": "object", "properties": {"defect_id": {"type": "string"}, "found": {"type": "boolean"}}, "required": ["defect_id", "found"], "additionalProperties": false}},
     "false_findings": {"type": "integer"},
+    "neutral_matched": {"type": "integer"},
     "verdict_flagged": {"type": "boolean"}
   },
-  "required": ["parse_ok", "defects", "false_findings", "verdict_flagged"],
+  "required": ["parse_ok", "defects", "false_findings", "neutral_matched", "verdict_flagged"],
   "additionalProperties": false
 }

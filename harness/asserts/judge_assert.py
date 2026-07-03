@@ -178,6 +178,7 @@ def get_assert(output, context):
             parse_ok=False,
             defects=[],
             false_findings=0,
+            neutral_matched=0,
             verdict_flagged=False,
             item_pass=False,
             judge_error=False,
@@ -198,6 +199,7 @@ def get_assert(output, context):
             parse_ok=True,
             defects=[],
             false_findings=0,
+            neutral_matched=0,
             verdict_flagged=verdict_flagged,
             item_pass=False,
             judge_error=True,
@@ -209,6 +211,11 @@ def get_assert(output, context):
 
     defects = judged.get("defects", []) or []
     false_findings = int(judged.get("false_findings", 0) or 0)
+    # neutral_matched: findings the judge matched to a truth `neutral_findings`
+    # entry (true-but-out-of-scope). Recorded for metrics only; it NEVER enters
+    # the item-pass rule below — a neutral match is neither credited nor counted
+    # as a false finding, so it can never block or grant a pass.
+    neutral_matched = int(judged.get("neutral_matched", 0) or 0)
     # judge.py validates each entry has a string defect_id + bool found before we
     # get here; `.get` is belt-and-suspenders so a slipped-through entry can never
     # KeyError this row into a crash.
@@ -225,6 +232,7 @@ def get_assert(output, context):
         parse_ok=True,
         defects=defects,
         false_findings=false_findings,
+        neutral_matched=neutral_matched,
         verdict_flagged=verdict_flagged,
         item_pass=item_pass,
         judge_error=False,

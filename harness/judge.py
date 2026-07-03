@@ -24,7 +24,8 @@ from harness.providers.codex_cli import run_codex
 from harness.providers.errors import ProviderError
 
 _JUDGE_TIMEOUT = 200  # >= 180s; codex judge calls take 30-90s and run at -j 4
-_REQUIRED_KEYS = {"parse_ok", "defects", "false_findings", "verdict_flagged"}
+_REQUIRED_KEYS = {"parse_ok", "defects", "false_findings", "neutral_matched",
+                  "verdict_flagged"}
 
 
 class JudgeError(Exception):
@@ -44,6 +45,17 @@ def _render_ground_truth(truth: dict) -> str:
                 lines.append(f"  acceptable_match: {d['acceptable_match']}")
             if d.get("reject_if"):
                 lines.append(f"  reject_if: {d['reject_if']}")
+        # neutral_findings render ONLY on seeded items (clean items never carry
+        # them). A finding matching one is neither credited nor counted false.
+        neutral = truth.get("neutral_findings") or []
+        if neutral:
+            lines.append(
+                "neutral_findings (true-but-out-of-scope; a finding matching one "
+                "of these is NEITHER credited as a defect NOR a false finding — "
+                "count it in neutral_matched):"
+            )
+            for nf in neutral:
+                lines.append(f"- {nf}")
     else:
         lines.append("This item is CLEAN. There are NO ground-truth defects.")
         if truth.get("clean_rationale"):
@@ -93,6 +105,14 @@ def _parse_and_validate(text: str) -> dict:
             raise ValueError(f"judge 'defects'[{i}] missing string 'defect_id'")
         if not isinstance(d.get("found"), bool):
             raise ValueError(f"judge 'defects'[{i}] missing bool 'found'")
+    # neutral_matched (findings matching a neutral_findings entry — neither
+    # credited nor counted false) must be a non-bool integer, mirroring the
+    # false_findings contract; a malformed value fails like any other bad
+    # response (retry once, then JudgeError).
+    if not isinstance(data.get("neutral_matched"), int) or isinstance(
+        data.get("neutral_matched"), bool
+    ):
+        raise ValueError("judge 'neutral_matched' must be an integer")
     return data
 
 

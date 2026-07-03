@@ -153,7 +153,7 @@ def confusion(rows, arm):
     _assert_single_tier(rows)
     arm_rows = [r for r in rows if r.get("arm") == arm and not r.get("judge_error")]
     tp = fp = tn = fn = 0
-    found = total = false_findings = 0
+    found = total = false_findings = neutral_matched = 0
     judge_id_mismatches = 0
     for r in arm_rows:
         seeded = r.get("seeded")
@@ -180,6 +180,7 @@ def confusion(rows, arm):
             found += len(truth_ids & judge_found)
             judge_id_mismatches += len(judge_ids - truth_ids)
         false_findings += int(r.get("false_findings", 0) or 0)
+        neutral_matched += int(r.get("neutral_matched", 0) or 0)
     n = len(arm_rows)
     positives = tp + fn
     return {
@@ -196,6 +197,7 @@ def confusion(rows, arm):
             "judge_id_mismatches": judge_id_mismatches,
         },
         "false_findings_total": false_findings,
+        "neutral_matched_total": neutral_matched,
     }
 
 
