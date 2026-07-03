@@ -1,0 +1,29 @@
+{
+  "exp_id": "exp1-review-shape",
+  "arm": "treatment",
+  "task_id": "rs-03",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": true,
+    "disconfirm": true,
+    "verify": true
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-03/truth.yaml",
+  "truth_defect_ids": [
+    "rs-03-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. ratelimit.py:13 — parse_rate_limit reads X-RateLimit-Limit (total quota) instead of X-RateLimit-Remaining (remaining calls) and assigns it to the remaining field, violating the contract that remaining must store remaining calls, not total quota.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-03-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}

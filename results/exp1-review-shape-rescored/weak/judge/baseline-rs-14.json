@@ -1,0 +1,29 @@
+{
+  "exp_id": "exp1-review-shape",
+  "arm": "baseline",
+  "task_id": "rs-14",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-14/truth.yaml",
+  "truth_defect_ids": [
+    "rs-14-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. billing_dates.py:12 — `calendar.monthrange(year, d.month)` should be `calendar.monthrange(year, month)` to clamp to the target month's days, not the original month's days; causes ValueError when original month has more days than target month (e.g., Jan 31 → Feb).\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-14-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}

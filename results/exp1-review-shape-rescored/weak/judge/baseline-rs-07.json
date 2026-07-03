@@ -1,0 +1,29 @@
+{
+  "exp_id": "exp1-review-shape",
+  "arm": "baseline",
+  "task_id": "rs-07",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-07/truth.yaml",
+  "truth_defect_ids": [
+    "rs-07-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. tokens.py:5 — `datetime.now()` returns local time, not UTC; breaks contract requiring UTC comparison on hosts in any timezone. Must use `_utcnow()` or equivalent UTC time source.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-07-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}

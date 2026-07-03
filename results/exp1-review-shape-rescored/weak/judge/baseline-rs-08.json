@@ -1,0 +1,29 @@
+{
+  "exp_id": "exp1-review-shape",
+  "arm": "baseline",
+  "task_id": "rs-08",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-08/truth.yaml",
+  "truth_defect_ids": [
+    "rs-08-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. finance.py:13 — `compound_balance` computes `principal * 1 + rate ** years` instead of `principal * (1 + rate) ** years`; missing parentheses causes operator precedence error and produces wrong results (1000.000125 instead of 1157.625 for the spec example).\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-08-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}

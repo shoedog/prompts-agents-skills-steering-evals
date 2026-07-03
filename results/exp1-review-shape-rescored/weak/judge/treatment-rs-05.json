@@ -1,0 +1,29 @@
+{
+  "exp_id": "exp1-review-shape",
+  "arm": "treatment",
+  "task_id": "rs-05",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": true,
+    "disconfirm": true,
+    "verify": true
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-05/truth.yaml",
+  "truth_defect_ids": [
+    "rs-05-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. io_utils.py:8 — If `parse_line` raises an exception, the file handle is never closed, violating the contract requirement that it must ALWAYS be released on any code path (including exceptions). Use a try-finally block or restore the `with` context manager.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-05-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}

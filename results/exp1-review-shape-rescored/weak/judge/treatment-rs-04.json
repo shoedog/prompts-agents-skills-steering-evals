@@ -1,0 +1,29 @@
+{
+  "exp_id": "exp1-review-shape",
+  "arm": "treatment",
+  "task_id": "rs-04",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": true,
+    "disconfirm": true,
+    "verify": true
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-04/truth.yaml",
+  "truth_defect_ids": [
+    "rs-04-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. validate.py:6 — Mutable default argument `warnings=[]` violates the contract that separate calls omitting the argument must not share state; should be `warnings=None` with fresh list initialization inside the function.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-04-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}

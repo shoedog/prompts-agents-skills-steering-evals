@@ -1,0 +1,29 @@
+{
+  "exp_id": "exp1-review-shape",
+  "arm": "treatment",
+  "task_id": "rs-01",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": true,
+    "disconfirm": true,
+    "verify": true
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-01/truth.yaml",
+  "truth_defect_ids": [
+    "rs-01-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. pagination.py:16 — Formula `total_items // page_size + 1` is incorrect; it returns 1 instead of 0 when total_items is 0 (fails contract), and returns too many pages when total_items is an exact multiple of page_size (e.g., returns 3 instead of 2 for 10 items with page_size 5).\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-01-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}

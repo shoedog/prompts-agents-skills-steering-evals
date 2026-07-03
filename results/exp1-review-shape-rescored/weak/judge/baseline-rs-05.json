@@ -1,0 +1,29 @@
+{
+  "exp_id": "exp1-review-shape",
+  "arm": "baseline",
+  "task_id": "rs-05",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-05/truth.yaml",
+  "truth_defect_ids": [
+    "rs-05-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. io_utils.py:5-11 — File descriptor leak: if `parse_line(line)` on line 10 raises an exception, `f.close()` on line 11 is never executed, violating the contract requirement that the handle must ALWAYS be released on all code paths including exception paths.\n2. io_utils.py:5 — Misleading comment: references a \"checksum pass below\" that does not exist, indicating incomplete or abandoned logic.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-05-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 1,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false
+}

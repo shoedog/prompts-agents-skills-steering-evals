@@ -1,0 +1,22 @@
+{
+  "exp_id": "exp1-review-shape",
+  "arm": "treatment",
+  "task_id": "rs-17",
+  "tier": "weak",
+  "seeded": false,
+  "adherence_labels": {
+    "checklist": true,
+    "disconfirm": true,
+    "verify": true
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-17/truth.yaml",
+  "truth_defect_ids": [],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. txn.py:6 — If `conn.rollback()` raises an exception, the original exception from `fn()` is lost and replaced by the rollback exception, violating the contract requirement that \"callers must still see the error\" from `fn`.\n",
+  "parse_ok": true,
+  "defects": [],
+  "false_findings": 1,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false
+}
