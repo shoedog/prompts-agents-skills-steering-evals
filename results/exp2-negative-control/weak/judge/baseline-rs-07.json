@@ -1,0 +1,29 @@
+{
+  "exp_id": "exp2-negative-control",
+  "arm": "baseline",
+  "task_id": "rs-07",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-07/truth.yaml",
+  "truth_defect_ids": [
+    "rs-07-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. tokens.py:5 — `datetime.now()` returns local time, not UTC; must use a UTC-aware call to evaluate expiry correctly regardless of host timezone\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-07-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}

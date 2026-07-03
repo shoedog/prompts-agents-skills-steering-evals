@@ -1,0 +1,29 @@
+{
+  "exp_id": "exp2-negative-control",
+  "arm": "treatment",
+  "task_id": "rs-10",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-10/truth.yaml",
+  "truth_defect_ids": [
+    "rs-10-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. text_utils.py:7 — `truncate_utf8` can raise `UnicodeDecodeError` when truncation splits a multi-byte UTF-8 character; should use `decode(\"utf-8\", errors=\"ignore\")` to safely return the longest valid prefix.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-10-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}

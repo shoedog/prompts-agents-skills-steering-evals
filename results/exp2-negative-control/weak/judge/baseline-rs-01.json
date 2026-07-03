@@ -1,0 +1,29 @@
+{
+  "exp_id": "exp2-negative-control",
+  "arm": "baseline",
+  "task_id": "rs-01",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-01/truth.yaml",
+  "truth_defect_ids": [
+    "rs-01-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. pagination.py:13 — `total_pages()` uses incorrect ceiling division formula; `total_items // page_size + 1` returns 1 when total_items is 0 (should return 0) and adds spurious pages when total_items is an exact multiple of page_size\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-01-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}

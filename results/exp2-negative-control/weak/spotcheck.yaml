@@ -1,0 +1,181 @@
+items:
+- task_id: rs-01
+  arm: baseline
+  seeded: true
+  verdict_flagged: true
+  found:
+  - rs-01-d1
+  false_findings: 0
+  item_pass: true
+  agree: null
+- task_id: rs-01
+  arm: treatment
+  seeded: true
+  verdict_flagged: true
+  found:
+  - rs-01-d1
+  false_findings: 0
+  item_pass: true
+  agree: null
+- task_id: rs-02
+  arm: baseline
+  seeded: true
+  verdict_flagged: true
+  found:
+  - rs-02-d1
+  false_findings: 0
+  item_pass: true
+  agree: null
+- task_id: rs-02
+  arm: treatment
+  seeded: true
+  verdict_flagged: true
+  found:
+  - rs-02-d1
+  false_findings: 0
+  item_pass: true
+  agree: null
+- task_id: rs-03
+  arm: baseline
+  seeded: true
+  verdict_flagged: true
+  found:
+  - rs-03-d1
+  false_findings: 0
+  item_pass: true
+  agree: null
+- task_id: rs-03
+  arm: treatment
+  seeded: true
+  verdict_flagged: true
+  found:
+  - rs-03-d1
+  false_findings: 0
+  item_pass: true
+  agree: null
+- task_id: rs-04
+  arm: baseline
+  seeded: true
+  verdict_flagged: true
+  found:
+  - rs-04-d1
+  false_findings: 0
+  item_pass: true
+  agree: null
+- task_id: rs-04
+  arm: treatment
+  seeded: true
+  verdict_flagged: true
+  found:
+  - rs-04-d1
+  false_findings: 0
+  item_pass: true
+  agree: null
+- task_id: rs-05
+  arm: baseline
+  seeded: true
+  verdict_flagged: true
+  found:
+  - rs-05-d1
+  false_findings: 0
+  item_pass: true
+  agree: null
+- task_id: rs-05
+  arm: treatment
+  seeded: true
+  verdict_flagged: true
+  found:
+  - rs-05-d1
+  false_findings: 1
+  item_pass: false
+  agree: null
+- task_id: rs-06
+  arm: baseline
+  seeded: true
+  verdict_flagged: true
+  found:
+  - rs-06-d1
+  false_findings: 0
+  item_pass: true
+  agree: null
+- task_id: rs-06
+  arm: treatment
+  seeded: true
+  verdict_flagged: true
+  found:
+  - rs-06-d1
+  false_findings: 0
+  item_pass: true
+  agree: null
+- task_id: rs-07
+  arm: baseline
+  seeded: true
+  verdict_flagged: true
+  found:
+  - rs-07-d1
+  false_findings: 0
+  item_pass: true
+  agree: null
+- task_id: rs-07
+  arm: treatment
+  seeded: true
+  verdict_flagged: true
+  found:
+  - rs-07-d1
+  false_findings: 0
+  item_pass: true
+  agree: null
+- task_id: rs-08
+  arm: baseline
+  seeded: true
+  verdict_flagged: true
+  found:
+  - rs-08-d1
+  false_findings: 0
+  item_pass: true
+  agree: null
+- task_id: rs-08
+  arm: treatment
+  seeded: true
+  verdict_flagged: true
+  found:
+  - rs-08-d1
+  false_findings: 0
+  item_pass: true
+  agree: null
+- task_id: rs-09
+  arm: baseline
+  seeded: true
+  verdict_flagged: true
+  found:
+  - rs-09-d1
+  false_findings: 0
+  item_pass: true
+  agree: null
+- task_id: rs-09
+  arm: treatment
+  seeded: true
+  verdict_flagged: true
+  found:
+  - rs-09-d1
+  false_findings: 0
+  item_pass: true
+  agree: null
+- task_id: rs-10
+  arm: baseline
+  seeded: true
+  verdict_flagged: true
+  found:
+  - rs-10-d1
+  false_findings: 0
+  item_pass: true
+  agree: null
+- task_id: rs-10
+  arm: treatment
+  seeded: true
+  verdict_flagged: true
+  found:
+  - rs-10-d1
+  false_findings: 0
+  item_pass: true
+  agree: null

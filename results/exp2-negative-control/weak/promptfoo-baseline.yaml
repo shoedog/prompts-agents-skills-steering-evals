@@ -1,0 +1,273 @@
+description: exp2-negative-control baseline (weak)
+prompts:
+- id: file:///Users/wesleyjinks/code/prompts-skills-steering/results/exp2-negative-control/weak/prompts/baseline.txt
+  label: baseline
+providers:
+- id: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/providers/promptfoo_claude.py
+  config:
+    model: claude-haiku-4-5-20251001
+    tier: weak
+    arm: baseline
+    exp_id: exp2-negative-control
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/exp2-negative-control/weak
+tests:
+- vars:
+    task_id: rs-01
+    seeded: true
+    arm: baseline
+    task_input: "# pagination.total_pages\n\n`total_pages(total_items, page_size)` returns how many pages are needed to\ndisplay `total_items` records at `page_size` records per page.\n\nContract:\n- `total_items >= 0` and `page_size >= 1`.\n- The result is the ceiling of `total_items / page_size`: the number of\n  pages required to show every item.\n- `total_items == 0` returns 0.\n- When `total_items` is an exact multiple of `page_size`, the result is\n  exactly `total_items / page_size` (no trailing empty page).\n\n\n--- a/pagination.py\n+++ b/pagination.py\n@@ -8,8 +8,23 @@ def page_bounds(page, page_size):\n     start = (page - 1) * page_size\n     end = start + page_size\n     return start, end\n \n \n+def total_pages(total_items, page_size):\n+    \"\"\"Number of pages needed to show all items (ceiling division).\"\"\"\n+    return total_items // page_size + 1\n+\n+\n def clamp_page(page, page_size, total_items):\n     last = total_pages(total_items, page_size)\n     return max(1, min(page, last))\n+\n+\n+def offset_for(page, page_size):\n+    \"\"\"Zero-based item offset where 1-indexed `page` begins.\"\"\"\n+    return (page - 1) * page_size\n+\n+\n+def fits_on_one_page(total_items, page_size):\n+    \"\"\"True if every item fits on a single page.\"\"\"\n+    return total_items <= page_size\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-01/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/exp2-negative-control/weak
+    exp_id: exp2-negative-control
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py
+- vars:
+    task_id: rs-02
+    seeded: true
+    arm: baseline
+    task_input: "# access.can_access\n\n`can_access(user, resource)` decides whether `user` may read `resource`.\n\nRules:\n- Admins (`user.is_admin is True`) may access ANY resource.\n- A non-admin may access a resource ONLY if they own it\n  (`user.id == resource.owner_id`).\n- Everyone else is denied.\n\n`user` has `.id` (int) and `.is_admin` (bool); `resource` has `.owner_id`\n(int). Return True to allow, False to deny.\n\n\n--- a/access.py\n+++ b/access.py\n@@ -18,9 +18,25 @@ class Resource:\n     owner_id: int\n \n \n-def can_access(user, resource):\n-    return _legacy_acl.check(user, resource)\n+def can_access(user, resource):\n+    # Admins may access anything; otherwise only the owner may.\n+    return user.is_admin or user.id != resource.owner_id\n \n \n def audit(user, resource):\n     log.info(\"access %s -> %s\", user.id, resource.owner_id)\n+\n+\n+def is_admin(user):\n+    \"\"\"True if the user has administrator privileges.\"\"\"\n+    return bool(user.is_admin)\n+\n+\n+def access_tag(user, resource):\n+    \"\"\"Short user->owner tag for audit logging.\"\"\"\n+    return \"{}->{}\".format(user.id, resource.owner_id)\n+\n+\n+def default_decision():\n+    \"\"\"Access decision when no rule grants access.\"\"\"\n+    return False\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-02/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/exp2-negative-control/weak
+    exp_id: exp2-negative-control
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py
+- vars:
+    task_id: rs-03
+    seeded: true
+    arm: baseline
+    task_input: "# ratelimit.parse_rate_limit\n\n`parse_rate_limit(headers)` reads GitHub-style rate-limit response headers.\n\nHeader contract (all present, all decimal strings):\n- `X-RateLimit-Limit`    - the total quota for the window.\n- `X-RateLimit-Remaining`- calls still available in the current window.\n- `X-RateLimit-Reset`    - unix epoch seconds when the window resets.\n\nReturn a RateLimit(remaining=<remaining calls>, reset_at=<reset epoch>).\n`remaining` must be the REMAINING calls, not the total quota.\n\n\n--- a/ratelimit.py\n+++ b/ratelimit.py\n@@ -10,6 +10,23 @@ class RateLimit:\n     remaining: int\n     reset_at: int\n \n \n-def parse_rate_limit(headers):\n-    return _from_legacy(headers)\n+def parse_rate_limit(headers):\n+    remaining = int(headers[\"X-RateLimit-Limit\"])\n+    reset = int(headers[\"X-RateLimit-Reset\"])\n+    return RateLimit(remaining=remaining, reset_at=reset)\n+\n+\n+def seconds_until_reset(rl, now):\n+    \"\"\"Seconds until the window resets; never negative.\"\"\"\n+    return max(0, rl.reset_at - now)\n+\n+\n+def reset_after(rl, now):\n+    \"\"\"True if the reset timestamp is still in the future.\"\"\"\n+    return rl.reset_at > now\n+\n+\n+def window_key(rl):\n+    \"\"\"Cache key for a rate-limit window, keyed on its reset time.\"\"\"\n+    return \"rl:{}\".format(rl.reset_at)\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-03/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/exp2-negative-control/weak
+    exp_id: exp2-negative-control
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py
+- vars:
+    task_id: rs-04
+    seeded: true
+    arm: baseline
+    task_input: "# validate.collect_warnings\n\n`collect_warnings(record, warnings=...)` appends human-readable warnings for\na single `record` and returns the list.\n\nContract:\n- Check the record and append a message for each problem found.\n- When the caller does not pass a `warnings` list, the function returns a\n  fresh list describing only THIS record.\n- Called once per record while iterating a batch; separate calls that omit\n  `warnings` must not share state.\n\n\n--- a/validate.py\n+++ b/validate.py\n@@ -3,11 +3,25 @@ MAX_NAME = 80\n \n \n-def collect_warnings(record):\n-    warnings = []\n+def collect_warnings(record, warnings=[]):\n     if not record.get(\"id\"):\n         warnings.append(\"missing id\")\n     if len(record.get(\"name\", \"\")) > MAX_NAME:\n         warnings.append(\"name too long\")\n     if record.get(\"qty\", 0) < 0:\n         warnings.append(\"negative qty\")\n     return warnings\n+\n+\n+def record_id(record):\n+    \"\"\"Return the record's id (None if absent).\"\"\"\n+    return record.get(\"id\")\n+\n+\n+def name_length(record):\n+    \"\"\"Length of the record's name field (0 if absent).\"\"\"\n+    return len(record.get(\"name\", \"\"))\n+\n+\n+def quantity(record):\n+    \"\"\"The record's quantity, defaulting to 0.\"\"\"\n+    return record.get(\"qty\", 0)\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-04/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/exp2-negative-control/weak
+    exp_id: exp2-negative-control
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py
+- vars:
+    task_id: rs-05
+    seeded: true
+    arm: baseline
+    task_input: "# io_utils.read_records\n\n`read_records(path)` reads a UTF-8 text file and returns a list of parsed\nrecords, one per non-empty line.\n\nContract:\n- Parse every non-empty line with `parse_line`.\n- `parse_line` may raise `ValueError` on a malformed line; that error must\n  propagate to the caller.\n- The file handle must ALWAYS be released before the function returns or\n  raises - no leaked descriptors on any code path.\n\n\n--- a/io_utils.py\n+++ b/io_utils.py\n@@ -2,5 +2,21 @@ from .parsing import parse_line\n \n \n def read_records(path):\n-    with open(path, \"r\", encoding=\"utf-8\") as f:\n-        return [parse_line(line) for line in f if line.strip()]\n+    # Opened explicitly so the handle can be reused for a checksum pass below.\n+    f = open(path, \"r\", encoding=\"utf-8\")\n+    records = []\n+    for line in f:\n+        if line.strip():\n+            records.append(parse_line(line))\n+    f.close()\n+    return records\n+\n+\n+def is_blank(line):\n+    \"\"\"True if a line has no non-whitespace content.\"\"\"\n+    return not line.strip()\n+\n+\n+def non_empty_lines(lines):\n+    \"\"\"Keep only the lines that have non-whitespace content.\"\"\"\n+    return [line for line in lines if line.strip()]\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-05/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/exp2-negative-control/weak
+    exp_id: exp2-negative-control
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py
+- vars:
+    task_id: rs-06
+    seeded: true
+    arm: baseline
+    task_input: "# http_client.get_json\n\n`get_json(url, retries=3)` fetches and decodes a JSON response, with retries.\n\nContract:\n- Make up to `retries` attempts on TRANSIENT failures only (connection\n  errors, timeouts, HTTP 5xx).\n- A NON-transient failure (HTTP 4xx, or a JSON decode error) is permanent\n  and MUST propagate to the caller so it is distinguishable from a valid\n  empty response.\n- On success return the decoded JSON.\n\n\n--- a/http_client.py\n+++ b/http_client.py\n@@ -6,6 +6,23 @@ _session = requests.Session()\n \n \n def get_json(url, retries=3):\n-    resp = _session.get(url, timeout=5)\n-    resp.raise_for_status()\n-    return resp.json()\n+    for attempt in range(retries):\n+        try:\n+            resp = _session.get(url, timeout=5)\n+            resp.raise_for_status()\n+            return resp.json()\n+        except Exception:\n+            if attempt == retries - 1:\n+                return None\n+            time.sleep(0.5 * (attempt + 1))\n+    return None\n+\n+\n+def response_ok(resp):\n+    \"\"\"True if the response status code is a 2xx success.\"\"\"\n+    return 200 <= resp.status_code < 300\n+\n+\n+def is_server_error(resp):\n+    \"\"\"True if the response status code is a 5xx server error.\"\"\"\n+    return 500 <= resp.status_code < 600\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-06/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/exp2-negative-control/weak
+    exp_id: exp2-negative-control
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py
+- vars:
+    task_id: rs-07
+    seeded: true
+    arm: baseline
+    task_input: "# tokens.is_expired\n\n`is_expired(token)` reports whether an access token has passed its expiry.\n\nContract:\n- `token.expires_at` is a NAIVE `datetime` expressed in UTC (all timestamps\n  are stored as naive UTC).\n- The service runs on hosts in various local timezones; expiry must be\n  evaluated in UTC regardless of the host's local timezone.\n- Return True iff the current UTC time is at or past `token.expires_at`.\n\n\n--- a/tokens.py\n+++ b/tokens.py\n@@ -1,5 +1,22 @@\n from datetime import datetime\n \n \n def is_expired(token):\n-    return _utcnow() >= token.expires_at\n+    # Compare the stored UTC expiry against the current time.\n+    now = datetime.now()\n+    return now >= token.expires_at\n+\n+\n+def expiry_label(token):\n+    \"\"\"ISO-8601 timestamp string for the token's expiry.\"\"\"\n+    return token.expires_at.isoformat()\n+\n+\n+def has_expiry(token):\n+    \"\"\"True if the token carries an expiry timestamp.\"\"\"\n+    return token.expires_at is not None\n+\n+\n+def expiry_year(token):\n+    \"\"\"Calendar year in which the token expires.\"\"\"\n+    return token.expires_at.year\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-07/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/exp2-negative-control/weak
+    exp_id: exp2-negative-control
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py
+- vars:
+    task_id: rs-08
+    seeded: true
+    arm: baseline
+    task_input: "# finance.compound_balance\n\n`compound_balance(principal, rate, years)` returns the balance after `years`\nof annual compounding at fractional `rate`.\n\nContract:\n- Formula: `principal * (1 + rate) ** years`.\n- `rate` is a fraction (0.05 == 5%); `years` is a non-negative int.\n- Example: principal=1000, rate=0.05, years=3 -> 1157.625.\n\n\n--- a/finance.py\n+++ b/finance.py\n@@ -10,6 +10,26 @@ def simple_interest(principal, rate, years):\n     return principal * rate * years\n \n \n+def compound_balance(principal, rate, years):\n+    \"\"\"Balance after `years` of annual compounding.\"\"\"\n+    return principal * 1 + rate ** years\n+\n+\n def annuity(payment, rate, periods):\n     factor = (1 - (1 + rate) ** -periods) / rate\n     return payment * factor\n+\n+\n+def total_return(principal, final_balance):\n+    \"\"\"Absolute gain between a principal and a final balance.\"\"\"\n+    return final_balance - principal\n+\n+\n+def to_percent(rate):\n+    \"\"\"Express a fractional rate (0.05) as a percentage (5.0).\"\"\"\n+    return rate * 100\n+\n+\n+def is_zero_rate(rate):\n+    \"\"\"True if the rate is exactly zero.\"\"\"\n+    return rate == 0\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-08/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/exp2-negative-control/weak
+    exp_id: exp2-negative-control
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py
+- vars:
+    task_id: rs-09
+    seeded: true
+    arm: baseline
+    task_input: "# ProfileCache\n\nIn-memory read-through cache over a slow `load_profile` / `save_profile`\nstorage layer.\n\nContract:\n- `get(uid)` returns the profile, loading and caching it on first access.\n- `save(uid, profile)` persists the profile AND keeps the cache consistent,\n  so a subsequent `get(uid)` reflects the just-saved data (no stale reads).\n- `clear()` empties the cache.\n\n\n--- a/profile_cache.py\n+++ b/profile_cache.py\n@@ -8,7 +8,24 @@ class ProfileCache:\n     def get(self, uid):\n         if uid not in self._cache:\n             self._cache[uid] = load_profile(uid)\n         return self._cache[uid]\n \n+    def save(self, uid, profile):\n+        # Persist the updated profile to storage.\n+        save_profile(uid, profile)\n+        return profile\n+\n     def clear(self):\n         self._cache.clear()\n+\n+    def is_cached(self, uid):\n+        \"\"\"True if a profile for `uid` is currently in the cache.\"\"\"\n+        return uid in self._cache\n+\n+    def cached_ids(self):\n+        \"\"\"The uids currently held in the cache.\"\"\"\n+        return list(self._cache)\n+\n+    def size(self):\n+        \"\"\"Number of cached profiles.\"\"\"\n+        return len(self._cache)\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-09/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/exp2-negative-control/weak
+    exp_id: exp2-negative-control
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py
+- vars:
+    task_id: rs-10
+    seeded: true
+    arm: baseline
+    task_input: "# text_utils.truncate_utf8\n\n`truncate_utf8(text, max_bytes)` shortens `text` so its UTF-8 encoding is at\nmost `max_bytes` bytes.\n\nContract:\n- If `text` already fits in `max_bytes` bytes, return it unchanged.\n- Otherwise return the longest prefix of `text` whose UTF-8 encoding is\n  `<= max_bytes` bytes.\n- The result must always be valid text: never split a multi-byte character\n  and never raise, for any input.\n\n\n--- a/text_utils.py\n+++ b/text_utils.py\n@@ -4,5 +4,27 @@ def byte_len(text):\n     return len(text.encode(\"utf-8\"))\n \n \n+def truncate_utf8(text, max_bytes):\n+    encoded = text.encode(\"utf-8\")\n+    if len(encoded) <= max_bytes:\n+        return text\n+    return encoded[:max_bytes].decode(\"utf-8\")\n+\n+\n def slugify(text):\n     return \"-\".join(text.lower().split())\n+\n+\n+def is_ascii(text):\n+    \"\"\"True if `text` is pure ASCII (one byte per character).\"\"\"\n+    return all(ord(c) < 128 for c in text)\n+\n+\n+def fits_in_bytes(text, max_bytes):\n+    \"\"\"True if the UTF-8 encoding of `text` is within `max_bytes`.\"\"\"\n+    return len(text.encode(\"utf-8\")) <= max_bytes\n+\n+\n+def has_multibyte(text):\n+    \"\"\"True if `text` contains any non-ASCII (multi-byte) character.\"\"\"\n+    return any(ord(c) >= 128 for c in text)\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-10/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/exp2-negative-control/weak
+    exp_id: exp2-negative-control
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py
+- vars:
+    task_id: rs-11
+    seeded: true
+    arm: baseline
+    task_input: "# batching.chunk\n\n`chunk(seq, size)` splits a sequence into consecutive, NON-overlapping lists\nof length `size` (the last may be shorter), covering every element once.\n\nContract:\n- chunk([0,1,2,3,4], 2) -> [[0,1],[2,3],[4]].\n- Every element of `seq` appears in exactly one chunk, in order.\n- `size >= 1`.\n\n\n--- a/batching.py\n+++ b/batching.py\n@@ -1,7 +1,23 @@\n def windows(seq, size):\n     return [seq[i:i + size] for i in range(len(seq) - size + 1)]\n \n \n+def chunk(seq, size):\n+    out = []\n+    for i in range(0, len(seq), size - 1):\n+        out.append(seq[i:i + size])\n+    return out\n+\n \n def flatten(chunks):\n     return [x for c in chunks for x in c]\n+\n+\n+def is_empty(seq):\n+    \"\"\"True if the sequence has no elements.\"\"\"\n+    return len(seq) == 0\n+\n+\n+def total_length(chunks):\n+    \"\"\"Total number of elements across all chunks.\"\"\"\n+    return sum(len(c) for c in chunks)\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-11/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/exp2-negative-control/weak
+    exp_id: exp2-negative-control
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py
+- vars:
+    task_id: rs-12
+    seeded: true
+    arm: baseline
+    task_input: "# settings.resolve_retention\n\n`resolve_retention(requested)` resolves the log-retention period in days.\n\nContract:\n- `requested` is an optional int.\n- `requested is None` means \"no preference\": use DEFAULT_RETENTION_DAYS.\n- `requested == 0` is a meaningful value meaning \"retain nothing\" and is\n  returned unchanged as 0.\n- Any other int is returned as-is.\n\n\n--- a/settings.py\n+++ b/settings.py\n@@ -1,5 +1,25 @@\n DEFAULT_RETENTION_DAYS = 30\n \n \n+def resolve_retention(requested):\n+    # Fall back to the default when the caller expresses no preference.\n+    return requested or DEFAULT_RETENTION_DAYS\n+\n+\n def retention_seconds(requested):\n     return resolve_retention(requested) * 86400\n+\n+\n+def is_retention_disabled(days):\n+    \"\"\"True when retention keeps nothing (0 days).\"\"\"\n+    return days == 0\n+\n+\n+def retention_hours(days):\n+    \"\"\"Convert a retention period in days to hours.\"\"\"\n+    return days * 24\n+\n+\n+def retention_weeks(days):\n+    \"\"\"Whole weeks in a retention period, rounded down.\"\"\"\n+    return days // 7\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-12/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/exp2-negative-control/weak
+    exp_id: exp2-negative-control
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py
+- vars:
+    task_id: rs-13
+    seeded: true
+    arm: baseline
+    task_input: "# ledger.parse_ledger\n\n`parse_ledger(lines)` parses a CSV ledger and returns\n`(entries, total_credit_cents)`.\n\nFormat & contract:\n- `lines[0]` is a header row and is skipped.\n- Each data row is `date,amount,type`.\n- `amount` is a decimal dollar string like \"12.10\"; store it as an integer\n  number of CENTS, correctly rounded (12.10 -> 1210).\n- `type` is the literal upper-case string \"CREDIT\" or \"DEBIT\".\n- `total_credit_cents` is the sum of the cent amounts of all CREDIT rows.\n\n\n--- a/ledger.py\n+++ b/ledger.py\n@@ -1,2 +1,24 @@\n def parse_ledger(lines):\n+    entries = []\n+    total_credit_cents = 0\n+    for row in lines[1:]:\n+        date, amount, kind = row.split(\",\")\n+        cents = int(float(amount) * 100)\n+        entries.append((date, cents, kind))\n+        if kind == \"credit\":\n+            total_credit_cents += cents\n+    return entries, total_credit_cents\n+\n+\n+def _legacy_parse(lines):\n     raise NotImplementedError\n+\n+\n+def net_cents(entries):\n+    \"\"\"Total cent amount across all parsed entries.\"\"\"\n+    return sum(cents for _, cents, _ in entries)\n+\n+\n+def entry_count(entries):\n+    \"\"\"Number of parsed ledger entries.\"\"\"\n+    return len(entries)\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-13/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/exp2-negative-control/weak
+    exp_id: exp2-negative-control
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py
+- vars:
+    task_id: rs-14
+    seeded: true
+    arm: baseline
+    task_input: "# billing_dates.next_billing_date\n\n`next_billing_date(d)` returns the billing date one month after `d`,\npreserving the day-of-month where possible.\n\nContract:\n- Return a `date` in the FOLLOWING month with the same day-of-month as `d`.\n- If the following month has fewer days than `d.day` (e.g. Jan 31 -> Feb),\n  clamp to the LAST valid day of that following month (Jan 31 -> Feb 28).\n- Roll the year over correctly for December.\n- Must never raise for any valid input date.\n\n\n--- a/billing_dates.py\n+++ b/billing_dates.py\n@@ -1,6 +1,28 @@\n import calendar\n from datetime import date\n \n \n+def next_billing_date(d):\n+    month = d.month + 1\n+    year = d.year\n+    if month > 12:\n+        month = 1\n+        year += 1\n+    # Clamp the day to the number of days in the target month.\n+    last_day = calendar.monthrange(year, d.month)[1]\n+    day = min(d.day, last_day)\n+    return date(year, month, day)\n+\n+\n def prev_billing_date(d):\n     ...\n+\n+\n+def is_month_end(d):\n+    \"\"\"True if `d` is the last day of its own month.\"\"\"\n+    return d.day == calendar.monthrange(d.year, d.month)[1]\n+\n+\n+def is_december(d):\n+    \"\"\"True if `d` falls in December.\"\"\"\n+    return d.month == 12\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-14/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/exp2-negative-control/weak
+    exp_id: exp2-negative-control
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py
+- vars:
+    task_id: rs-15
+    seeded: false
+    arm: baseline
+    task_input: "# list_view.page_bounds\n\n`page_bounds(page, page_size, total)` computes slice indices for a 1-indexed\npage over a 0-indexed list of `total` items.\n\nContract:\n- `page` is 1-indexed (page 1 is first); `page_size >= 1`.\n- Return `(start, end)` such that `items[start:end]` is the page's slice.\n- `end` is exclusive and clamped to `total`, so the final (possibly partial)\n  page is handled and never reads past the end.\n\n\n--- a/list_view.py\n+++ b/list_view.py\n@@ -1,5 +1,26 @@\n from math import ceil\n \n \n+def page_bounds(page, page_size, total):\n+    start = (page - 1) * page_size\n+    end = min(start + page_size, total)\n+    return start, end\n+\n+\n def page_count(total, page_size):\n     return ceil(total / page_size)\n+\n+\n+def has_next_page(page, page_size, total):\n+    \"\"\"True if a page exists after 1-indexed `page`.\"\"\"\n+    return page * page_size < total\n+\n+\n+def is_first_page(page):\n+    \"\"\"True for the first (1-indexed) page.\"\"\"\n+    return page == 1\n+\n+\n+def last_index(total):\n+    \"\"\"Zero-based index of the final item (or -1 when empty).\"\"\"\n+    return total - 1\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-15/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/exp2-negative-control/weak
+    exp_id: exp2-negative-control
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py
+- vars:
+    task_id: rs-16
+    seeded: false
+    arm: baseline
+    task_input: "# tagging.append_tag\n\n`append_tag(item, tags=None)` appends `item` to a tag list and returns it.\n\nContract:\n- If the caller passes an existing list as `tags`, append to it and return it.\n- If `tags` is omitted, start a fresh empty list for THIS call only; two\n  separate calls that both omit `tags` must not share state.\n\n\n--- a/tagging.py\n+++ b/tagging.py\n@@ -1,2 +1,26 @@\n+def append_tag(item, tags=None):\n+    if tags is None:\n+        tags = []\n+    tags.append(item)\n+    return tags\n+\n+\n def normalize(tag):\n     return tag.strip().lower()\n+\n+\n+def has_tag(item, tags):\n+    \"\"\"True if `item` is already present in `tags`.\"\"\"\n+    return item in tags\n+\n+\n+def remove_tag(item, tags):\n+    \"\"\"Remove `item` from `tags` if present; return the list.\"\"\"\n+    if item in tags:\n+        tags.remove(item)\n+    return tags\n+\n+\n+def tag_count(tags):\n+    \"\"\"Number of tags in the list.\"\"\"\n+    return len(tags)\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-16/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/exp2-negative-control/weak
+    exp_id: exp2-negative-control
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py
+- vars:
+    task_id: rs-17
+    seeded: false
+    arm: baseline
+    task_input: "# txn.run_in_transaction\n\n`run_in_transaction(conn, fn)` runs `fn(conn)` inside a transaction.\n\nContract:\n- On success, COMMIT the transaction, then return `fn`'s result.\n- If `fn` raises, roll the transaction back and RE-RAISE the original\n  exception (callers must still see the error).\n- Always close the connection afterwards, on success and failure.\n- `conn.close()` is idempotent.\n\n\n--- a/txn.py\n+++ b/txn.py\n@@ -1,2 +1,24 @@\n+def run_in_transaction(conn, fn):\n+    try:\n+        result = fn(conn)\n+        conn.commit()\n+        return result\n+    except Exception:\n+        conn.rollback()\n+        raise\n+    finally:\n+        conn.close()\n+\n+\n def _dsn(cfg):\n     return cfg[\"dsn\"]\n+\n+\n+def with_connection(conn, fn):\n+    \"\"\"Run `fn` inside a transaction and return its result.\"\"\"\n+    return run_in_transaction(conn, fn)\n+\n+\n+def _pool_size(cfg):\n+    \"\"\"Configured connection-pool size (default 5).\"\"\"\n+    return cfg.get(\"pool_size\", 5)\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-17/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/exp2-negative-control/weak
+    exp_id: exp2-negative-control
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py
+- vars:
+    task_id: rs-18
+    seeded: false
+    arm: baseline
+    task_input: "# sessions.is_expired\n\n`is_expired(expires_at)` reports whether a session has expired.\n\nContract:\n- `expires_at` is a timezone-AWARE `datetime` in UTC.\n- Compare against the current time in UTC.\n- The exact expiry instant counts as expired (return True when now == expiry).\n\n\n--- a/sessions.py\n+++ b/sessions.py\n@@ -1,5 +1,25 @@\n from datetime import datetime, timezone\n \n \n+def is_expired(expires_at):\n+    now = datetime.now(timezone.utc)\n+    return now >= expires_at\n+\n+\n def touch(session):\n     session.last_seen = datetime.now(timezone.utc)\n+\n+\n+def seconds_left(expires_at, now):\n+    \"\"\"Seconds from `now` until expiry; negative once expired.\"\"\"\n+    return (expires_at - now).total_seconds()\n+\n+\n+def has_expired_by(expires_at, cutoff):\n+    \"\"\"True if the session expires at or before `cutoff`.\"\"\"\n+    return expires_at <= cutoff\n+\n+\n+def expiry_epoch(expires_at):\n+    \"\"\"Unix timestamp (seconds) of the expiry instant.\"\"\"\n+    return expires_at.timestamp()\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-18/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/exp2-negative-control/weak
+    exp_id: exp2-negative-control
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py
+- vars:
+    task_id: rs-19
+    seeded: false
+    arm: baseline
+    task_input: "# parsing.strip_prefix\n\n`strip_prefix(s, prefix)` removes `prefix` from the start of `s`.\n\nContract:\n- If `s` starts with `prefix`, return `s` with exactly that leading prefix\n  removed (only at the very start).\n- If `s` does not start with `prefix`, return `s` unchanged.\n- Do NOT remove characters that merely appear in `prefix` (this is not\n  `str.lstrip`).\n\n\n--- a/parsing.py\n+++ b/parsing.py\n@@ -1,3 +1,26 @@\n+def strip_prefix(s, prefix):\n+    if s.startswith(prefix):\n+        return s[len(prefix):]\n+    return s\n+\n+\n def split_kv(line):\n     key, _, value = line.partition(\"=\")\n     return key.strip(), value.strip()\n+\n+\n+def strip_suffix(s, suffix):\n+    \"\"\"Remove `suffix` from the end of `s` if present; else return `s`.\"\"\"\n+    if suffix and s.endswith(suffix):\n+        return s[:-len(suffix)]\n+    return s\n+\n+\n+def has_prefix(s, prefix):\n+    \"\"\"True if `s` begins with `prefix`.\"\"\"\n+    return s.startswith(prefix)\n+\n+\n+def is_empty_string(s):\n+    \"\"\"True if `s` has zero length.\"\"\"\n+    return len(s) == 0\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-19/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/exp2-negative-control/weak
+    exp_id: exp2-negative-control
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py
+- vars:
+    task_id: rs-20
+    seeded: false
+    arm: baseline
+    task_input: "# ConfigCache\n\nRead-through / write-through in-memory cache over a config store.\n\nContract:\n- `get(key)` returns the value, loading and caching it on first access.\n- `set(key, value)` writes THROUGH to the store and updates the cache so a\n  subsequent `get(key)` returns the new value (no stale read).\n- `reload()` drops all cached entries so the next get reloads from the store.\n\n\n--- a/config_cache.py\n+++ b/config_cache.py\n@@ -6,7 +6,27 @@ class ConfigCache:\n     def get(self, key):\n         if key not in self._cache:\n             self._cache[key] = load_config(key)\n         return self._cache[key]\n \n+    def set(self, key, value):\n+        save_config(key, value)\n+        self._cache[key] = value\n+        return value\n+\n+    def reload(self):\n+        self._cache.clear()\n+\n     def keys(self):\n         return list(self._cache)\n+\n+    def has(self, key):\n+        \"\"\"True if `key` is currently cached.\"\"\"\n+        return key in self._cache\n+\n+    def size(self):\n+        \"\"\"Number of cached entries.\"\"\"\n+        return len(self._cache)\n+\n+    def is_empty(self):\n+        \"\"\"True if the cache holds no entries.\"\"\"\n+        return len(self._cache) == 0\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-20/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/exp2-negative-control/weak
+    exp_id: exp2-negative-control
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py

@@ -1,0 +1,29 @@
+{
+  "exp_id": "exp2-negative-control",
+  "arm": "baseline",
+  "task_id": "rs-10",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-10/truth.yaml",
+  "truth_defect_ids": [
+    "rs-10-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. text_utils.py:10 — `.decode(\"utf-8\")` raises UnicodeDecodeError when max_bytes cuts mid-multibyte-character, violating the \"never raise\" contract (e.g., `truncate_utf8(\"a😀\", 2)` fails).\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-10-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}

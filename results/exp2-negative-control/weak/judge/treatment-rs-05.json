@@ -1,0 +1,29 @@
+{
+  "exp_id": "exp2-negative-control",
+  "arm": "treatment",
+  "task_id": "rs-05",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-05/truth.yaml",
+  "truth_defect_ids": [
+    "rs-05-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. io_utils.py:7 — File handle leaks if `parse_line(line)` raises an exception; `f.close()` is unreachable on exception paths, violating the contract that requires the handle to be released on all code paths. Use a try/finally or context manager to guarantee closure.\n2. io_utils.py:13-20 — Unused helper functions `is_blank()` and `non_empty_lines()` should not be in this diff; they add code with no current purpose or call site.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-05-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 1,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false
+}

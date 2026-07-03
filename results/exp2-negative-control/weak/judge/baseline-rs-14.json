@@ -1,0 +1,29 @@
+{
+  "exp_id": "exp2-negative-control",
+  "arm": "baseline",
+  "task_id": "rs-14",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-14/truth.yaml",
+  "truth_defect_ids": [
+    "rs-14-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. billing_dates.py:12 — `calendar.monthrange(year, d.month)[1]` should use `month` instead of `d.month`, causing clamping against the source month instead of target month; for dates like Jan 31, this attempts to create an invalid date (Feb 31) and raises ValueError.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-14-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}

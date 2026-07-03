@@ -1,0 +1,29 @@
+{
+  "exp_id": "exp2-negative-control",
+  "arm": "baseline",
+  "task_id": "rs-02",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-02/truth.yaml",
+  "truth_defect_ids": [
+    "rs-02-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. access.py:23 — Logic error: `user.id != resource.owner_id` should be `user.id == resource.owner_id`; current code denies access to owners and grants it to non-owners, inverting the access control.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-02-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}

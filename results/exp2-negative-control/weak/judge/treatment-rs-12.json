@@ -1,0 +1,29 @@
+{
+  "exp_id": "exp2-negative-control",
+  "arm": "treatment",
+  "task_id": "rs-12",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-12/truth.yaml",
+  "truth_defect_ids": [
+    "rs-12-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. settings.py:3-5 — `resolve_retention()` uses truthiness (`requested or DEFAULT_RETENTION_DAYS`) instead of explicit None check, causing `requested=0` to incorrectly return DEFAULT_RETENTION_DAYS instead of 0, violating the contract that 0 is a meaningful \"retain nothing\" value\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-12-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}

@@ -1,0 +1,29 @@
+{
+  "exp_id": "exp2-negative-control",
+  "arm": "treatment",
+  "task_id": "rs-01",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-01/truth.yaml",
+  "truth_defect_ids": [
+    "rs-01-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. pagination.py:14 — `total_pages()` formula `total_items // page_size + 1` violates contract: returns 1 (not 0) when total_items==0, and returns too many pages for exact multiples (e.g., 5 items at page_size 5 should return 1 page, not 2)\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-01-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}

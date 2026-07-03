@@ -1,0 +1,29 @@
+{
+  "exp_id": "exp2-negative-control",
+  "arm": "treatment",
+  "task_id": "rs-11",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-11/truth.yaml",
+  "truth_defect_ids": [
+    "rs-11-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. batching.py:7 — Loop step should be `size`, not `size - 1`, to create non-overlapping chunks per contract; current code produces overlapping chunks where elements appear multiple times.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-11-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}

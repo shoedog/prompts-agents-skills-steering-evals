@@ -1,0 +1,29 @@
+{
+  "exp_id": "exp2-negative-control",
+  "arm": "baseline",
+  "task_id": "rs-12",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-12/truth.yaml",
+  "truth_defect_ids": [
+    "rs-12-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. settings.py:5 — `requested or DEFAULT_RETENTION_DAYS` fails the contract for `requested == 0`; should use explicit `None` check instead\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-12-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}

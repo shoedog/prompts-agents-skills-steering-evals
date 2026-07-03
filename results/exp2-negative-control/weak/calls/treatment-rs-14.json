@@ -1,0 +1,14 @@
+{
+  "exp_id": "exp2-negative-control",
+  "arm": "treatment",
+  "task_id": "rs-14",
+  "tier": "weak",
+  "model": "claude-haiku-4-5-20251001",
+  "fresh_input_tokens": 10,
+  "cache_creation_tokens": 9077,
+  "cache_read_tokens": 11001,
+  "output_tokens": 1921,
+  "input_tokens_logical": 20088,
+  "cost_usd": 0.028869099999999998,
+  "duration_ms": 17587
+}

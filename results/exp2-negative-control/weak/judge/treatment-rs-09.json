@@ -1,0 +1,29 @@
+{
+  "exp_id": "exp2-negative-control",
+  "arm": "treatment",
+  "task_id": "rs-09",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-09/truth.yaml",
+  "truth_defect_ids": [
+    "rs-09-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. profile_cache.py:13 — `save()` does not update the cache after persisting, violating the contract that \"a subsequent `get(uid)` reflects the just-saved data (no stale reads)\"\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-09-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}

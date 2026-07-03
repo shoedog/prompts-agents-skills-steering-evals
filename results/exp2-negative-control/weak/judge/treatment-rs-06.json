@@ -1,0 +1,29 @@
+{
+  "exp_id": "exp2-negative-control",
+  "arm": "treatment",
+  "task_id": "rs-06",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-seeded/items/rs-06/truth.yaml",
+  "truth_defect_ids": [
+    "rs-06-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. http_client.py:14 — Exception handler violates the contract by catching non-transient failures (HTTP 4xx and JSON decode errors) that must propagate immediately; instead it retries them and returns None, making them indistinguishable from valid empty responses.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rs-06-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}
