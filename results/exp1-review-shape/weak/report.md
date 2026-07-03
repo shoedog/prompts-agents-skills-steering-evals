@@ -4,6 +4,11 @@
 
 Estimand: the effect of the varied review-procedure element on review quality, CONDITIONAL on a shared binary output format. Workspace section labels (CHECKLIST/DISCONFIRM/VERIFY) are instrumentation, not the treatment.
 
+## Caveats
+
+- Baseline defect recall is at ceiling (1.000): the treatment structurally cannot improve recall on this task set; recall deltas are uninterpretable and pass-rate deltas partly preordained. A harder task set is required to detect a recall improvement.
+- Arm pass rates are not statistically distinguishable at n=20 (overlapping 95% CIs); treat the pass-rate delta as noise, not effect.
+
 ## Configuration
 
 - id: `exp1-review-shape`  task_family: `review`  eval_shape: `ablation`
@@ -23,6 +28,8 @@ Estimand: the effect of the varied review-procedure element on review quality, C
 ### Deltas (treatment − baseline), reported separately
 
 - logical tokens: 3260 (+0.8%)
+- output tokens: 35741 (+68.8%)
+- fresh input tokens: 0 (+0.0%)
 - cost USD: +0.1852 (+30.3%)
 
 ## Confusion matrix (verdict) + base rate
