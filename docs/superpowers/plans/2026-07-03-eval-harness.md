@@ -351,7 +351,7 @@ defects:
 
 **Interfaces:**
 - Consumes: providers (Task 4 signatures), artifact paths (Task 3), manifest/truth format (Task 5).
-- Produces: `python -m harness.run experiments/<exp>.yaml` executes end-to-end and writes `results/<exp-id>/<tier>/{promptfoo.json,calls.jsonl,judge.jsonl,metrics.json,report.md}`.
+- Produces: `python -m harness.run experiments/<exp>.yaml` executes end-to-end and writes `results/<exp-id>/<tier>/{prompts/,promptfoo-<arm>.yaml,promptfoo-<arm>.json,calls/*.json,judge/*.json,metrics.json,report.md,spotcheck.md,spotcheck.yaml}`.
 
 **Experiment config schema** (`experiments/exp1-review-shape.yaml`, complete):
 
