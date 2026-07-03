@@ -107,3 +107,44 @@ def test_concrete_composite_passes_guard(tmp_path):
     cfg = config.load("experiments/exp1-review-shape.yaml")
     out = gen_promptfoo(cfg, results_dir=tmp_path / "results")
     assert out["treatment"]["prompt"].is_file()
+
+
+def test_negative_control_comment_stripped_from_composed_prompt(tmp_path):
+    # The negative-control artifact's quarantine warning is an HTML comment
+    # (`<!-- NEGATIVE CONTROL ... -->`). It must never reach the composed
+    # treatment prompt an executor sees — the narrative body must, and does.
+    cfg = config.load("experiments/exp2-negative-control.yaml")
+    out = gen_promptfoo(cfg, results_dir=tmp_path / "results")
+    ttxt = out["treatment"]["prompt"].read_text()
+
+    # the narrative content is present...
+    assert "Repository Overview" in ttxt
+    assert "layered architecture" in ttxt
+    # ...but no raw HTML comment markers survive composition...
+    assert "<!--" not in ttxt
+    assert "-->" not in ttxt
+    # ...and no phrasing that would tell the executor it's in a control arm.
+    assert "negative control" not in ttxt.lower()
+
+    # baseline prompt is untouched by the same guarantee (no comments there
+    # to begin with, but the strip must be a no-op, not a corruption).
+    btxt = out["baseline"]["prompt"].read_text()
+    assert "Review the code change below." in btxt
+    assert "<!--" not in btxt
+
+
+def test_html_comment_stripped_from_baseline_and_element_parts(tmp_path):
+    # Direct unit test of the stripping helper itself, independent of which
+    # experiment config is used — proves the fix is generic (applies to any
+    # composed part), not special-cased to the negative-control artifact.
+    from harness.gen_promptfoo import _strip_html_comments
+
+    raw = "<!-- warning: do not leak this -->\n\n# Heading\n\nBody text.\n"
+    stripped = _strip_html_comments(raw)
+    assert "<!--" not in stripped
+    assert "warning" not in stripped
+    assert stripped.startswith("# Heading")
+
+    # a no-op on text with no comments at all
+    plain = "# Heading\n\nBody text.\n"
+    assert _strip_html_comments(plain) == plain

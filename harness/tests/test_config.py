@@ -39,7 +39,11 @@ def _write(tmp_path, mutate=None):
 
 # --------------------------------------------------------------------------- #
 def test_real_configs_load():
-    for name in ("experiments/smoke.yaml", "experiments/exp1-review-shape.yaml"):
+    for name in (
+        "experiments/smoke.yaml",
+        "experiments/exp1-review-shape.yaml",
+        "experiments/exp2-negative-control.yaml",
+    ):
         cfg = config.load(name)
         assert cfg.varied_element_path().is_file()
         for p in cfg.baseline_paths():
@@ -54,6 +58,23 @@ def test_real_configs_load():
     exp1 = config.load("experiments/exp1-review-shape.yaml")
     assert exp1.id == "exp1-review-shape"
     assert exp1.taskset == "tasksets/review-seeded"
+
+
+def test_exp2_negative_control_config():
+    cfg = config.load("experiments/exp2-negative-control.yaml")
+    assert cfg.id == "exp2-negative-control"
+    assert cfg.negative_control is True
+    assert cfg.varied_element == "negative_control"
+    assert cfg.varied_element_path() == (
+        REPO_ROOT / "artifacts" / "negative_control" / "prompt.md"
+    )
+    assert cfg.varied_element_path().is_file()
+    # same budget and taskset as exp1, per the mirrored-config requirement
+    exp1 = config.load("experiments/exp1-review-shape.yaml")
+    assert cfg.token_budget.max_cost_usd == exp1.token_budget.max_cost_usd
+    assert cfg.token_budget.max_items == exp1.token_budget.max_items
+    assert cfg.taskset == exp1.taskset
+    assert cfg.baseline_prompt == exp1.baseline_prompt
 
 
 def test_valid_tmp_config_loads(tmp_path):

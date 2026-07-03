@@ -21,6 +21,15 @@ refuse to build the treatment arm if any remain. The guard is scoped to the
 element text specifically — the baseline output-format artifact legitimately
 contains `<file>`/`<line>` placeholders that describe the required output shape,
 and those must not trip the guard.
+
+Comment stripping: artifact source files may carry HTML comments as authoring
+metadata (e.g. the negative-control artifact's quarantine warning header,
+`<!-- NEGATIVE CONTROL ... -->`). Comments are for humans editing the artifact
+tree, never for the executor — they are stripped from every composed part
+(baseline AND element) before the prompt is assembled, so an executor can never
+see them, let alone infer which arm/experiment it is in from their contents.
+This is a no-op for every artifact that doesn't use HTML comments (currently
+everything except the negative control).
 """
 from __future__ import annotations
 
@@ -43,6 +52,10 @@ _JUDGE_ASSERT = Path(__file__).resolve().parent / "asserts" / "judge_assert.py"
 # artifact, not the varied element, and we only scan the varied element here.
 _SLOT_RE = re.compile(r"<[^<>\n]*(?:\.\.\.|\s)[^<>\n]*>|<\.\.\.>")
 
+# HTML comments (including multi-line). Stripped from every composed part —
+# see module docstring.
+_HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+
 
 def _check_no_unfilled_slots(text: str, source: str):
     if _SLOT_RE.search(text):
@@ -52,10 +65,20 @@ def _check_no_unfilled_slots(text: str, source: str):
         )
 
 
+def _strip_html_comments(text: str) -> str:
+    """Remove HTML comments and any leading blank line(s) they leave behind."""
+    return _HTML_COMMENT_RE.sub("", text).lstrip("\n")
+
+
 def _compose_prompt(cfg: ExperimentConfig, arm: str) -> str:
-    parts = [p.read_text().rstrip("\n") for p in cfg.baseline_paths()]
+    parts = [_strip_html_comments(p.read_text()).rstrip("\n") for p in cfg.baseline_paths()]
     if arm == "treatment":
-        element = cfg.varied_element_path().read_text()
+        # Strip comments BEFORE the unfilled-slot scan: comment text is
+        # authoring metadata (never reaches the executor either way), so an
+        # angle-bracket-ish phrase inside a comment (e.g. prose punctuation in
+        # a quarantine warning) must not false-positive the slot guard, which
+        # is only meant to catch template slots in the actual prompt content.
+        element = _strip_html_comments(cfg.varied_element_path().read_text())
         _check_no_unfilled_slots(element, str(cfg.varied_element_path()))
         parts.append(element.rstrip("\n"))
     body = "\n\n".join(parts)
