@@ -32,6 +32,36 @@ def test_normalize_approve_markdown_wrapped():
     assert "No findings." in text
 
 
+def test_normalize_word_level_bold_verdict():
+    # Bold wraps only the WORD, not the whole line: `VERDICT: **REJECT**`.
+    block = "## FINDINGS\nVERDICT: **REJECT**\n1. a.py:1 — bug"
+    text, ok, flagged = normalize_block(block)
+    assert ok is True
+    assert flagged is True
+    # canonical re-render, no leftover markdown around the verdict word
+    assert "VERDICT: REJECT" in text.splitlines()
+
+
+def test_normalize_word_level_bold_verdict_approve():
+    block = "## FINDINGS\nVERDICT: **APPROVE**\nNo findings."
+    text, ok, flagged = normalize_block(block)
+    assert ok is True
+    assert flagged is False
+    assert "VERDICT: APPROVE" in text.splitlines()
+
+
+def test_normalize_bulleted_no_findings_is_not_treated_as_a_finding():
+    # `- No findings.` must NOT be extracted as a real finding and re-rendered
+    # `1. No findings.` — that would read as a false finding on a clean item.
+    block = "## FINDINGS\nVERDICT: APPROVE\n- No findings."
+    text, ok, flagged = normalize_block(block)
+    assert ok is True
+    assert flagged is False
+    lines = text.strip().splitlines()
+    assert "No findings." in lines
+    assert not any(ln.startswith("1.") for ln in lines)
+
+
 def test_normalize_paren_and_colon_numbering():
     block = "## FINDINGS\nVERDICT: REJECT\n1) first defect\n2: second defect"
     text, ok, _ = normalize_block(block)

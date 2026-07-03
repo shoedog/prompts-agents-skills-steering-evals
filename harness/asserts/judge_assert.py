@@ -43,11 +43,13 @@ except Exception:  # pragma: no cover
 
 _FINDINGS_MARKER = "## FINDINGS"
 # A weak executor wraps/decorates the verdict line: `**VERDICT: REJECT**`,
-# `## VERDICT: APPROVE`, `> VERDICT: REJECT`, leading whitespace, etc. Tolerate a
-# run of markdown decoration / whitespace before the literal `VERDICT:` token
-# WITHOUT loosening what the judge sees — the re-render below is still canonical.
+# `## VERDICT: APPROVE`, `> VERDICT: REJECT`, leading whitespace, etc. It may
+# ALSO wrap just the word (`VERDICT: **REJECT**`) rather than the whole line.
+# Tolerate a run of markdown decoration / whitespace both before the literal
+# `VERDICT:` token AND between the colon and the word, WITHOUT loosening what
+# the judge sees — the re-render below is still canonical either way.
 _VERDICT_RE = re.compile(
-    r"^[\s*_#>~`]*VERDICT:\s*(APPROVE|REJECT)\b",
+    r"^[\s*_#>~`]*VERDICT:\s*[*_~`]*\s*(APPROVE|REJECT)\b",
     re.IGNORECASE | re.MULTILINE,
 )
 # Findings arrive numbered `1.` / `1)` / `1:` or bulleted `-` / `*` / `+`. Bullets
@@ -107,7 +109,11 @@ def normalize_block(block: str):
     verdict = vm.group(1).upper()
     verdict_flagged = verdict == "REJECT"
 
-    findings = [f for f in (m.group(1).strip() for m in _FINDING_RE.finditer(block)) if f]
+    raw_findings = [f for f in (m.group(1).strip() for m in _FINDING_RE.finditer(block)) if f]
+    # A bulleted/numbered "No findings." (e.g. `- No findings.`) is prose, not a
+    # finding — filter it out before deciding whether the list is genuinely
+    # empty, so it can never be re-rendered as a spurious "1. No findings."
+    findings = [f for f in raw_findings if not _NO_FINDINGS_RE.search(f)]
     if not findings:
         # No findings extracted. Legitimate only for an APPROVE that explicitly
         # says "No findings."; a REJECT here is contradictory, and an APPROVE

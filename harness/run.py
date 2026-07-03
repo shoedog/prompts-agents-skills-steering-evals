@@ -15,12 +15,12 @@ from __future__ import annotations
 
 import argparse
 import glob
-import json
 import os
 import subprocess
 import sys
 
 from harness import config as config_mod
+from harness import metrics as metrics_mod
 from harness import report as report_mod
 from harness.gen_promptfoo import gen_promptfoo
 
@@ -50,34 +50,62 @@ def _run_arm(cfg, yaml_path, json_path) -> int:
 
 
 def _arm_cost(results_dir, arm) -> float:
-    total = 0.0
-    for p in glob.glob(os.path.join(results_dir, "calls", f"{arm}-*.json")):
-        with open(p) as f:
-            total += float(json.load(f).get("cost_usd", 0.0) or 0.0)
-    return total
+    # Route through metrics._load_json_glob (not a bare json.load loop) so a
+    # truncated/unparseable calls/ file surfaces as the same named
+    # IntegrityError metrics.load_rows raises, instead of crashing the budget
+    # gate on the first bad file with a plain JSONDecodeError.
+    rows = metrics_mod._load_json_glob(
+        os.path.join(str(results_dir), "calls", f"{arm}-*.json")
+    )
+    return sum(float(r.get("cost_usd", 0.0) or 0.0) for r in rows)
+
+
+def _count_arm_files(results_dir, subdir, arm) -> int:
+    """Number of per-item JSON records written for one arm under `subdir`."""
+    return len(glob.glob(os.path.join(str(results_dir), subdir, f"{arm}-*.json")))
 
 
 def _count_arm_calls(results_dir, arm) -> int:
     """Number of per-item call records promptfoo wrote for one arm."""
-    return len(glob.glob(os.path.join(str(results_dir), "calls", f"{arm}-*.json")))
+    return _count_arm_files(results_dir, "calls", arm)
+
+
+def _count_arm_judges(results_dir, arm) -> int:
+    """Number of per-item judge records the assert wrote for one arm."""
+    return _count_arm_files(results_dir, "judge", arm)
 
 
 def _check_arm_integrity(results_dir, arm, expected_items) -> bool:
-    """True iff the arm produced at least `expected_items` call records.
+    """True iff the arm produced at least `expected_items` call records AND
+    at least `expected_items` judge records.
 
-    A silent shortfall (e.g. promptfoo dying mid-run, or an n=0 arm) would
-    otherwise read as a clean, smaller run. Warn loudly and let the caller mark
-    the whole run integrity-failed."""
-    got = _count_arm_calls(results_dir, arm)
-    if got < expected_items:
+    A silent shortfall (e.g. promptfoo dying mid-run, an n=0 arm) would
+    otherwise read as a clean, smaller run — checked via calls/. But calls/ can
+    also be complete while the assert crashes before writing its judge/ record
+    for an item (an assert-crash shortfall), which would ALSO read as a clean,
+    smaller-n run if only calls/ were counted. So judge/ is checked
+    independently against the same expected_items. Warn loudly and let the
+    caller mark the whole run integrity-failed."""
+    ok = True
+    got_calls = _count_arm_calls(results_dir, arm)
+    if got_calls < expected_items:
         print(
-            f"[run] INTEGRITY FAILURE: arm '{arm}' produced {got}/{expected_items} "
+            f"[run] INTEGRITY FAILURE: arm '{arm}' produced {got_calls}/{expected_items} "
             f"per-item call records — promptfoo did not complete every item. "
             f"The run is NOT clean.",
             file=sys.stderr, flush=True,
         )
-        return False
-    return True
+        ok = False
+    got_judges = _count_arm_judges(results_dir, arm)
+    if got_judges < expected_items:
+        print(
+            f"[run] INTEGRITY FAILURE: arm '{arm}' produced {got_judges}/{expected_items} "
+            f"per-item judge records — the assert did not run to completion for "
+            f"every item (possible assert crash). The run is NOT clean.",
+            file=sys.stderr, flush=True,
+        )
+        ok = False
+    return ok
 
 
 def run_experiment(config_path) -> int:
