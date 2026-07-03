@@ -7,7 +7,7 @@ items:
   - rs-01-d1
   false_findings: 0
   item_pass: true
-  agree: null
+  agree: true
 - task_id: rs-01
   arm: treatment
   seeded: true
@@ -16,7 +16,7 @@ items:
   - rs-01-d1
   false_findings: 0
   item_pass: true
-  agree: null
+  agree: true
 - task_id: rs-02
   arm: baseline
   seeded: true
@@ -25,7 +25,7 @@ items:
   - rs-02-d1
   false_findings: 0
   item_pass: true
-  agree: null
+  agree: true
 - task_id: rs-02
   arm: treatment
   seeded: true
@@ -34,7 +34,7 @@ items:
   - rs-02-d1
   false_findings: 0
   item_pass: true
-  agree: null
+  agree: true
 - task_id: rs-03
   arm: baseline
   seeded: true
@@ -43,7 +43,7 @@ items:
   - rs-03-d1
   false_findings: 0
   item_pass: true
-  agree: null
+  agree: true
 - task_id: rs-03
   arm: treatment
   seeded: true
@@ -52,7 +52,7 @@ items:
   - rs-03-d1
   false_findings: 0
   item_pass: true
-  agree: null
+  agree: true
 - task_id: rs-04
   arm: baseline
   seeded: true
@@ -61,7 +61,7 @@ items:
   - rs-04-d1
   false_findings: 0
   item_pass: true
-  agree: null
+  agree: true
 - task_id: rs-04
   arm: treatment
   seeded: true
@@ -70,7 +70,7 @@ items:
   - rs-04-d1
   false_findings: 0
   item_pass: true
-  agree: null
+  agree: true
 - task_id: rs-05
   arm: baseline
   seeded: true
@@ -79,7 +79,8 @@ items:
   - rs-05-d1
   false_findings: 1
   item_pass: false
-  agree: null
+  agree: true
+  note: false finding is a comment-accuracy nit; judge correct per rubric strictness (style nits count as false)
 - task_id: rs-05
   arm: treatment
   seeded: true
@@ -88,7 +89,7 @@ items:
   - rs-05-d1
   false_findings: 0
   item_pass: true
-  agree: null
+  agree: true
 - task_id: rs-06
   arm: baseline
   seeded: true
@@ -97,7 +98,8 @@ items:
   - rs-06-d1
   false_findings: 0
   item_pass: true
-  agree: null
+  agree: true
+  note: import-visibility observation correctly routed to neutral
 - task_id: rs-06
   arm: treatment
   seeded: true
@@ -106,7 +108,8 @@ items:
   - rs-06-d1
   false_findings: 0
   item_pass: true
-  agree: null
+  agree: true
+  note: import-visibility observation correctly routed to neutral
 - task_id: rs-07
   arm: baseline
   seeded: true
@@ -115,7 +118,7 @@ items:
   - rs-07-d1
   false_findings: 0
   item_pass: true
-  agree: null
+  agree: true
 - task_id: rs-07
   arm: treatment
   seeded: true
@@ -124,7 +127,8 @@ items:
   - rs-07-d1
   false_findings: 0
   item_pass: true
-  agree: null
+  agree: true
+  note: both AttributeError observations correctly routed to neutral (2)
 - task_id: rs-08
   arm: baseline
   seeded: true
@@ -133,7 +137,7 @@ items:
   - rs-08-d1
   false_findings: 0
   item_pass: true
-  agree: null
+  agree: true
 - task_id: rs-08
   arm: treatment
   seeded: true
@@ -142,7 +146,7 @@ items:
   - rs-08-d1
   false_findings: 0
   item_pass: true
-  agree: null
+  agree: true
 - task_id: rs-09
   arm: baseline
   seeded: true
@@ -151,7 +155,7 @@ items:
   - rs-09-d1
   false_findings: 0
   item_pass: true
-  agree: null
+  agree: true
 - task_id: rs-09
   arm: treatment
   seeded: true
@@ -160,7 +164,7 @@ items:
   - rs-09-d1
   false_findings: 0
   item_pass: true
-  agree: null
+  agree: true
 - task_id: rs-10
   arm: baseline
   seeded: true
@@ -169,7 +173,7 @@ items:
   - rs-10-d1
   false_findings: 0
   item_pass: true
-  agree: null
+  agree: true
 - task_id: rs-10
   arm: treatment
   seeded: true
@@ -178,4 +182,8 @@ items:
   - rs-10-d1
   false_findings: 0
   item_pass: true
-  agree: null
+  agree: true
+spotcheck_by: Claude Fable 5 (human stand-in, owner-delegated 2026-07-03); independent judgment formed per row before comparing;
+  owner may override any row
+supplementary: 'all 12 clean-item judge rows (rs-15..rs-20 x2 arms) additionally checked outside this sample: 12/12 agree;
+  sample contained no clean items (see TRACKER: stratify spotcheck by seeded/clean)'
