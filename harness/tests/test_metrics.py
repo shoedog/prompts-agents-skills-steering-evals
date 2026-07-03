@@ -1,0 +1,201 @@
+"""Metrics tests — synthetic rows only, no model calls, no promptfoo."""
+import pytest
+
+from harness.metrics import (
+    TierMixError,
+    adherence,
+    confusion,
+    delta,
+    flags,
+    pass_rate,
+    paired_flips,
+    token_totals,
+    triggering_metrics,
+    wilson_ci,
+)
+
+
+def _judge_row(arm="baseline", tier="weak", **kw):
+    base = {
+        "arm": arm,
+        "tier": tier,
+        "task_id": kw.pop("task_id", "t0"),
+        "seeded": kw.pop("seeded", True),
+        "verdict_flagged": kw.pop("verdict_flagged", False),
+        "item_pass": kw.pop("item_pass", False),
+        "judge_error": kw.pop("judge_error", False),
+        "defects": kw.pop("defects", []),
+        "false_findings": kw.pop("false_findings", 0),
+        "adherence_labels": kw.pop("adherence_labels", {"checklist": False, "disconfirm": False, "verify": False}),
+    }
+    base.update(kw)
+    return base
+
+
+def _call_row(arm="baseline", tier="weak", **kw):
+    base = {
+        "arm": arm,
+        "tier": tier,
+        "fresh_input_tokens": 0,
+        "cache_creation_tokens": 0,
+        "cache_read_tokens": 0,
+        "output_tokens": 0,
+        "input_tokens_logical": 0,
+        "cost_usd": 0.0,
+    }
+    base.update(kw)
+    return base
+
+
+# --------------------------------------------------------------------------- #
+def test_wilson_ci_known_case():
+    lo, hi = wilson_ci(7, 10)
+    assert lo == pytest.approx(0.397, abs=0.005)
+    assert hi == pytest.approx(0.892, abs=0.005)
+
+
+def test_wilson_ci_zero_n():
+    assert wilson_ci(0, 0) == (0.0, 0.0)
+
+
+def test_pass_rate_excludes_judge_errors_but_counts_them():
+    rows = [
+        _judge_row(item_pass=True, judge_error=False),
+        _judge_row(item_pass=False, judge_error=False),
+        _judge_row(item_pass=True, judge_error=True),   # excluded from k/n
+        _judge_row(arm="treatment", item_pass=True),    # other arm ignored
+    ]
+    pr = pass_rate(rows, "baseline")
+    assert pr["n"] == 2
+    assert pr["k"] == 1
+    assert pr["rate"] == pytest.approx(0.5)
+    assert pr["judge_errors"] == 1
+
+
+def test_token_totals_and_delta_breakdown():
+    calls = [
+        _call_row(fresh_input_tokens=100, cache_creation_tokens=200,
+                  cache_read_tokens=300, output_tokens=50,
+                  input_tokens_logical=600, cost_usd=0.01),
+        _call_row(fresh_input_tokens=10, cache_creation_tokens=20,
+                  cache_read_tokens=30, output_tokens=5,
+                  input_tokens_logical=60, cost_usd=0.002),
+        _call_row(arm="treatment", fresh_input_tokens=120, cache_creation_tokens=180,
+                  cache_read_tokens=400, output_tokens=70,
+                  input_tokens_logical=700, cost_usd=0.02),
+    ]
+    b = token_totals(calls, "baseline")
+    assert b["fresh_input"] == 110
+    assert b["cache_creation"] == 220
+    assert b["cache_read"] == 330
+    assert b["output"] == 55
+    assert b["logical_total"] == 660
+    assert b["cost_usd"] == pytest.approx(0.012)
+
+    t = token_totals(calls, "treatment")
+    assert t["logical_total"] == 700
+
+    d = delta(b, t)
+    assert d["logical_total"]["abs"] == 40
+    assert d["logical_total"]["pct"] == pytest.approx(40 / 660 * 100)
+    assert d["cost_usd"]["abs"] == pytest.approx(0.02 - 0.012)
+
+
+def test_confusion_hand_built_six_rows():
+    rows = [
+        _judge_row(seeded=True, verdict_flagged=True,
+                   defects=[{"defect_id": "a", "found": True}, {"defect_id": "b", "found": True}]),  # TP, 2/2
+        _judge_row(seeded=True, verdict_flagged=True,
+                   defects=[{"defect_id": "c", "found": True}]),  # TP, 1/1
+        _judge_row(seeded=True, verdict_flagged=False,
+                   defects=[{"defect_id": "d", "found": False}]),  # FN, 0/1
+        _judge_row(seeded=False, verdict_flagged=True, false_findings=1),  # FP
+        _judge_row(seeded=False, verdict_flagged=False),  # TN
+        _judge_row(seeded=False, verdict_flagged=False),  # TN
+    ]
+    c = confusion(rows, "baseline")
+    assert (c["tp"], c["fp"], c["tn"], c["fn"]) == (2, 1, 2, 1)
+    assert c["n"] == 6
+    assert c["base_rate"] == pytest.approx(0.5)  # (TP+FN)/n = 3/6
+    assert c["defect_recall"]["found"] == 3
+    assert c["defect_recall"]["total"] == 4
+    assert c["defect_recall"]["rate"] == pytest.approx(0.75)
+    assert c["false_findings_total"] == 1
+
+
+def test_paired_flips_joins_on_task_id():
+    rows = [
+        _judge_row(task_id="t1", item_pass=True),
+        _judge_row(task_id="t1", arm="treatment", item_pass=True),   # both_pass
+        _judge_row(task_id="t2", item_pass=True),
+        _judge_row(task_id="t2", arm="treatment", item_pass=False),  # only_baseline
+        _judge_row(task_id="t3", item_pass=False),
+        _judge_row(task_id="t3", arm="treatment", item_pass=True),   # only_treatment
+        _judge_row(task_id="t4", item_pass=False),
+        _judge_row(task_id="t4", arm="treatment", item_pass=False),  # both_fail
+        _judge_row(task_id="t5", item_pass=True),
+        _judge_row(task_id="t5", arm="treatment", item_pass=True, judge_error=True),  # excluded
+    ]
+    fp = paired_flips(rows)
+    assert fp == {"both_pass": 1, "both_fail": 1, "only_baseline": 1, "only_treatment": 1}
+
+
+def test_adherence_treatment_directive_rates():
+    rows = [
+        _judge_row(arm="treatment", adherence_labels={"checklist": True, "disconfirm": True, "verify": True}),
+        _judge_row(arm="treatment", adherence_labels={"checklist": True, "disconfirm": False, "verify": True}),
+        _judge_row(arm="baseline", adherence_labels={"checklist": True, "disconfirm": True, "verify": True}),
+    ]
+    a = adherence(rows)
+    assert a["review-shape.checklist"] == pytest.approx(1.0)
+    assert a["review-shape.disconfirm"] == pytest.approx(0.5)
+    assert a["review-shape.verify"] == pytest.approx(1.0)
+    assert a["review-shape.all_three"] == pytest.approx(0.5)
+
+
+def test_tier_mix_raises():
+    rows = [
+        _judge_row(tier="weak", item_pass=True),
+        _judge_row(tier="strong", item_pass=True),
+    ]
+    with pytest.raises(TierMixError):
+        pass_rate(rows, "baseline")
+    with pytest.raises(TierMixError):
+        confusion(rows, "baseline")
+
+
+def test_triggering_metrics_synthetic_ten_rows():
+    rows = (
+        [{"should_trigger": True, "did_trigger": True} for _ in range(4)]
+        + [{"should_trigger": True, "did_trigger": False}]
+        + [{"should_trigger": False, "did_trigger": True} for _ in range(2)]
+        + [{"should_trigger": False, "did_trigger": False} for _ in range(3)]
+    )
+    m = triggering_metrics(rows)
+    assert (m["tp"], m["fp"], m["tn"], m["fn"]) == (4, 2, 3, 1)
+    assert m["n"] == 10
+    assert m["precision"] == pytest.approx(4 / 6)
+    assert m["recall"] == pytest.approx(0.8)
+    assert m["base_rate"] == pytest.approx(0.5)
+
+
+def test_flags_cost_adjusted_verdict():
+    assert flags(0.5, 0.7, 25.0, False, 0)["cost_adjusted_verdict"] is True
+    assert flags(0.5, 0.7, 10.0, False, 0)["cost_adjusted_verdict"] is False
+    assert flags(0.7, 0.5, 25.0, False, 0)["cost_adjusted_verdict"] is False  # no win
+
+
+def test_flags_harness_broken():
+    assert flags(0.4, 0.6, 5.0, True, 0)["harness_broken"] is True
+    assert flags(0.6, 0.4, 5.0, True, 0)["harness_broken"] is False  # treatment lost
+    assert flags(0.4, 0.6, 5.0, False, 0)["harness_broken"] is False  # not a control
+
+
+def test_flags_composite_floored():
+    assert flags(0.10, 0.12, 0.0, False, 0)["composite_floored"] is True
+    assert flags(0.10, 0.20, 0.0, False, 0)["composite_floored"] is False
+    assert flags(0.20, 0.10, 0.0, False, 0)["composite_floored"] is False
+
+
+def test_flags_judge_errors_passthrough():
+    assert flags(0.5, 0.5, 0.0, False, 3)["judge_errors"] == 3
