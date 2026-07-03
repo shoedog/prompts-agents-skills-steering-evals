@@ -11,6 +11,7 @@ Owner-approved backlog (2026-07-03). Items move to "Done" with the commit that c
 - [ ] check_spotcheck.py: empty-but-present items list should read PROVISIONAL, not FAIL.
 - [ ] ci/test_smoke.py: content-level (not existence-only) checks on report.md/spotcheck.yaml.
 - [ ] judge_assert: probe exotic verdict markdown (tables, heading-verdicts) beyond current variants.
+- [ ] Generalize adherence directive keys — currently hard-keyed to review-shape.* labels; reads 0.000 for other treatments (cosmetic today, blocking for adherence-battery experiments).
 - [ ] Stratify spotcheck sampling by seeded/clean as well as arm — the rs-01..10 deterministic sample contained zero clean items (compensated manually this round).
 - [ ] rejudge.py: stamp rescored judge records with the output exp_id (currently carry source exp_id) and emit a per-call trace file natively.
 
@@ -25,3 +26,6 @@ Owner-approved backlog (2026-07-03). Items move to "Done" with the commit that c
 
 ## Done
 - [x] Exp 1 — review shape vs plain review (inconclusive at ceiling; +30% USD cost finding) — d14a2b3, caveats b741014.
+- [x] Exp 1 rescored under neutral-findings scope — arms identical 18/20; original baseline edge was judge-scope artifact — 94bcaf3.
+- [x] Judge spot-check — 20/20 agreement (+12/12 clean supplementary), AI stand-in disclosed — 981fb1f.
+- [x] Exp 2 — negative control: true-negative VALIDATED (19/20 both arms, +2.8% logical tokens, +17.3% cost, zero gain, harness_broken armed and correctly silent) — 7ebf80e.
