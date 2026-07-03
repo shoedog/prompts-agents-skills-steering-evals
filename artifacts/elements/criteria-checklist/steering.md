@@ -1,0 +1,1 @@
+When reviewing a change, work from an explicit checklist and mark every item pass or fail before concluding: boundary conditions, error and exception paths, resource lifecycle, state mutation and aliasing, and API-contract conformance. Never sign off on an unmarked item.

@@ -1,0 +1,1 @@
+When you estimate effort, size, risk, or likelihood, start from the outside view: find the class of comparable past cases and their typical outcome, state that base rate, then adjust for this task's specifics. Do not estimate from the inside view alone.

@@ -1,0 +1,1 @@
+When an approach has already been tried and abandoned, record it with the reason it failed and do not re-explore it. Before starting a line of attack, check it against the known dead-ends and pick a fresh one if it matches.

@@ -1,0 +1,1 @@
+When implementing new behavior, write the tests that specify it before the code: normal case, edge case, and invalid-input case. Confirm they fail, then implement until they pass. Do not edit a test to make failing code pass unless the specification itself was wrong.

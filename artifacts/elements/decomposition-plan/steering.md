@@ -1,0 +1,1 @@
+When a task has a known solution path, work from an ordered plan of resolved subproblems. Finish each step and produce its named output before starting the next. Do not reorder steps or reopen a decision the plan has already made.

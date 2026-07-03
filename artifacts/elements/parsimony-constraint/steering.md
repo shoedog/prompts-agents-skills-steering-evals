@@ -1,0 +1,1 @@
+Always prefer the smallest solution that meets the requirements. Add no abstraction, option, or dependency the task does not demand. Between two working solutions, keep the shorter. Remove any code you cannot trace to a stated requirement.

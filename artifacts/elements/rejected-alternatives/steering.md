@@ -1,0 +1,1 @@
+When following a design decision, honor its rejected alternatives: each was ruled out under a stated boundary condition. Do not re-open a rejected option while its boundary condition still holds; reconsider only when the condition it was rejected under has changed.

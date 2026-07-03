@@ -1,0 +1,1 @@
+When a solution depends on assumptions that could change, name each one and what breaks if it fails. Before finishing, confirm every load-bearing assumption holds, and flag any you cannot confirm rather than assuming it.

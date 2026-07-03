@@ -1,0 +1,1 @@
+When a task resembles one you have solved before, recall one nearby worked example, lay out its steps explicitly, and map them onto the current problem before writing new code. Adapt the structure; do not copy it blindly.

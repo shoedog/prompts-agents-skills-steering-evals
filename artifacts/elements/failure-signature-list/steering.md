@@ -1,0 +1,1 @@
+When debugging, list the likely named failure signatures up front, each with the symptom that would reveal it. Check the code against every signature, and report which you ruled out and which you found before proposing a fix.

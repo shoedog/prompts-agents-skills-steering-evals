@@ -1,0 +1,1 @@
+When implementing a function or API, define its types and contracts first: input preconditions, output postcondition, and the illegal states the signature must make unrepresentable. Write signatures so invalid inputs cannot type-check before writing the body.

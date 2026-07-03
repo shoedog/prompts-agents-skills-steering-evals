@@ -1,0 +1,1 @@
+Always open a task by restating its goal in one sentence: what must be true when done, and the single observable outcome that counts as success. Name what is out of scope. Serve that goal, not the literal wording of the instructions.

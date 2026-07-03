@@ -1,0 +1,1 @@
+Stop when this criterion is met: <the concrete condition that means done — e.g. all named tests pass and the goal statement is satisfied>. Do not keep exploring, refactoring, or adding once it holds. If the criterion stays unmet after a reasonable attempt, report what blocks it rather than expanding scope.

@@ -1,0 +1,1 @@
+Always express invariants and constraints as runnable checks or tests, never as prose. Before finishing, execute every check and confirm it passes. If you state a condition that must hold, write the assertion that verifies it.

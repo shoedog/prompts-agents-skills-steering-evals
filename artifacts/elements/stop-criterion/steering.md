@@ -1,0 +1,1 @@
+Define what done means before starting, as a concrete stop criterion, and stop as soon as it is met. Do not keep optimizing, refactoring, or gold-plating past that point. If the criterion stays unmet, report the blocker rather than widening scope.
