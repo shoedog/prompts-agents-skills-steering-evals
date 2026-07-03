@@ -100,6 +100,73 @@ def _token_block(tok):
     )
 
 
+# --------------------------------------------------------------------------- #
+# Automatic honesty caveats
+#
+# These are computed straight from metrics already present in the summary
+# dict `s` (never stored back onto `s`, so `metrics.json` — built directly
+# from `s` in `render()` — cannot gain new keys or drift; only the rendered
+# report gains lines). Every future experiment gets them for free because
+# they fire off the same generic confusion/pass_rate shapes every experiment
+# already produces.
+# --------------------------------------------------------------------------- #
+def _recall_ceiling_caveats(b_conf: dict, t_conf: dict) -> list[str]:
+    """One caveat line per arm whose defect-level recall is at ceiling (1.000).
+
+    An arm already at 1.000 recall cannot be observed to improve further on
+    this task set, so any comparison built on top of that arm — recall
+    deltas, and partly the pass-rate delta too, since verdict correctness is
+    entangled with recall — is uninterpretable. Fires per arm (not just
+    baseline) so it also catches the case where both arms floor the task
+    set's difficulty simultaneously.
+    """
+    out = []
+    for name, other, conf in (
+        ("Baseline", "treatment", b_conf),
+        ("Treatment", "baseline", t_conf),
+    ):
+        dr = conf.get("defect_recall", {}) or {}
+        if dr.get("total") and dr.get("rate") == 1.0:
+            out.append(
+                f"{name} defect recall is at ceiling (1.000): the {other} "
+                "structurally cannot improve recall on this task set; recall "
+                "deltas are uninterpretable and pass-rate deltas partly "
+                "preordained. A harder task set is required to detect a "
+                "recall improvement."
+            )
+    return out
+
+
+def _ci_overlap(b_pr: dict, t_pr: dict) -> bool:
+    """Whether the two arms' Wilson 95% CIs (already computed in metrics) overlap."""
+    b_lo, b_hi = b_pr["wilson_ci"]
+    t_lo, t_hi = t_pr["wilson_ci"]
+    return b_lo <= t_hi and t_lo <= b_hi
+
+
+def _noise_caveat(b_pr: dict, t_pr: dict) -> str | None:
+    """Caveat when the arms' pass-rate CIs overlap: treat the delta as noise."""
+    if not _ci_overlap(b_pr, t_pr):
+        return None
+    b_n, t_n = b_pr["n"], t_pr["n"]
+    n_str = str(b_n) if b_n == t_n else f"{b_n}/{t_n}"
+    return (
+        f"Arm pass rates are not statistically distinguishable at n={n_str} "
+        "(overlapping 95% CIs); treat the pass-rate delta as noise, not effect."
+    )
+
+
+def _collect_caveats(s: dict) -> list[str]:
+    """Ordered list of automatic honesty caveats for this summary."""
+    out = list(
+        _recall_ceiling_caveats(s["baseline_confusion"], s["treatment_confusion"])
+    )
+    noise = _noise_caveat(s["baseline_pass"], s["treatment_pass"])
+    if noise:
+        out.append(noise)
+    return out
+
+
 def render_report_md(cfg: ExperimentConfig, s: dict) -> str:
     L = []
     L.append("# Experiment report — PROVISIONAL")
@@ -111,6 +178,14 @@ def render_report_md(cfg: ExperimentConfig, s: dict) -> str:
     L.append("")
     L.append(_ESTIMAND)
     L.append("")
+
+    caveats = _collect_caveats(s)
+    if caveats:
+        L.append("## Caveats")
+        L.append("")
+        for c in caveats:
+            L.append(f"- {c}")
+        L.append("")
 
     fl = s["flags"]
     if fl["harness_broken"]:
@@ -166,8 +241,12 @@ def render_report_md(cfg: ExperimentConfig, s: dict) -> str:
     L.append("### Deltas (treatment − baseline), reported separately")
     L.append("")
     lt = td.get("logical_total", {})
+    ot = td.get("output", {})
+    fi = td.get("fresh_input", {})
     cu = td.get("cost_usd", {})
     L.append(f"- logical tokens: {lt.get('abs', 'n/a')} ({_fmt_pct(lt.get('pct'))})")
+    L.append(f"- output tokens: {ot.get('abs', 'n/a')} ({_fmt_pct(ot.get('pct'))})")
+    L.append(f"- fresh input tokens: {fi.get('abs', 'n/a')} ({_fmt_pct(fi.get('pct'))})")
     L.append(f"- cost USD: {cu.get('abs', 'n/a'):+.4f} ({_fmt_pct(cu.get('pct'))})"
              if isinstance(cu.get("abs"), (int, float)) else "- cost USD: n/a")
     L.append("")
