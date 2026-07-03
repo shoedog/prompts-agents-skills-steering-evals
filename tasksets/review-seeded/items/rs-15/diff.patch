@@ -1,0 +1,14 @@
+--- a/list_view.py
++++ b/list_view.py
+@@ -1,6 +1,12 @@
+ from math import ceil
+ 
+ 
++def page_bounds(page, page_size, total):
++    start = (page - 1) * page_size
++    end = min(start + page_size, total)
++    return start, end
++
++
+ def page_count(total, page_size):
+     return ceil(total / page_size)

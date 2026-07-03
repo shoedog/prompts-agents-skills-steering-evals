@@ -1,0 +1,15 @@
+--- a/text_utils.py
++++ b/text_utils.py
+@@ -4,8 +4,14 @@ def byte_len(text):
+     return len(text.encode("utf-8"))
+ 
+ 
++def truncate_utf8(text, max_bytes):
++    encoded = text.encode("utf-8")
++    if len(encoded) <= max_bytes:
++        return text
++    return encoded[:max_bytes].decode("utf-8")
++
++
+ def slugify(text):
+     return "-".join(text.lower().split())

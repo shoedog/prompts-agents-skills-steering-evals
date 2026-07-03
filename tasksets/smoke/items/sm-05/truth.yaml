@@ -1,0 +1,8 @@
+seeded: false
+defects: []
+clean_rationale: range step and slice width both equal size, so every element is covered exactly once
+  with no overlap or gap; the final short batch is handled by slice clamping.
+tempting_non_defects:
+- step and slice width are both `size`, so chunks neither overlap nor skip - contrast the buggy `range(...,
+  size-1)` variant.
+- the final short batch is produced correctly by Python slice clamping.

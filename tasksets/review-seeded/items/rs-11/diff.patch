@@ -1,0 +1,16 @@
+--- a/batching.py
++++ b/batching.py
+@@ -1,7 +1,12 @@
+ def windows(seq, size):
+     return [seq[i:i + size] for i in range(len(seq) - size + 1)]
+ 
+ 
++def chunk(seq, size):
++    out = []
++    for i in range(0, len(seq), size - 1):
++        out.append(seq[i:i + size])
++    return out
++
+ 
+ def flatten(chunks):
+     return [x for c in chunks for x in c]

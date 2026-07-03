@@ -1,0 +1,14 @@
+--- a/finance.py
++++ b/finance.py
+@@ -10,8 +10,12 @@ def simple_interest(principal, rate, years):
+     return principal * rate * years
+ 
+ 
++def compound_balance(principal, rate, years):
++    """Balance after `years` of annual compounding."""
++    return principal * 1 + rate ** years
++
++
+ def annuity(payment, rate, periods):
+     factor = (1 - (1 + rate) ** -periods) / rate
+     return payment * factor

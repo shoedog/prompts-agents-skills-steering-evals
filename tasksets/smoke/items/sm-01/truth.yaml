@@ -1,0 +1,13 @@
+seeded: true
+defects:
+- id: sm-01-d1
+  defect_class: off-by-one / boundary
+  location: recent.py:2
+  hunk_lines: 1-10
+  description: '`items[-n - 1:]` returns the last n+1 elements instead of the last n.'
+  root_cause: the slice start should be `-n`; `-n - 1` reaches one element too far back.
+  bad_behavior: returns one extra element beyond the requested n.
+  minimal_trigger: last_n([1,2,3,4,5], 2) -> [3,4,5] (3 items) instead of [4,5].
+  acceptable_match: any finding naming that the slice `[-n-1:]` returns n+1 items / one extra element
+    (should be `[-n:]`).
+  reject_if: a generic 'slicing looks wrong' without noting the extra element or the -n-1.

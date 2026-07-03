@@ -1,0 +1,16 @@
+seeded: true
+defects:
+- id: rs-08-d1
+  defect_class: operator precedence / missing parentheses
+  location: finance.py:15
+  hunk_lines: 10-20
+  description: '`principal * 1 + rate ** years` evaluates as `principal + (rate ** years)` because `**`
+    binds tighter than `*`/`+`; the intended `principal * (1 + rate) ** years` is missing its parentheses.'
+  root_cause: missing parentheses around `1 + rate`; operator precedence gives a completely different
+    expression.
+  bad_behavior: returns roughly the principal plus a tiny fractional term instead of the compounded balance.
+  minimal_trigger: principal=1000, rate=0.05, years=3 -> returns 1000.000125 instead of 1157.625.
+  acceptable_match: any finding naming the missing parentheses / operator precedence so it computes principal
+    + rate**years rather than principal*(1+rate)**years.
+  reject_if: a generic 'interest formula is wrong' without pointing at the precedence / missing-parentheses
+    issue.

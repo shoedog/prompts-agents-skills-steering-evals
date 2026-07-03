@@ -1,0 +1,15 @@
+seeded: true
+defects:
+- id: sm-02-d1
+  defect_class: mutable default argument
+  location: cart.py:1
+  hunk_lines: 1-11
+  description: '`basket=[]` is a mutable default evaluated once and shared across all calls that omit
+    it.'
+  root_cause: the default list persists between calls, so items accumulate.
+  bad_behavior: separate calls that omit basket share one list, accumulating each other's items.
+  minimal_trigger: 'add_item(''a'') then add_item(''b'') (basket omitted): the second call returns [''a'',''b'']
+    instead of [''b''].'
+  acceptable_match: any finding naming the mutable default argument `basket=[]` shared/accumulating across
+    calls.
+  reject_if: a generic 'default looks odd' without identifying the shared mutable default / accumulation.

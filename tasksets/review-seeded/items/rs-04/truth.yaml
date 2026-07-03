@@ -1,0 +1,17 @@
+seeded: true
+defects:
+- id: rs-04-d1
+  defect_class: mutable default argument
+  location: validate.py:5
+  hunk_lines: 3-12
+  description: '`warnings=[]` is a mutable default evaluated once and shared across all calls that omit
+    the argument.'
+  root_cause: the default list object persists between calls, so warnings accumulate.
+  bad_behavior: when iterating a batch, each record's warnings are appended to the same list, so record
+    N's result contains warnings from records 1..N.
+  minimal_trigger: call collect_warnings twice with different bad records and no `warnings` arg; the second
+    call's list still contains the first call's messages.
+  acceptable_match: any finding naming the mutable default argument `warnings=[]` being shared/accumulating
+    across calls.
+  reject_if: a generic 'default argument looks unusual' without identifying the shared-mutable-default
+    accumulation bug.

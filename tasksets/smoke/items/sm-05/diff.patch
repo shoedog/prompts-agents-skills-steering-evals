@@ -1,0 +1,12 @@
+--- a/batching_ok.py
++++ b/batching_ok.py
+@@ -1,4 +1,9 @@
++def batches(items, size):
++    out = []
++    for i in range(0, len(items), size):
++        out.append(items[i:i + size])
++    return out
++
+ 
+ def flatten(chunks):
+     return [x for c in chunks for x in c]

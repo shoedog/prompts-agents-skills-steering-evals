@@ -1,0 +1,12 @@
+--- a/tagging.py
++++ b/tagging.py
+@@ -1,3 +1,11 @@
++def append_tag(item, tags=None):
++    if tags is None:
++        tags = []
++    tags.append(item)
++    return tags
++
++
+ def normalize(tag):
+     return tag.strip().lower()

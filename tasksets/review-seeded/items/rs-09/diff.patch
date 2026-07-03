@@ -1,0 +1,15 @@
+--- a/profile_cache.py
++++ b/profile_cache.py
+@@ -8,10 +8,17 @@ class ProfileCache:
+     def get(self, uid):
+         if uid not in self._cache:
+             self._cache[uid] = load_profile(uid)
+         return self._cache[uid]
+ 
++    def save(self, uid, profile):
++        # Persist the updated profile to storage.
++        save_profile(uid, profile)
++        return profile
++
+     def clear(self):
+         self._cache.clear()

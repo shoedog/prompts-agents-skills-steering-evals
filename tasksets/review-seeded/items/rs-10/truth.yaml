@@ -1,0 +1,18 @@
+seeded: true
+defects:
+- id: rs-10-d1
+  defect_class: unicode / bytes boundary
+  location: text_utils.py:11
+  hunk_lines: 4-15
+  description: '`encoded[:max_bytes]` can cut a multi-byte UTF-8 character in the middle; `.decode(''utf-8'')`
+    on the truncated bytes then raises UnicodeDecodeError.'
+  root_cause: slicing raw UTF-8 bytes at an arbitrary byte offset does not respect character boundaries
+    (needs errors='ignore' or a boundary-aware truncation).
+  bad_behavior: for text with a multi-byte character straddling max_bytes, the function raises UnicodeDecodeError
+    instead of returning valid truncated text.
+  minimal_trigger: 'truncate_utf8(''a€b'', 2): the euro sign is 3 bytes; encoded[:2] is b''a\xe2'' which
+    fails to decode -> UnicodeDecodeError.'
+  acceptable_match: any finding naming that slicing the encoded bytes at max_bytes can split a multi-byte
+    character and .decode() then raises (UnicodeDecodeError).
+  reject_if: a generic 'unicode handling is risky' without identifying the byte-slice splitting a character
+    or the decode raising.

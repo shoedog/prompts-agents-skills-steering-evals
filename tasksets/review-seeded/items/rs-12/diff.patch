@@ -1,0 +1,13 @@
+--- a/settings.py
++++ b/settings.py
+@@ -1,8 +1,12 @@
+ DEFAULT_RETENTION_DAYS = 30
+ 
+ 
++def resolve_retention(requested):
++    # Fall back to the default when the caller expresses no preference.
++    return requested or DEFAULT_RETENTION_DAYS
++
++
+ def retention_seconds(requested):
+     return resolve_retention(requested) * 86400

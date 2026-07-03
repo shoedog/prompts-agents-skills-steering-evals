@@ -1,0 +1,18 @@
+--- a/config_cache.py
++++ b/config_cache.py
+@@ -6,6 +6,14 @@ class ConfigCache:
+     def get(self, key):
+         if key not in self._cache:
+             self._cache[key] = load_config(key)
+         return self._cache[key]
+ 
++    def set(self, key, value):
++        save_config(key, value)
++        self._cache[key] = value
++        return value
++
++    def reload(self):
++        self._cache.clear()
++
+     def keys(self):
+         return list(self._cache)

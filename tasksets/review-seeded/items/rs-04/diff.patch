@@ -1,0 +1,15 @@
+--- a/validate.py
++++ b/validate.py
+@@ -3,9 +3,16 @@ MAX_NAME = 80
+ 
+ 
+-def collect_warnings(record):
+-    warnings = []
++def collect_warnings(record, warnings=[]):
+     if not record.get("id"):
+         warnings.append("missing id")
+     if len(record.get("name", "")) > MAX_NAME:
+         warnings.append("name too long")
+     if record.get("qty", 0) < 0:
+         warnings.append("negative qty")
+     return warnings

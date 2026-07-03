@@ -1,0 +1,14 @@
+--- a/eligibility.py
++++ b/eligibility.py
+@@ -1,4 +1,8 @@
++def is_eligible(age, has_consent):
++    # Adults, or minors with guardian consent.
++    return age >= 18 and has_consent
++
++
+ MIN_AGE = 18
+ MAX_AGE = 120
+ 
+ 
+ def clamp_age(a):
+     return max(MIN_AGE, min(a, MAX_AGE))

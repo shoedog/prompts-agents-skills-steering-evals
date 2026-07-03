@@ -1,0 +1,13 @@
+taskset: smoke
+task_family: review
+items:
+- id: sm-01
+  seeded: true
+- id: sm-02
+  seeded: true
+- id: sm-03
+  seeded: true
+- id: sm-04
+  seeded: false
+- id: sm-05
+  seeded: false

@@ -1,0 +1,8 @@
+seeded: false
+defects: []
+clean_rationale: 'set() is write-through: it updates both the store and the cache entry, so a following
+  get() is not stale; reload() clears the cache for a full refresh.'
+tempting_non_defects:
+- unlike a stale-cache bug, `set()` updates `self._cache[key]` right after `save_config`, so the following
+  `get()` returns the new value.
+- '`reload()` clears the whole cache so subsequent gets reload from the store.'

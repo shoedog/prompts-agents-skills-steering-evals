@@ -1,0 +1,16 @@
+--- a/io_utils.py
++++ b/io_utils.py
+@@ -2,8 +2,14 @@ from .parsing import parse_line
+ 
+ 
+ def read_records(path):
+-    with open(path, "r", encoding="utf-8") as f:
+-        return [parse_line(line) for line in f if line.strip()]
++    # Opened explicitly so the handle can be reused for a checksum pass below.
++    f = open(path, "r", encoding="utf-8")
++    records = []
++    for line in f:
++        if line.strip():
++            records.append(parse_line(line))
++    f.close()
++    return records

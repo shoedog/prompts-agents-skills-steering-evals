@@ -1,0 +1,8 @@
+seeded: false
+defects: []
+clean_rationale: Both operands are timezone-aware UTC, so the comparison is valid and correct; the >=
+  boundary matches the contract that the exact expiry instant is expired.
+tempting_non_defects:
+- '`datetime.now(timezone.utc)` returns an AWARE UTC datetime (unlike the buggy naive `datetime.now()`),
+  so comparing to the aware `expires_at` is correct and does not raise.'
+- '`>=` correctly treats the exact expiry instant as expired per the contract; it is not an off-by-one.'

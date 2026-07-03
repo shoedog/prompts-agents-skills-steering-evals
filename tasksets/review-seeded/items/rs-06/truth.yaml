@@ -1,0 +1,18 @@
+seeded: true
+defects:
+- id: rs-06-d1
+  defect_class: swallowed / over-broad exception
+  location: http_client.py:14
+  hunk_lines: 6-18
+  description: the bare `except Exception` catches non-transient errors (4xx via raise_for_status, JSON
+    decode errors, and even bugs) and, after exhausting retries, returns None instead of propagating them.
+  root_cause: catching Exception treats every failure as retryable and converts permanent failures into
+    a silent None return.
+  bad_behavior: a permanent error (e.g. 404 or malformed JSON) is retried pointlessly and then swallowed;
+    the caller receives None and cannot tell a hard failure from a valid empty response.
+  minimal_trigger: 'server returns HTTP 404 (non-transient): raise_for_status raises, the except swallows
+    it, and after `retries` attempts get_json returns None instead of raising.'
+  acceptable_match: any finding naming that the broad `except Exception` swallows non-transient errors
+    (4xx / decode errors) and returns None instead of propagating them.
+  reject_if: a finding that only flags the sleep constant or the retry count, not the over-broad except
+    that hides permanent errors.

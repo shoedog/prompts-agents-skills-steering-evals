@@ -1,0 +1,18 @@
+seeded: true
+defects:
+- id: rs-14-d1
+  defect_class: wrong variable (stale month) / boundary
+  location: billing_dates.py:12
+  hunk_lines: 1-18
+  description: the clamp calls `calendar.monthrange(year, d.month)` using the SOURCE month `d.month` instead
+    of the target `month`, so it clamps to the wrong month's length.
+  root_cause: '`d.month` should be `month` (the following month); using the source month gives the wrong
+    number of days.'
+  bad_behavior: for a source month with more days than the target month, the day is not clamped down and
+    `date(year, month, day)` raises ValueError.
+  minimal_trigger: 'next_billing_date(date(2026, 1, 31)): monthrange uses January (31 days) so day stays
+    31, then date(2026, 2, 31) raises ValueError (should return Feb 28).'
+  acceptable_match: any finding naming that monthrange is called with the source month (d.month) instead
+    of the target month, clamping to the wrong month's length (crash on Jan 31 / month-end dates).
+  reject_if: a generic 'date math may be off' without identifying the wrong month passed to monthrange
+    or the crash on 31-day source months.

@@ -1,0 +1,14 @@
+seeded: true
+defects:
+- id: sm-03-d1
+  defect_class: inverted condition / wrong boolean operator
+  location: eligibility.py:3
+  hunk_lines: 1-11
+  description: the contract requires OR (adult OR consent) but the code uses `and`, requiring both.
+  root_cause: '`and` should be `or`.'
+  bad_behavior: adults without consent, and consenting minors, are wrongly rejected.
+  minimal_trigger: is_eligible(30, False) returns False (an adult without consent is wrongly ineligible);
+    is_eligible(15, True) also returns False.
+  acceptable_match: any finding naming that the condition uses `and` instead of `or`, so both are required
+    and adults-without-consent / consenting-minors are wrongly rejected.
+  reject_if: a generic 'eligibility check is wrong' without naming and-vs-or.

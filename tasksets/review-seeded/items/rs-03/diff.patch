@@ -1,0 +1,13 @@
+--- a/ratelimit.py
++++ b/ratelimit.py
+@@ -10,7 +10,12 @@ class RateLimit:
+     remaining: int
+     reset_at: int
+ 
+ 
+-def parse_rate_limit(headers):
+-    return _from_legacy(headers)
++def parse_rate_limit(headers):
++    remaining = int(headers["X-RateLimit-Limit"])
++    reset = int(headers["X-RateLimit-Reset"])
++    return RateLimit(remaining=remaining, reset_at=reset)

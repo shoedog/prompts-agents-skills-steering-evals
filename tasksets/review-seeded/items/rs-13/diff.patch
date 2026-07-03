@@ -1,0 +1,17 @@
+--- a/ledger.py
++++ b/ledger.py
+@@ -1,3 +1,15 @@
+ def parse_ledger(lines):
++    entries = []
++    total_credit_cents = 0
++    for row in lines[1:]:
++        date, amount, kind = row.split(",")
++        cents = int(float(amount) * 100)
++        entries.append((date, cents, kind))
++        if kind == "credit":
++            total_credit_cents += cents
++    return entries, total_credit_cents
++
++
++def _legacy_parse(lines):
+     raise NotImplementedError

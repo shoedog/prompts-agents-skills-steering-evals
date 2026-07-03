@@ -1,0 +1,13 @@
+--- a/sessions.py
++++ b/sessions.py
+@@ -1,6 +1,11 @@
+ from datetime import datetime, timezone
+ 
+ 
++def is_expired(expires_at):
++    now = datetime.now(timezone.utc)
++    return now >= expires_at
++
++
+ def touch(session):
+     session.last_seen = datetime.now(timezone.utc)

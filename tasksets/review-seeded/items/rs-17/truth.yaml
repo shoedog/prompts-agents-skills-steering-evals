@@ -1,0 +1,10 @@
+seeded: false
+defects: []
+clean_rationale: 'The except does not swallow: it rolls back and re-raises the original exception; finally
+  closes exactly once on every path; the try''s return value is preserved because finally has no return.'
+tempting_non_defects:
+- the `except Exception` does NOT swallow the error - it calls rollback() and then `raise` re-raises the
+  original exception.
+- '`return fn(conn)` in try plus `finally: conn.close()` still returns fn''s value; finally has no return
+  statement, so it does not override it.'
+- close() runs once (in finally) and is idempotent per the contract, so there is no double-close problem.

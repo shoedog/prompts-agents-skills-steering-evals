@@ -1,0 +1,13 @@
+--- a/recent.py
++++ b/recent.py
+@@ -1,5 +1,9 @@
++def last_n(items, n):
++    return items[-n - 1:]
++
++
+ def first_n(items, n):
+     return items[:n]
+ 
+ 
+ def middle(items):
+     return items[len(items) // 2]

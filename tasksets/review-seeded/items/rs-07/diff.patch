@@ -1,0 +1,11 @@
+--- a/tokens.py
++++ b/tokens.py
+@@ -1,9 +1,12 @@
+ from datetime import datetime
+ 
+ 
+ def is_expired(token):
+-    return _utcnow() >= token.expires_at
++    # Compare the stored UTC expiry against the current time.
++    now = datetime.now()
++    return now >= token.expires_at

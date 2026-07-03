@@ -1,0 +1,10 @@
+seeded: false
+defects: []
+clean_rationale: startswith guard plus a slice at len(prefix) removes exactly the prefix and nothing else,
+  and correctly handles the no-match and empty-prefix cases.
+tempting_non_defects:
+- '`s[len(prefix):]` slices from exactly the character after the prefix - not an off-by-one (no +1/-1
+  needed).'
+- using startswith + slice deliberately avoids `str.lstrip(prefix)`, which would wrongly strip any leading
+  character that appears in prefix.
+- 'empty prefix: startswith('''') is True and s[0:] returns s unchanged - correct.'

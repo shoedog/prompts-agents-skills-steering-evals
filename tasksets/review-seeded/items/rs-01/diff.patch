@@ -1,0 +1,16 @@
+--- a/pagination.py
++++ b/pagination.py
+@@ -8,9 +8,14 @@ def page_bounds(page, page_size):
+     start = (page - 1) * page_size
+     end = start + page_size
+     return start, end
+ 
+ 
++def total_pages(total_items, page_size):
++    """Number of pages needed to show all items (ceiling division)."""
++    return total_items // page_size + 1
++
++
+ def clamp_page(page, page_size, total_items):
+     last = total_pages(total_items, page_size)
+     return max(1, min(page, last))

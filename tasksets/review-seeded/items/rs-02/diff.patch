@@ -1,0 +1,15 @@
+--- a/access.py
++++ b/access.py
+@@ -18,8 +18,10 @@ class Resource:
+     owner_id: int
+ 
+ 
+-def can_access(user, resource):
+-    return _legacy_acl.check(user, resource)
++def can_access(user, resource):
++    # Admins may access anything; otherwise only the owner may.
++    return user.is_admin or user.id != resource.owner_id
+ 
+ 
+ def audit(user, resource):
+     log.info("access %s -> %s", user.id, resource.owner_id)

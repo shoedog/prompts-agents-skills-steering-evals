@@ -1,0 +1,17 @@
+seeded: true
+defects:
+- id: rs-09-d1
+  defect_class: stale cache / missing invalidation
+  location: profile_cache.py:13
+  hunk_lines: 8-19
+  description: '`save` writes to storage but never updates or invalidates `self._cache[uid]`, so a previously
+    cached value stays after a save.'
+  root_cause: missing `self._cache[uid] = profile` (or a `del self._cache[uid]`) after save_profile.
+  bad_behavior: after a `get` warms the cache, a `save` changes storage but a later `get` still returns
+    the old cached profile.
+  minimal_trigger: get(uid) to cache the old value, save(uid, new_profile), then get(uid) returns the
+    OLD profile instead of new_profile.
+  acceptable_match: any finding naming that save() does not update or invalidate the cache entry, so get()
+    returns stale data after a save.
+  reject_if: a generic 'caching looks fragile' without identifying the missing cache update/invalidation
+    in save.

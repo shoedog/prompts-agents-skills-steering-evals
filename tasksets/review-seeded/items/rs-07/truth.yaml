@@ -1,0 +1,19 @@
+seeded: true
+defects:
+- id: rs-07-d1
+  defect_class: timezone / UTC confusion
+  location: tokens.py:6
+  hunk_lines: 1-7
+  description: '`datetime.now()` returns naive LOCAL time, but `token.expires_at` is naive UTC; the two
+    are compared as if both UTC.'
+  root_cause: should use `datetime.utcnow()` (or an aware UTC now); `datetime.now()` silently carries
+    the host's local-time offset.
+  bad_behavior: expiry is skewed by the host's UTC offset. On a host west of UTC (e.g. UTC-8), now() is
+    behind UTC so already-expired tokens are still reported valid for up to the offset (and the reverse
+    east of UTC).
+  minimal_trigger: 'run on a host in a non-UTC timezone: a token whose expires_at just passed in UTC is
+    still reported not expired because local now() lags UTC.'
+  acceptable_match: any finding naming that datetime.now() is naive LOCAL time while expires_at is UTC
+    (should be utcnow()/UTC-aware), skewing expiry by the timezone offset.
+  reject_if: a generic 'timezone handling could be improved' without naming now() vs UTC or the local-offset
+    skew.

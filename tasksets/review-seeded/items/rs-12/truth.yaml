@@ -1,0 +1,17 @@
+seeded: true
+defects:
+- id: rs-12-d1
+  defect_class: truthiness / falsy-value bug
+  location: settings.py:6
+  hunk_lines: 1-10
+  description: '`requested or DEFAULT_RETENTION_DAYS` treats `requested == 0` as falsy and replaces it
+    with the default; only `None` should trigger the default.'
+  root_cause: '`or` tests truthiness, and 0 is falsy, so the meaningful 0 (''retain nothing'') is swallowed;
+    should be `DEFAULT if requested is None else requested`.'
+  bad_behavior: a caller who explicitly requests 0-day retention silently gets DEFAULT_RETENTION_DAYS
+    (30) instead of 0; retention can never be disabled.
+  minimal_trigger: resolve_retention(0) returns 30 instead of 0.
+  acceptable_match: any finding naming that `requested or DEFAULT` treats 0 as falsy so an explicit 0
+    is replaced by the default (should check `is None`).
+  reject_if: a generic 'default handling is wrong' without identifying that 0 is swallowed by the truthiness/`or`
+    check.

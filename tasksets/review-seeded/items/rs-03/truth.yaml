@@ -1,0 +1,16 @@
+seeded: true
+defects:
+- id: rs-03-d1
+  defect_class: wrong dict key
+  location: ratelimit.py:15
+  hunk_lines: 10-17
+  description: reads `X-RateLimit-Limit` (the total quota) into `remaining` instead of `X-RateLimit-Remaining`.
+  root_cause: 'wrong header key: Limit vs Remaining. Both keys exist and are ints, so no exception - just
+    a wrong value.'
+  bad_behavior: '`remaining` always equals the total quota, so the client believes it has full quota left
+    even when nearly exhausted (never backs off).'
+  minimal_trigger: any response where Remaining < Limit, e.g. Limit=5000, Remaining=3 -> parsed remaining
+    is 5000.
+  acceptable_match: any finding naming that `remaining` reads the Limit header instead of the Remaining
+    header (wrong key), reporting total quota instead of remaining.
+  reject_if: a generic 'header parsing may be wrong' without naming the Limit-vs-Remaining key mix-up.

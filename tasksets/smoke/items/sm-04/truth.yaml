@@ -1,0 +1,7 @@
+seeded: false
+defects: []
+clean_rationale: None sentinel avoids a shared default, and dict(base) copies before update, so neither
+  input is mutated and defaulted calls do not share state.
+tempting_non_defects:
+- '`extra=None` with `if extra is None: extra = {}` avoids the shared mutable-default trap.'
+- '`dict(base)` makes a copy, so `base` is never mutated by `.update()`; extra is only read.'

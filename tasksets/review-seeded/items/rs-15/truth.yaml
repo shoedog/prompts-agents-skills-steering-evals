@@ -1,0 +1,9 @@
+seeded: false
+defects: []
+clean_rationale: 'Indices are correct for 1-indexed pages: start = (page-1)*page_size and end clamped
+  to total; slicing never over-reads and the last partial page is returned.'
+tempting_non_defects:
+- '`(page - 1) * page_size` is the correct 1-indexed-to-offset conversion, not an off-by-one.'
+- '`min(start + page_size, total)` correctly clamps the exclusive end so the final partial page is returned
+  without reading past the end.'
+- page_count uses math.ceil, which correctly counts pages (unlike the `// + 1` anti-pattern).

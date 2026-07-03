@@ -1,0 +1,16 @@
+seeded: true
+defects:
+- id: rs-11-d1
+  defect_class: off-by-one / boundary (wrong loop step)
+  location: batching.py:7
+  hunk_lines: 1-13
+  description: the range step is `size - 1` while each slice is `size` wide, so consecutive chunks overlap
+    by one element instead of being disjoint.
+  root_cause: step should equal the slice width (`size`); `size - 1` advances one element too few each
+    iteration.
+  bad_behavior: boundary elements are duplicated across adjacent chunks (and elements are not covered
+    exactly once).
+  minimal_trigger: 'chunk([0,1,2,3,4], 3) -> [[0,1,2],[2,3,4],[4]]: element 2 (and 4) appear in two chunks.'
+  acceptable_match: any finding naming that the range step is `size - 1` (should be `size`), causing overlapping
+    chunks / duplicated boundary elements.
+  reject_if: a generic 'chunking looks wrong' without naming the step of size-1 / the overlap or duplication.

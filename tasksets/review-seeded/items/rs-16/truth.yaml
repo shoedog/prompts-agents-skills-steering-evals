@@ -1,0 +1,8 @@
+seeded: false
+defects: []
+clean_rationale: 'The mutable default trap is avoided: the default is None, and a fresh list is created
+  inside the call when tags is None, so defaulted calls do not share state.'
+tempting_non_defects:
+- '`tags=None` plus `if tags is None: tags = []` is the correct idiom that AVOIDS the shared mutable-default-argument
+  bug; each defaulted call gets its own list.'
+- appending to a caller-provided list and returning it is intended behaviour, not accidental mutation.

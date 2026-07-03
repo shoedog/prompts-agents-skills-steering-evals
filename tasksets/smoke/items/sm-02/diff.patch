@@ -1,0 +1,14 @@
+--- a/cart.py
++++ b/cart.py
+@@ -1,5 +1,9 @@
++def add_item(item, basket=[]):
++    basket.append(item)
++    return basket
++
++
+ def total(basket):
+     return sum(i.price for i in basket)
+ 
+ 
+ def is_empty(basket):
+     return not basket

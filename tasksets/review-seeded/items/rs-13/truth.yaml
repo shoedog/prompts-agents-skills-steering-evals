@@ -1,0 +1,31 @@
+seeded: true
+defects:
+- id: rs-13-d1
+  defect_class: numeric precision / float truncation
+  location: ledger.py:6
+  hunk_lines: 1-14
+  description: '`int(float(amount) * 100)` truncates rather than rounds; binary float representation makes
+    some exact decimals land just below the integer, losing a cent.'
+  root_cause: float(amount) is not exact and int() truncates toward zero instead of rounding (should use
+    round() or Decimal).
+  bad_behavior: amounts like '2.30' are stored as 229 cents instead of 230, under-counting by a cent.
+  minimal_trigger: 'amount ''2.30'': float(''2.30'')*100 == 229.99999999999997, so int(...) == 229 (should
+    be 230). Other affected values: ''8.20'' -> 819, ''0.29'' -> 28.'
+  acceptable_match: any finding naming that int(float(amount)*100) truncates due to float representation
+    and under-counts cents (off by one cent), e.g. 2.30 -> 229.
+  reject_if: a bare 'don't use floats for money' style note that does not identify an actual off-by-a-cent
+    truncation/rounding error.
+- id: rs-13-d2
+  defect_class: wrong literal value (case-sensitive comparison)
+  location: ledger.py:8
+  hunk_lines: 1-14
+  description: the type column holds upper-case 'CREDIT'/'DEBIT', but the code compares to lower-case
+    'credit', which never matches.
+  root_cause: case mismatch between the literal 'credit' and the actual data 'CREDIT'.
+  bad_behavior: no row is ever counted as a credit, so `total_credit_cents` is always 0.
+  minimal_trigger: 'any CREDIT row: kind == ''CREDIT'' != ''credit'', so it is skipped and the total stays
+    0.'
+  acceptable_match: 'any finding naming the case mismatch: comparing to lower-case ''credit'' when data
+    is upper-case ''CREDIT'', so credits are never summed (total always 0).'
+  reject_if: a generic 'the type check may be wrong' without identifying the upper/lower case mismatch
+    or that credits are never counted.

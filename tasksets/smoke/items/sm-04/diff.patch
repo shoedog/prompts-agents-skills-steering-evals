@@ -1,0 +1,16 @@
+--- a/merge.py
++++ b/merge.py
+@@ -1,4 +1,11 @@
++def merge(base, extra=None):
++    if extra is None:
++        extra = {}
++    result = dict(base)
++    result.update(extra)
++    return result
++
++
+ DEFAULTS = {"timeout": 30}
+ 
+ 
+ def with_defaults(cfg):
+     return merge(DEFAULTS, cfg)
