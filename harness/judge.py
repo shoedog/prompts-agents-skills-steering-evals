@@ -122,4 +122,6 @@ def judge_review(findings_block: str, truth: dict, judge_cfg: dict) -> dict:
         except (json.JSONDecodeError, ValueError, ProviderError) as e:
             last_err = e
             continue
-    raise JudgeError(f"judge failed after retry: {last_err}")
+    tail = getattr(last_err, "stderr_tail", "") or ""
+    detail = f" :: stderr: {tail}" if tail else ""
+    raise JudgeError(f"judge failed after retry: {last_err}{detail}")

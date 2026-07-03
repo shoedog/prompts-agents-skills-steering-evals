@@ -12,6 +12,7 @@ import re
 import subprocess
 import tempfile
 
+from harness.providers.binpath import resolve_executable
 from harness.providers.errors import ProviderError
 
 _TOKENS_USED_RE = re.compile(r"tokens used\s*\n\s*([0-9,]+)", re.IGNORECASE)
@@ -53,7 +54,7 @@ def run_codex(
     os.close(fd)
     try:
         argv = [
-            "codex",
+            resolve_executable("codex"),
             "exec",
             "--sandbox",
             "read-only",

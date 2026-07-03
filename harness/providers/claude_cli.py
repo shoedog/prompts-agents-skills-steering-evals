@@ -16,6 +16,7 @@ the absolute totals include that constant overhead.
 import json
 import subprocess
 
+from harness.providers.binpath import resolve_executable
 from harness.providers.errors import ProviderError
 
 DISALLOWED_TOOLS = "Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch,Glob,Grep,Read,Task"
@@ -38,7 +39,7 @@ def run_claude(prompt: str, model: str, cwd: str, timeout: int = 300) -> dict:
     CLI-reported `is_error`. The error carries the tail of stderr.
     """
     argv = [
-        "claude",
+        resolve_executable("claude"),
         "-p",
         prompt,
         "--model",

@@ -1,0 +1,28 @@
+{
+  "exp_id": "smoke",
+  "arm": "treatment",
+  "task_id": "sm-02",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": true,
+    "disconfirm": true,
+    "verify": true
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/smoke/items/sm-02/truth.yaml",
+  "truth_defect_ids": [
+    "sm-02-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. cart.py:1 — Mutable default argument `basket=[]` causes all calls without an explicit basket to share the same list, violating the contract that each call without a basket must get an independent empty basket.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "sm-02-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false
+}

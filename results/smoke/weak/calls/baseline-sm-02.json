@@ -1,0 +1,14 @@
+{
+  "exp_id": "smoke",
+  "arm": "baseline",
+  "task_id": "sm-02",
+  "tier": "weak",
+  "model": "claude-haiku-4-5-20251001",
+  "fresh_input_tokens": 10,
+  "cache_creation_tokens": 8211,
+  "cache_read_tokens": 11001,
+  "output_tokens": 789,
+  "input_tokens_logical": 19222,
+  "cost_usd": 0.0214771,
+  "duration_ms": 9779
+}

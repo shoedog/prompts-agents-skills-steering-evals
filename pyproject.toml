@@ -6,3 +6,6 @@ dependencies = ["pyyaml>=6.0", "tiktoken>=0.8", "deepeval>=3.0", "opik>=1.7", "p
 
 [tool.pytest.ini_options]
 testpaths = ["ci", "harness"]
+markers = [
+    "live: makes real LLM API calls (skipped unless RUN_LIVE=1; deselect with -m 'not live')",
+]

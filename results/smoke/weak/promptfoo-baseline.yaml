@@ -1,0 +1,78 @@
+description: smoke baseline (weak)
+prompts:
+- id: file:///Users/wesleyjinks/code/prompts-skills-steering/results/smoke/weak/prompts/baseline.txt
+  label: baseline
+providers:
+- id: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/providers/promptfoo_claude.py
+  config:
+    model: claude-haiku-4-5-20251001
+    tier: weak
+    arm: baseline
+    exp_id: smoke
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/smoke/weak
+tests:
+- vars:
+    task_id: sm-01
+    seeded: true
+    arm: baseline
+    task_input: "# recent.last_n\n\n`last_n(items, n)` returns the last `n` items of a list, in order.\n\nContract:\n- Return the final `n` elements of `items` (or all of them if `items` has\n  fewer than `n`).\n- `n >= 0`.\n\n\n--- a/recent.py\n+++ b/recent.py\n@@ -1,5 +1,9 @@\n+def last_n(items, n):\n+    return items[-n - 1:]\n+\n+\n def first_n(items, n):\n     return items[:n]\n \n \n def middle(items):\n     return items[len(items) // 2]\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/smoke/items/sm-01/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/smoke/weak
+    exp_id: smoke
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py
+- vars:
+    task_id: sm-02
+    seeded: true
+    arm: baseline
+    task_input: "# cart.add_item\n\n`add_item(item, basket)` appends `item` to a shopping basket and returns it.\n\nContract:\n- Append `item` to `basket` and return the basket.\n- If the caller omits `basket`, the function starts a NEW empty basket for\n  that call; two separate calls that both omit `basket` must not share items.\n\n\n--- a/cart.py\n+++ b/cart.py\n@@ -1,5 +1,9 @@\n+def add_item(item, basket=[]):\n+    basket.append(item)\n+    return basket\n+\n+\n def total(basket):\n     return sum(i.price for i in basket)\n \n \n def is_empty(basket):\n     return not basket\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/smoke/items/sm-02/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/smoke/weak
+    exp_id: smoke
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py
+- vars:
+    task_id: sm-03
+    seeded: true
+    arm: baseline
+    task_input: "# eligibility.is_eligible\n\n`is_eligible(age, has_consent)` gates access to a feature.\n\nContract:\n- A user is eligible if they are an adult (`age >= 18`) OR a guardian has\n  provided consent (`has_consent` is True).\n- Otherwise they are not eligible.\n\n\n--- a/eligibility.py\n+++ b/eligibility.py\n@@ -1,4 +1,8 @@\n+def is_eligible(age, has_consent):\n+    # Adults, or minors with guardian consent.\n+    return age >= 18 and has_consent\n+\n+\n MIN_AGE = 18\n MAX_AGE = 120\n \n \n def clamp_age(a):\n     return max(MIN_AGE, min(a, MAX_AGE))\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/smoke/items/sm-03/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/smoke/weak
+    exp_id: smoke
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py
+- vars:
+    task_id: sm-04
+    seeded: false
+    arm: baseline
+    task_input: "# merge.merge\n\n`merge(base, extra=None)` returns a new dict combining `base` and `extra`.\n\nContract:\n- Return a NEW dict; never mutate `base` or `extra`.\n- `extra` overrides keys in `base`.\n- If `extra` is omitted, return a copy of `base`.\n\n\n--- a/merge.py\n+++ b/merge.py\n@@ -1,4 +1,11 @@\n+def merge(base, extra=None):\n+    if extra is None:\n+        extra = {}\n+    result = dict(base)\n+    result.update(extra)\n+    return result\n+\n+\n DEFAULTS = {\"timeout\": 30}\n \n \n def with_defaults(cfg):\n     return merge(DEFAULTS, cfg)\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/smoke/items/sm-04/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/smoke/weak
+    exp_id: smoke
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py
+- vars:
+    task_id: sm-05
+    seeded: false
+    arm: baseline
+    task_input: "# batching_ok.batches\n\n`batches(items, size)` splits `items` into consecutive non-overlapping lists\nof length `size` (last may be shorter), covering each element once.\n\nContract:\n- batches([1,2,3,4,5], 2) -> [[1,2],[3,4],[5]].\n- Every element appears exactly once, in order. `size >= 1`.\n\n\n--- a/batching_ok.py\n+++ b/batching_ok.py\n@@ -1,4 +1,9 @@\n+def batches(items, size):\n+    out = []\n+    for i in range(0, len(items), size):\n+        out.append(items[i:i + size])\n+    return out\n+\n \n def flatten(chunks):\n     return [x for c in chunks for x in c]\n"
+    truth_path: /Users/wesleyjinks/code/prompts-skills-steering/tasksets/smoke/items/sm-05/truth.yaml
+    results_dir: /Users/wesleyjinks/code/prompts-skills-steering/results/smoke/weak
+    exp_id: smoke
+    tier: weak
+    judge_json: '{"provider": "codex", "model": "gpt-5.5", "effort": "medium", "rubric": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md", "schema": "/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json"}'
+  assert:
+  - type: python
+    value: file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py

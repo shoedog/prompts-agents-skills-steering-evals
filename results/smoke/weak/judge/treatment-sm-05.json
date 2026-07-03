@@ -1,0 +1,21 @@
+{
+  "exp_id": "smoke",
+  "arm": "treatment",
+  "task_id": "sm-05",
+  "tier": "weak",
+  "seeded": false,
+  "adherence_labels": {
+    "checklist": true,
+    "disconfirm": true,
+    "verify": true
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/smoke/items/sm-05/truth.yaml",
+  "truth_defect_ids": [],
+  "normalized_block": "## FINDINGS\nVERDICT: APPROVE\nNo findings.\n",
+  "parse_ok": true,
+  "defects": [],
+  "false_findings": 0,
+  "verdict_flagged": false,
+  "item_pass": true,
+  "judge_error": false
+}

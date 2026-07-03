@@ -5,11 +5,13 @@ ever spawned by pytest. Live smoke calls are run manually outside pytest
 (see task-4-report.md).
 """
 import json
+import os
 import subprocess
 from unittest.mock import patch, MagicMock
 
 import pytest
 
+from harness.providers.binpath import resolve_executable
 from harness.providers.claude_cli import run_claude
 from harness.providers.codex_cli import run_codex
 from harness.providers.errors import ProviderError
@@ -150,7 +152,11 @@ class TestRunCodex:
             run_codex("hi", model="gpt-5.5", effort="medium")
 
         argv = mock_run.call_args.args[0]
-        assert argv[0] == "codex"
+        # argv[0] is resolved past any node_modules/.bin shadow (see
+        # binpath.resolve_executable / test_binpath.py); it may be an
+        # absolute path on a machine with codex installed, so only the
+        # basename is asserted here.
+        assert os.path.basename(argv[0]) == "codex"
         assert argv[1] == "exec"
         assert "--sandbox" in argv
         assert argv[argv.index("--sandbox") + 1] == "read-only"

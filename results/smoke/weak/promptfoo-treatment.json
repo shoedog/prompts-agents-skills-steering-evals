@@ -1,0 +1,841 @@
+{
+  "evalId": "eval-nsb-2026-07-03T20:29:33",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-07-03T20:29:33.647Z",
+    "prompts": [
+      {
+        "raw": "Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nReview procedure — follow in order:\n1. Walk this checklist against the diff, one item at a time: correctness of boundary conditions; error/exception paths; resource lifecycle (open/close, acquire/release); state mutation and aliasing; API-contract conformance with the surrounding code.\n2. Disconfirm first: for each candidate finding, actively look for evidence it is NOT a bug before accepting it.\n3. Default-REJECT: approve only if you completed the checklist and found no defect.\n4. Verify separately: after drafting findings, re-derive each one from the diff alone; drop any you cannot re-derive.\nLabel these workspace sections literally: CHECKLIST, DISCONFIRM, VERIFY.\n\n{{task_input}}",
+        "label": "treatment: /Users/wesleyjinks/code/prompts-skills-steering/results/smoke/weak/prompts/treatment.txt: Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nReview procedure — follow in order:\n1. Walk this checklist against the diff, one item at a time: correctness of boundary conditions; error/exception paths; resource lifecycle (open/close, acquire/release); state mutation and aliasing; API-contract conformance with the surrounding code.\n2. Disconfirm first: for each candidate finding, actively look for evidence it is NOT a bug before accepting it.\n3. Default-REJECT: approve only if you completed the checklist and found no defect.\n4. Verify separately: after drafting findings, re-derive each one from the diff alone; drop any you cannot re-derive.\nLabel these workspace sections literally: CHECKLIST, DISCONFIRM, VERIFY.\n\n{{task_input}}",
+        "id": "b91086419d5102409e006ea3321a3a97055ffc89e65b9b43cc388adfbaeb1148",
+        "provider": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/providers/promptfoo_claude.py",
+        "metrics": {
+          "score": 5,
+          "testPassCount": 5,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 5,
+          "assertFailCount": 0,
+          "totalLatencyMs": 119209,
+          "tokenUsage": {
+            "prompt": 96954,
+            "completion": 11184,
+            "cached": 0,
+            "total": 108138,
+            "numRequests": 5,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "namedScoreWeights": {},
+          "cost": 0.1452685
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0.0331751,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "item_pass=True seeded=True verdict_flagged=True false_findings=0 found=['sm-01-d1']",
+              "assertion": {
+                "type": "python",
+                "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+              }
+            }
+          ]
+        },
+        "id": "8db1f697-ae53-4cf8-974a-78e7eb1cf551",
+        "latencyMs": 31984,
+        "namedScores": {},
+        "prompt": {
+          "raw": "Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nReview procedure — follow in order:\n1. Walk this checklist against the diff, one item at a time: correctness of boundary conditions; error/exception paths; resource lifecycle (open/close, acquire/release); state mutation and aliasing; API-contract conformance with the surrounding code.\n2. Disconfirm first: for each candidate finding, actively look for evidence it is NOT a bug before accepting it.\n3. Default-REJECT: approve only if you completed the checklist and found no defect.\n4. Verify separately: after drafting findings, re-derive each one from the diff alone; drop any you cannot re-derive.\nLabel these workspace sections literally: CHECKLIST, DISCONFIRM, VERIFY.\n\n# recent.last_n\n\n`last_n(items, n)` returns the last `n` items of a list, in order.\n\nContract:\n- Return the final `n` elements of `items` (or all of them if `items` has\n  fewer than `n`).\n- `n >= 0`.\n\n\n--- a/recent.py\n+++ b/recent.py\n@@ -1,5 +1,9 @@\n+def last_n(items, n):\n+    return items[-n - 1:]\n+\n+\n def first_n(items, n):\n     return items[:n]\n \n \n def middle(items):\n     return items[len(items) // 2]",
+          "label": "treatment: /Users/wesleyjinks/code/prompts-skills-steering/results/smoke/weak/prompts/treatment.txt: Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nReview procedure — follow in order:\n1. Walk this checklist against the diff, one item at a time: correctness of boundary conditions; error/exception paths; resource lifecycle (open/close, acquire/release); state mutation and aliasing; API-contract conformance with the surrounding code.\n2. Disconfirm first: for each candidate finding, actively look for evidence it is NOT a bug before accepting it.\n3. Default-REJECT: approve only if you completed the checklist and found no defect.\n4. Verify separately: after drafting findings, re-derive each one from the diff alone; drop any you cannot re-derive.\nLabel these workspace sections literally: CHECKLIST, DISCONFIRM, VERIFY.\n\n{{task_input}}",
+          "config": {}
+        },
+        "promptId": "b91086419d5102409e006ea3321a3a97055ffc89e65b9b43cc388adfbaeb1148",
+        "promptIdx": 0,
+        "provider": {
+          "id": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/providers/promptfoo_claude.py",
+          "label": ""
+        },
+        "response": {
+          "output": "CHECKLIST\n\n**Correctness of boundary conditions:**\n- `n = 0`: `items[-0-1:]` = `items[-1:]` returns the last 1 element. Contract requires empty list. ✗\n- `n = 1`: `items[-1-1:]` = `items[-2:]` returns the last 2 elements. Contract requires last 1. ✗\n- `n = 2`: `items[-2-1:]` = `items[-3:]` returns the last 3 elements. Contract requires last 2. ✗\n- Large `n` exceeding list length: `items[-n-1:]` where n > len(items) returns all elements (Python silently clamps), which happens to match the contract by accident. ✓\n\n**Error/exception paths:**\n- No exception handling needed; the contract guarantees n ≥ 0.\n\n**Resource lifecycle:**\n- List slicing creates a new shallow copy; no resource leaks.\n\n**State mutation and aliasing:**\n- No state mutation; return value is independent.\n\n**API-contract conformance:**\n- Contract: \"return the final n elements\"\n- Implementation: `items[-n-1:]` always returns `n+1` elements (when list is large enough)\n- Off-by-one error. ✗\n\nDISCONFIRM\n\nCould `items[-n-1:]` be correct under any interpretation?\n- The contract explicitly states \"final n elements,\" not \"n+1 elements.\"\n- No reasonable interpretation makes returning one more element correct.\n- The implementation is simply wrong.\n\nVERIFY\n\nTest case: `last_n([1, 2, 3, 4, 5], 2)`\n- Actual: `items[-3:]` = `[3, 4, 5]` (3 elements)\n- Expected: `[4, 5]` (2 elements)\n- Defect confirmed. ✓\n\nTest case: `last_n([1, 2, 3, 4, 5], 0)`\n- Actual: `items[-1:]` = `[5]` (1 element)\n- Expected: `[]` (0 elements)\n- Defect confirmed. ✓\n\n---\n\n## FINDINGS\nVERDICT: REJECT\n1. recent.py:2 — The slice `items[-n-1:]` is off by one and returns `n+1` elements instead of `n` elements, violating the contract; should be `items[-n:]` when n > 0, else `[]`.",
+          "tokenUsage": {
+            "prompt": 19371,
+            "completion": 3069,
+            "total": 22440,
+            "numRequests": 1
+          },
+          "cost": 0.0331751,
+          "cached": false
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "vars": {
+            "task_id": "sm-01",
+            "seeded": true,
+            "arm": "treatment",
+            "task_input": "# recent.last_n\n\n`last_n(items, n)` returns the last `n` items of a list, in order.\n\nContract:\n- Return the final `n` elements of `items` (or all of them if `items` has\n  fewer than `n`).\n- `n >= 0`.\n\n\n--- a/recent.py\n+++ b/recent.py\n@@ -1,5 +1,9 @@\n+def last_n(items, n):\n+    return items[-n - 1:]\n+\n+\n def first_n(items, n):\n     return items[:n]\n \n \n def middle(items):\n     return items[len(items) // 2]\n",
+            "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/smoke/items/sm-01/truth.yaml",
+            "results_dir": "[REDACTED]",
+            "exp_id": "smoke",
+            "tier": "weak",
+            "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+          },
+          "assert": [
+            {
+              "type": "python",
+              "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 19371,
+          "completion": 3069,
+          "cached": 0,
+          "total": 22440,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "task_id": "sm-01",
+          "seeded": true,
+          "arm": "treatment",
+          "task_input": "# recent.last_n\n\n`last_n(items, n)` returns the last `n` items of a list, in order.\n\nContract:\n- Return the final `n` elements of `items` (or all of them if `items` has\n  fewer than `n`).\n- `n >= 0`.\n\n\n--- a/recent.py\n+++ b/recent.py\n@@ -1,5 +1,9 @@\n+def last_n(items, n):\n+    return items[-n - 1:]\n+\n+\n def first_n(items, n):\n     return items[:n]\n \n \n def middle(items):\n     return items[len(items) // 2]\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/smoke/items/sm-01/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "smoke",
+          "tier": "weak",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0.0247381,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "item_pass=True seeded=True verdict_flagged=True false_findings=0 found=['sm-02-d1']",
+              "assertion": {
+                "type": "python",
+                "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+              }
+            }
+          ]
+        },
+        "id": "d6daca2d-c69d-4c1f-8e52-6c610d6f4468",
+        "latencyMs": 16064,
+        "namedScores": {},
+        "prompt": {
+          "raw": "Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nReview procedure — follow in order:\n1. Walk this checklist against the diff, one item at a time: correctness of boundary conditions; error/exception paths; resource lifecycle (open/close, acquire/release); state mutation and aliasing; API-contract conformance with the surrounding code.\n2. Disconfirm first: for each candidate finding, actively look for evidence it is NOT a bug before accepting it.\n3. Default-REJECT: approve only if you completed the checklist and found no defect.\n4. Verify separately: after drafting findings, re-derive each one from the diff alone; drop any you cannot re-derive.\nLabel these workspace sections literally: CHECKLIST, DISCONFIRM, VERIFY.\n\n# cart.add_item\n\n`add_item(item, basket)` appends `item` to a shopping basket and returns it.\n\nContract:\n- Append `item` to `basket` and return the basket.\n- If the caller omits `basket`, the function starts a NEW empty basket for\n  that call; two separate calls that both omit `basket` must not share items.\n\n\n--- a/cart.py\n+++ b/cart.py\n@@ -1,5 +1,9 @@\n+def add_item(item, basket=[]):\n+    basket.append(item)\n+    return basket\n+\n+\n def total(basket):\n     return sum(i.price for i in basket)\n \n \n def is_empty(basket):\n     return not basket",
+          "label": "treatment: /Users/wesleyjinks/code/prompts-skills-steering/results/smoke/weak/prompts/treatment.txt: Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nReview procedure — follow in order:\n1. Walk this checklist against the diff, one item at a time: correctness of boundary conditions; error/exception paths; resource lifecycle (open/close, acquire/release); state mutation and aliasing; API-contract conformance with the surrounding code.\n2. Disconfirm first: for each candidate finding, actively look for evidence it is NOT a bug before accepting it.\n3. Default-REJECT: approve only if you completed the checklist and found no defect.\n4. Verify separately: after drafting findings, re-derive each one from the diff alone; drop any you cannot re-derive.\nLabel these workspace sections literally: CHECKLIST, DISCONFIRM, VERIFY.\n\n{{task_input}}",
+          "config": {}
+        },
+        "promptId": "b91086419d5102409e006ea3321a3a97055ffc89e65b9b43cc388adfbaeb1148",
+        "promptIdx": 0,
+        "provider": {
+          "id": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/providers/promptfoo_claude.py",
+          "label": ""
+        },
+        "response": {
+          "output": "# CHECKLIST\n\n1. **Correctness of boundary conditions**\n   - When `basket` is provided: ✓ Function appends and returns correctly\n   - When `basket` is omitted: ✗ Function uses `basket=[]` as default\n\n2. **Error/exception paths**\n   - `list.append()` succeeds normally; `return` works\n   - No exceptions to handle\n\n3. **Resource lifecycle**\n   - No resources to acquire/release\n\n4. **State mutation and aliasing**\n   - Function mutates the basket with `append()`\n   - **Critical issue**: Default mutable argument `basket=[]` is created once at function definition time, not on each call\n   - Every call omitting `basket` reuses the SAME list object across all invocations\n\n5. **API-contract conformance**\n   - Contract: \"two separate calls that both omit `basket` must not share items\"\n   - Implementation: All calls without `basket` share the same default list object\n   - **VIOLATION**: The first call adds an item; the second call omits `basket` and receives the list from the first call, not a new empty one\n\n# DISCONFIRM\n\nCould this work as intended? No—this is the classic Python mutable default argument pitfall:\n\n```\nCall 1: add_item(\"apple\")         → basket points to default [], appends \"apple\" → [\"apple\"]\nCall 2: add_item(\"orange\")        → basket points to the SAME [], appends \"orange\" → [\"apple\", \"orange\"]\nCall 3: add_item(\"banana\", [...]) → uses provided basket, works correctly\n```\n\nCalls 1 and 2 share the same list object, directly violating the contract.\n\n# VERIFY\n\nThe defect is confirmed: using a mutable default argument breaks the contract's isolation guarantee. Each omitted-`basket` call should get a fresh empty list; instead all such calls reuse one shared list.\n\n---\n\n## FINDINGS\nVERDICT: REJECT\n1. cart.py:1 — Mutable default argument `basket=[]` causes all calls without an explicit basket to share the same list, violating the contract that each call without a basket must get an independent empty basket.",
+          "tokenUsage": {
+            "prompt": 19385,
+            "completion": 1376,
+            "total": 20761,
+            "numRequests": 1
+          },
+          "cost": 0.0247381,
+          "cached": false
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "vars": {
+            "task_id": "sm-02",
+            "seeded": true,
+            "arm": "treatment",
+            "task_input": "# cart.add_item\n\n`add_item(item, basket)` appends `item` to a shopping basket and returns it.\n\nContract:\n- Append `item` to `basket` and return the basket.\n- If the caller omits `basket`, the function starts a NEW empty basket for\n  that call; two separate calls that both omit `basket` must not share items.\n\n\n--- a/cart.py\n+++ b/cart.py\n@@ -1,5 +1,9 @@\n+def add_item(item, basket=[]):\n+    basket.append(item)\n+    return basket\n+\n+\n def total(basket):\n     return sum(i.price for i in basket)\n \n \n def is_empty(basket):\n     return not basket\n",
+            "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/smoke/items/sm-02/truth.yaml",
+            "results_dir": "[REDACTED]",
+            "exp_id": "smoke",
+            "tier": "weak",
+            "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+          },
+          "assert": [
+            {
+              "type": "python",
+              "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 19385,
+          "completion": 1376,
+          "cached": 0,
+          "total": 20761,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "task_id": "sm-02",
+          "seeded": true,
+          "arm": "treatment",
+          "task_input": "# cart.add_item\n\n`add_item(item, basket)` appends `item` to a shopping basket and returns it.\n\nContract:\n- Append `item` to `basket` and return the basket.\n- If the caller omits `basket`, the function starts a NEW empty basket for\n  that call; two separate calls that both omit `basket` must not share items.\n\n\n--- a/cart.py\n+++ b/cart.py\n@@ -1,5 +1,9 @@\n+def add_item(item, basket=[]):\n+    basket.append(item)\n+    return basket\n+\n+\n def total(basket):\n     return sum(i.price for i in basket)\n \n \n def is_empty(basket):\n     return not basket\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/smoke/items/sm-02/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "smoke",
+          "tier": "weak",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0.0250451,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "item_pass=True seeded=True verdict_flagged=True false_findings=0 found=['sm-03-d1']",
+              "assertion": {
+                "type": "python",
+                "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+              }
+            }
+          ]
+        },
+        "id": "69fd0cde-a3e4-41a6-9844-906d2bbf4e1d",
+        "latencyMs": 16423,
+        "namedScores": {},
+        "prompt": {
+          "raw": "Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nReview procedure — follow in order:\n1. Walk this checklist against the diff, one item at a time: correctness of boundary conditions; error/exception paths; resource lifecycle (open/close, acquire/release); state mutation and aliasing; API-contract conformance with the surrounding code.\n2. Disconfirm first: for each candidate finding, actively look for evidence it is NOT a bug before accepting it.\n3. Default-REJECT: approve only if you completed the checklist and found no defect.\n4. Verify separately: after drafting findings, re-derive each one from the diff alone; drop any you cannot re-derive.\nLabel these workspace sections literally: CHECKLIST, DISCONFIRM, VERIFY.\n\n# eligibility.is_eligible\n\n`is_eligible(age, has_consent)` gates access to a feature.\n\nContract:\n- A user is eligible if they are an adult (`age >= 18`) OR a guardian has\n  provided consent (`has_consent` is True).\n- Otherwise they are not eligible.\n\n\n--- a/eligibility.py\n+++ b/eligibility.py\n@@ -1,4 +1,8 @@\n+def is_eligible(age, has_consent):\n+    # Adults, or minors with guardian consent.\n+    return age >= 18 and has_consent\n+\n+\n MIN_AGE = 18\n MAX_AGE = 120\n \n \n def clamp_age(a):\n     return max(MIN_AGE, min(a, MAX_AGE))",
+          "label": "treatment: /Users/wesleyjinks/code/prompts-skills-steering/results/smoke/weak/prompts/treatment.txt: Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nReview procedure — follow in order:\n1. Walk this checklist against the diff, one item at a time: correctness of boundary conditions; error/exception paths; resource lifecycle (open/close, acquire/release); state mutation and aliasing; API-contract conformance with the surrounding code.\n2. Disconfirm first: for each candidate finding, actively look for evidence it is NOT a bug before accepting it.\n3. Default-REJECT: approve only if you completed the checklist and found no defect.\n4. Verify separately: after drafting findings, re-derive each one from the diff alone; drop any you cannot re-derive.\nLabel these workspace sections literally: CHECKLIST, DISCONFIRM, VERIFY.\n\n{{task_input}}",
+          "config": {}
+        },
+        "promptId": "b91086419d5102409e006ea3321a3a97055ffc89e65b9b43cc388adfbaeb1148",
+        "promptIdx": 0,
+        "provider": {
+          "id": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/providers/promptfoo_claude.py",
+          "label": ""
+        },
+        "response": {
+          "output": "# CHECKLIST\n\n1. **Correctness of boundary conditions:**\n   - Contract requires: eligible if (age >= 18) **OR** (has_consent is True)\n   - Implementation returns: (age >= 18) **AND** (has_consent)\n   - Mismatched operator: AND vs OR\n\n2. **Error/exception paths:**\n   - No error handling needed for this logic; signature accepts any inputs.\n\n3. **Resource lifecycle:**\n   - No resources allocated or released.\n\n4. **State mutation and aliasing:**\n   - No mutation or aliasing.\n\n5. **API-contract conformance:**\n   - **FAILS**: The logical operator contradicts the contract.\n\n# DISCONFIRM\n\nTesting boundary cases against the contract:\n\n| age | has_consent | Contract says | Code returns | Match? |\n|-----|-------------|---------------|--------------|--------|\n| 20  | False       | Eligible (adult) | False (20>=18 AND False) | ❌ NO |\n| 16  | True        | Eligible (consent) | False (16<18 AND True) | ❌ NO |\n| 18  | True        | Eligible (both) | True | ✓ YES |\n\nThe comment itself says \"Adults, **or** minors with guardian consent\" (emphasis added)—the correct operator. But the code uses `and`.\n\nNo evidence that AND is correct. The bug is real.\n\n# VERIFY\n\n- Line 2: The contract in the docstring (above the diff) explicitly uses OR.\n- Line 3: The code uses AND.\n- Consequence: Adults without explicit consent are rejected, and minors without consent are rejected even if they have guardian consent.\n\n---\n\n## FINDINGS\nVERDICT: REJECT\n1. eligibility.py:3 — Logical operator AND should be OR; code requires both age >= 18 AND has_consent=True, but contract specifies either condition suffices. An adult without consent is incorrectly denied access.",
+          "tokenUsage": {
+            "prompt": 19396,
+            "completion": 1433,
+            "total": 20829,
+            "numRequests": 1
+          },
+          "cost": 0.0250451,
+          "cached": false
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "vars": {
+            "task_id": "sm-03",
+            "seeded": true,
+            "arm": "treatment",
+            "task_input": "# eligibility.is_eligible\n\n`is_eligible(age, has_consent)` gates access to a feature.\n\nContract:\n- A user is eligible if they are an adult (`age >= 18`) OR a guardian has\n  provided consent (`has_consent` is True).\n- Otherwise they are not eligible.\n\n\n--- a/eligibility.py\n+++ b/eligibility.py\n@@ -1,4 +1,8 @@\n+def is_eligible(age, has_consent):\n+    # Adults, or minors with guardian consent.\n+    return age >= 18 and has_consent\n+\n+\n MIN_AGE = 18\n MAX_AGE = 120\n \n \n def clamp_age(a):\n     return max(MIN_AGE, min(a, MAX_AGE))\n",
+            "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/smoke/items/sm-03/truth.yaml",
+            "results_dir": "[REDACTED]",
+            "exp_id": "smoke",
+            "tier": "weak",
+            "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+          },
+          "assert": [
+            {
+              "type": "python",
+              "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 19396,
+          "completion": 1433,
+          "cached": 0,
+          "total": 20829,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "task_id": "sm-03",
+          "seeded": true,
+          "arm": "treatment",
+          "task_input": "# eligibility.is_eligible\n\n`is_eligible(age, has_consent)` gates access to a feature.\n\nContract:\n- A user is eligible if they are an adult (`age >= 18`) OR a guardian has\n  provided consent (`has_consent` is True).\n- Otherwise they are not eligible.\n\n\n--- a/eligibility.py\n+++ b/eligibility.py\n@@ -1,4 +1,8 @@\n+def is_eligible(age, has_consent):\n+    # Adults, or minors with guardian consent.\n+    return age >= 18 and has_consent\n+\n+\n MIN_AGE = 18\n MAX_AGE = 120\n \n \n def clamp_age(a):\n     return max(MIN_AGE, min(a, MAX_AGE))\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/smoke/items/sm-03/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "smoke",
+          "tier": "weak",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0.033032099999999995,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "item_pass=True seeded=False verdict_flagged=False false_findings=0 found=[]",
+              "assertion": {
+                "type": "python",
+                "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+              }
+            }
+          ]
+        },
+        "id": "c5fed4b7-0bb2-4c67-8a6d-8bf14c0e82f7",
+        "latencyMs": 28605,
+        "namedScores": {},
+        "prompt": {
+          "raw": "Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nReview procedure — follow in order:\n1. Walk this checklist against the diff, one item at a time: correctness of boundary conditions; error/exception paths; resource lifecycle (open/close, acquire/release); state mutation and aliasing; API-contract conformance with the surrounding code.\n2. Disconfirm first: for each candidate finding, actively look for evidence it is NOT a bug before accepting it.\n3. Default-REJECT: approve only if you completed the checklist and found no defect.\n4. Verify separately: after drafting findings, re-derive each one from the diff alone; drop any you cannot re-derive.\nLabel these workspace sections literally: CHECKLIST, DISCONFIRM, VERIFY.\n\n# merge.merge\n\n`merge(base, extra=None)` returns a new dict combining `base` and `extra`.\n\nContract:\n- Return a NEW dict; never mutate `base` or `extra`.\n- `extra` overrides keys in `base`.\n- If `extra` is omitted, return a copy of `base`.\n\n\n--- a/merge.py\n+++ b/merge.py\n@@ -1,4 +1,11 @@\n+def merge(base, extra=None):\n+    if extra is None:\n+        extra = {}\n+    result = dict(base)\n+    result.update(extra)\n+    return result\n+\n+\n DEFAULTS = {\"timeout\": 30}\n \n \n def with_defaults(cfg):\n     return merge(DEFAULTS, cfg)",
+          "label": "treatment: /Users/wesleyjinks/code/prompts-skills-steering/results/smoke/weak/prompts/treatment.txt: Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nReview procedure — follow in order:\n1. Walk this checklist against the diff, one item at a time: correctness of boundary conditions; error/exception paths; resource lifecycle (open/close, acquire/release); state mutation and aliasing; API-contract conformance with the surrounding code.\n2. Disconfirm first: for each candidate finding, actively look for evidence it is NOT a bug before accepting it.\n3. Default-REJECT: approve only if you completed the checklist and found no defect.\n4. Verify separately: after drafting findings, re-derive each one from the diff alone; drop any you cannot re-derive.\nLabel these workspace sections literally: CHECKLIST, DISCONFIRM, VERIFY.\n\n{{task_input}}",
+          "config": {}
+        },
+        "promptId": "b91086419d5102409e006ea3321a3a97055ffc89e65b9b43cc388adfbaeb1148",
+        "promptIdx": 0,
+        "provider": {
+          "id": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/providers/promptfoo_claude.py",
+          "label": ""
+        },
+        "response": {
+          "output": "# Review\n\n## CHECKLIST\n\n**Boundary conditions:**\n- `extra=None` (omitted): Sets `extra={}`, creates `result = dict(base)`, calls `result.update({})`, returns `result`. ✓ Returns a copy of `base`.\n- `extra` provided: `dict(base)` creates a new dict, `result.update(extra)` merges `extra` into it. ✓ Extra overrides base keys.\n- Both empty dicts, nested values, etc.: All handled uniformly by the same logic. ✓\n\n**Error/exception paths:**\n- No explicit validation, but the contract doesn't require it. If inputs are not dict-like, appropriate TypeErrors will surface naturally. ✓\n- No uncaught paths.\n\n**Resource lifecycle:**\n- Not applicable; no resources acquired. ✓\n\n**State mutation and aliasing:**\n- Line 4: `result = dict(base)` creates a NEW dict object; does not mutate `base`. ✓\n- Line 5: `result.update(extra)` modifies `result`, not `extra`. ✓\n- Neither input is mutated. ✓\n- (Note: this is a shallow copy, but the contract specifies \"new dict\" not \"deep copy\", and shallow copies are standard for dict merging.)\n\n**API-contract conformance:**\n- \"Return a NEW dict\": ✓ `dict(base)` is new.\n- \"`extra` overrides keys in `base`\": ✓ `update()` implements this.\n- \"If `extra` is omitted, return a copy of `base`\": ✓ `None` → `{}` → merged result is a copy of `base`.\n\n## DISCONFIRM\n\n- Shallow copy: Not a defect. Contract says \"new dict\", not \"deep copy\". Shallow merges are standard and appropriate for configuration dicts like `with_defaults`.\n- Modifying local `extra` variable: Not a defect. The *parameter* is not mutated; the caller's `None` input is untouched. Setting a local variable to `{}` is implementation detail.\n- Missing input validation: Not a defect. Contract assumes appropriate inputs; errors naturally surface if violated.\n\n## VERIFY\n\nRe-deriving each contract point from the code:\n1. **New dict + no mutation**: `dict(base)` on line 4 creates a fresh dict without modifying `base` or `extra`. ✓\n2. **Extra overrides**: `result.update(extra)` on line 5 merges extra keys into result, overriding base keys. ✓\n3. **Omitted extra returns copy of base**: When `extra is None`, it becomes `{}` (line 2–3), then merged into a copy of base, yielding a copy of base. ✓\n\n---\n\n## FINDINGS\nVERDICT: APPROVE\n\nNo findings.",
+          "tokenUsage": {
+            "prompt": 19392,
+            "completion": 3032,
+            "total": 22424,
+            "numRequests": 1
+          },
+          "cost": 0.033032099999999995,
+          "cached": false
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "vars": {
+            "task_id": "sm-04",
+            "seeded": false,
+            "arm": "treatment",
+            "task_input": "# merge.merge\n\n`merge(base, extra=None)` returns a new dict combining `base` and `extra`.\n\nContract:\n- Return a NEW dict; never mutate `base` or `extra`.\n- `extra` overrides keys in `base`.\n- If `extra` is omitted, return a copy of `base`.\n\n\n--- a/merge.py\n+++ b/merge.py\n@@ -1,4 +1,11 @@\n+def merge(base, extra=None):\n+    if extra is None:\n+        extra = {}\n+    result = dict(base)\n+    result.update(extra)\n+    return result\n+\n+\n DEFAULTS = {\"timeout\": 30}\n \n \n def with_defaults(cfg):\n     return merge(DEFAULTS, cfg)\n",
+            "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/smoke/items/sm-04/truth.yaml",
+            "results_dir": "[REDACTED]",
+            "exp_id": "smoke",
+            "tier": "weak",
+            "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+          },
+          "assert": [
+            {
+              "type": "python",
+              "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 3,
+        "tokenUsage": {
+          "prompt": 19392,
+          "completion": 3032,
+          "cached": 0,
+          "total": 22424,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "task_id": "sm-04",
+          "seeded": false,
+          "arm": "treatment",
+          "task_input": "# merge.merge\n\n`merge(base, extra=None)` returns a new dict combining `base` and `extra`.\n\nContract:\n- Return a NEW dict; never mutate `base` or `extra`.\n- `extra` overrides keys in `base`.\n- If `extra` is omitted, return a copy of `base`.\n\n\n--- a/merge.py\n+++ b/merge.py\n@@ -1,4 +1,11 @@\n+def merge(base, extra=None):\n+    if extra is None:\n+        extra = {}\n+    result = dict(base)\n+    result.update(extra)\n+    return result\n+\n+\n DEFAULTS = {\"timeout\": 30}\n \n \n def with_defaults(cfg):\n     return merge(DEFAULTS, cfg)\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/smoke/items/sm-04/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "smoke",
+          "tier": "weak",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0.0292781,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "item_pass=True seeded=False verdict_flagged=False false_findings=0 found=[]",
+              "assertion": {
+                "type": "python",
+                "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+              }
+            }
+          ]
+        },
+        "id": "99223c7d-88e4-4a25-9044-f40b1e3489b8",
+        "latencyMs": 26133,
+        "namedScores": {},
+        "prompt": {
+          "raw": "Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nReview procedure — follow in order:\n1. Walk this checklist against the diff, one item at a time: correctness of boundary conditions; error/exception paths; resource lifecycle (open/close, acquire/release); state mutation and aliasing; API-contract conformance with the surrounding code.\n2. Disconfirm first: for each candidate finding, actively look for evidence it is NOT a bug before accepting it.\n3. Default-REJECT: approve only if you completed the checklist and found no defect.\n4. Verify separately: after drafting findings, re-derive each one from the diff alone; drop any you cannot re-derive.\nLabel these workspace sections literally: CHECKLIST, DISCONFIRM, VERIFY.\n\n# batching_ok.batches\n\n`batches(items, size)` splits `items` into consecutive non-overlapping lists\nof length `size` (last may be shorter), covering each element once.\n\nContract:\n- batches([1,2,3,4,5], 2) -> [[1,2],[3,4],[5]].\n- Every element appears exactly once, in order. `size >= 1`.\n\n\n--- a/batching_ok.py\n+++ b/batching_ok.py\n@@ -1,4 +1,9 @@\n+def batches(items, size):\n+    out = []\n+    for i in range(0, len(items), size):\n+        out.append(items[i:i + size])\n+    return out\n+\n \n def flatten(chunks):\n     return [x for c in chunks for x in c]",
+          "label": "treatment: /Users/wesleyjinks/code/prompts-skills-steering/results/smoke/weak/prompts/treatment.txt: Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nReview procedure — follow in order:\n1. Walk this checklist against the diff, one item at a time: correctness of boundary conditions; error/exception paths; resource lifecycle (open/close, acquire/release); state mutation and aliasing; API-contract conformance with the surrounding code.\n2. Disconfirm first: for each candidate finding, actively look for evidence it is NOT a bug before accepting it.\n3. Default-REJECT: approve only if you completed the checklist and found no defect.\n4. Verify separately: after drafting findings, re-derive each one from the diff alone; drop any you cannot re-derive.\nLabel these workspace sections literally: CHECKLIST, DISCONFIRM, VERIFY.\n\n{{task_input}}",
+          "config": {}
+        },
+        "promptId": "b91086419d5102409e006ea3321a3a97055ffc89e65b9b43cc388adfbaeb1148",
+        "promptIdx": 0,
+        "provider": {
+          "id": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/providers/promptfoo_claude.py",
+          "label": ""
+        },
+        "response": {
+          "output": "# CHECKLIST\n\n**Correctness of boundary conditions:**\n- Empty items: `range(0, 0, size)` produces no iterations, returns `[]` ✓\n- Items shorter than size: `batches([1,2,3], 5)` → slicing `items[0:5]` yields `[1,2,3]`, correct ✓\n- Single batch: `batches([1,2], 2)` → one slice at i=0, yields `[[1,2]]` ✓\n- Multiple batches: `batches([1,2,3,4,5], 2)` → i=0,2,4 produces `[[1,2],[3,4],[5]]` ✓\n- Last batch shorter: `batches([1,2,3,4,5], 2)` correctly produces `[5]` (Python slicing past bounds is safe) ✓\n\n**Error/exception paths:**\n- No exception handling needed; size >= 1 guaranteed by contract ✓\n- Invalid inputs (non-sequence items, non-int size) raise TypeError as expected ✓\n\n**Resource lifecycle:**\n- No resources to manage; pure data structure ✓\n\n**State mutation and aliasing:**\n- `out` is local, not aliasing caller's data ✓\n- Slices `items[i:i+size]` create new list objects (separate from items reference) ✓\n- Elements themselves are shared by reference (standard Python behavior, expected) ✓\n\n**API-contract conformance:**\n- Contract: `batches([1,2,3,4,5], 2) -> [[1,2],[3,4],[5]]`\n- Trace: range(0,5,2) → {0,2,4}; items[0:2]=[1,2], items[2:4]=[3,4], items[4:6]=[5] ✓\n- Every element appears exactly once, in order ✓\n\n# DISCONFIRM\n\nActively checking for false positives:\n- Off-by-one in loop step? No—`range(0, len(items), size)` advances correctly by size ✓\n- Off-by-one in slice bounds? No—`items[i:i+size]` correctly spans from i to i+size-1 ✓\n- Last batch omitted? No—range includes final starting index before len ✓\n- Empty list handling? No—empty range produces empty out ✓\n\n# VERIFY\n\nRe-deriving from diff alone: This is a straightforward batching algorithm. The step-by-step execution for the contract example holds: indices 0, 2, 4 partition [1,2,3,4,5] into three non-overlapping consecutive slices covering all elements exactly once, in order.\n\n---\n\n## FINDINGS\nVERDICT: APPROVE\n\nNo findings.",
+          "tokenUsage": {
+            "prompt": 19410,
+            "completion": 2274,
+            "total": 21684,
+            "numRequests": 1
+          },
+          "cost": 0.0292781,
+          "cached": false
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "vars": {
+            "task_id": "sm-05",
+            "seeded": false,
+            "arm": "treatment",
+            "task_input": "# batching_ok.batches\n\n`batches(items, size)` splits `items` into consecutive non-overlapping lists\nof length `size` (last may be shorter), covering each element once.\n\nContract:\n- batches([1,2,3,4,5], 2) -> [[1,2],[3,4],[5]].\n- Every element appears exactly once, in order. `size >= 1`.\n\n\n--- a/batching_ok.py\n+++ b/batching_ok.py\n@@ -1,4 +1,9 @@\n+def batches(items, size):\n+    out = []\n+    for i in range(0, len(items), size):\n+        out.append(items[i:i + size])\n+    return out\n+\n \n def flatten(chunks):\n     return [x for c in chunks for x in c]\n",
+            "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/smoke/items/sm-05/truth.yaml",
+            "results_dir": "[REDACTED]",
+            "exp_id": "smoke",
+            "tier": "weak",
+            "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+          },
+          "assert": [
+            {
+              "type": "python",
+              "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 4,
+        "tokenUsage": {
+          "prompt": 19410,
+          "completion": 2274,
+          "cached": 0,
+          "total": 21684,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "task_id": "sm-05",
+          "seeded": false,
+          "arm": "treatment",
+          "task_input": "# batching_ok.batches\n\n`batches(items, size)` splits `items` into consecutive non-overlapping lists\nof length `size` (last may be shorter), covering each element once.\n\nContract:\n- batches([1,2,3,4,5], 2) -> [[1,2],[3,4],[5]].\n- Every element appears exactly once, in order. `size >= 1`.\n\n\n--- a/batching_ok.py\n+++ b/batching_ok.py\n@@ -1,4 +1,9 @@\n+def batches(items, size):\n+    out = []\n+    for i in range(0, len(items), size):\n+        out.append(items[i:i + size])\n+    return out\n+\n \n def flatten(chunks):\n     return [x for c in chunks for x in c]\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/smoke/items/sm-05/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "smoke",
+          "tier": "weak",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 5,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 96954,
+        "completion": 11184,
+        "cached": 0,
+        "total": 108138,
+        "numRequests": 5,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 64446,
+      "evaluationDurationMs": 64446
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "smoke treatment (weak)",
+    "prompts": [
+      {
+        "id": "file:///Users/wesleyjinks/code/prompts-skills-steering/results/smoke/weak/prompts/treatment.txt",
+        "label": "treatment"
+      }
+    ],
+    "providers": [
+      {
+        "id": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/providers/promptfoo_claude.py",
+        "config": {
+          "model": "claude-haiku-4-5-20251001",
+          "tier": "weak",
+          "arm": "treatment",
+          "exp_id": "smoke",
+          "results_dir": "[REDACTED]"
+        }
+      }
+    ],
+    "tests": [
+      {
+        "vars": {
+          "task_id": "sm-01",
+          "seeded": true,
+          "arm": "treatment",
+          "task_input": "# recent.last_n\n\n`last_n(items, n)` returns the last `n` items of a list, in order.\n\nContract:\n- Return the final `n` elements of `items` (or all of them if `items` has\n  fewer than `n`).\n- `n >= 0`.\n\n\n--- a/recent.py\n+++ b/recent.py\n@@ -1,5 +1,9 @@\n+def last_n(items, n):\n+    return items[-n - 1:]\n+\n+\n def first_n(items, n):\n     return items[:n]\n \n \n def middle(items):\n     return items[len(items) // 2]\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/smoke/items/sm-01/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "smoke",
+          "tier": "weak",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "assert": [
+          {
+            "type": "python",
+            "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+          }
+        ]
+      },
+      {
+        "vars": {
+          "task_id": "sm-02",
+          "seeded": true,
+          "arm": "treatment",
+          "task_input": "# cart.add_item\n\n`add_item(item, basket)` appends `item` to a shopping basket and returns it.\n\nContract:\n- Append `item` to `basket` and return the basket.\n- If the caller omits `basket`, the function starts a NEW empty basket for\n  that call; two separate calls that both omit `basket` must not share items.\n\n\n--- a/cart.py\n+++ b/cart.py\n@@ -1,5 +1,9 @@\n+def add_item(item, basket=[]):\n+    basket.append(item)\n+    return basket\n+\n+\n def total(basket):\n     return sum(i.price for i in basket)\n \n \n def is_empty(basket):\n     return not basket\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/smoke/items/sm-02/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "smoke",
+          "tier": "weak",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "assert": [
+          {
+            "type": "python",
+            "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+          }
+        ]
+      },
+      {
+        "vars": {
+          "task_id": "sm-03",
+          "seeded": true,
+          "arm": "treatment",
+          "task_input": "# eligibility.is_eligible\n\n`is_eligible(age, has_consent)` gates access to a feature.\n\nContract:\n- A user is eligible if they are an adult (`age >= 18`) OR a guardian has\n  provided consent (`has_consent` is True).\n- Otherwise they are not eligible.\n\n\n--- a/eligibility.py\n+++ b/eligibility.py\n@@ -1,4 +1,8 @@\n+def is_eligible(age, has_consent):\n+    # Adults, or minors with guardian consent.\n+    return age >= 18 and has_consent\n+\n+\n MIN_AGE = 18\n MAX_AGE = 120\n \n \n def clamp_age(a):\n     return max(MIN_AGE, min(a, MAX_AGE))\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/smoke/items/sm-03/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "smoke",
+          "tier": "weak",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "assert": [
+          {
+            "type": "python",
+            "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+          }
+        ]
+      },
+      {
+        "vars": {
+          "task_id": "sm-04",
+          "seeded": false,
+          "arm": "treatment",
+          "task_input": "# merge.merge\n\n`merge(base, extra=None)` returns a new dict combining `base` and `extra`.\n\nContract:\n- Return a NEW dict; never mutate `base` or `extra`.\n- `extra` overrides keys in `base`.\n- If `extra` is omitted, return a copy of `base`.\n\n\n--- a/merge.py\n+++ b/merge.py\n@@ -1,4 +1,11 @@\n+def merge(base, extra=None):\n+    if extra is None:\n+        extra = {}\n+    result = dict(base)\n+    result.update(extra)\n+    return result\n+\n+\n DEFAULTS = {\"timeout\": 30}\n \n \n def with_defaults(cfg):\n     return merge(DEFAULTS, cfg)\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/smoke/items/sm-04/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "smoke",
+          "tier": "weak",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "assert": [
+          {
+            "type": "python",
+            "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+          }
+        ]
+      },
+      {
+        "vars": {
+          "task_id": "sm-05",
+          "seeded": false,
+          "arm": "treatment",
+          "task_input": "# batching_ok.batches\n\n`batches(items, size)` splits `items` into consecutive non-overlapping lists\nof length `size` (last may be shorter), covering each element once.\n\nContract:\n- batches([1,2,3,4,5], 2) -> [[1,2],[3,4],[5]].\n- Every element appears exactly once, in order. `size >= 1`.\n\n\n--- a/batching_ok.py\n+++ b/batching_ok.py\n@@ -1,4 +1,9 @@\n+def batches(items, size):\n+    out = []\n+    for i in range(0, len(items), size):\n+        out.append(items[i:i + size])\n+    return out\n+\n \n def flatten(chunks):\n     return [x for c in chunks for x in c]\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/smoke/items/sm-05/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "smoke",
+          "tier": "weak",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "assert": [
+          {
+            "type": "python",
+            "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "/Users/wesleyjinks/code/prompts-skills-steering/results/smoke/weak/promptfoo-treatment.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {}
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.121.17",
+    "nodeVersion": "v26.0.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-07-03T20:30:38.417Z",
+    "evaluationCreatedAt": "2026-07-03T20:29:33.647Z"
+  },
+  "vars": [
+    "task_id",
+    "seeded",
+    "arm",
+    "task_input",
+    "truth_path",
+    "results_dir",
+    "exp_id",
+    "tier",
+    "judge_json"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "baseline_pass": {
+    "k": 5,
+    "n": 5,
+    "rate": 1.0,
+    "wilson_ci": [
+      0.5655175352168251,
+      1.0
+    ],
+    "judge_errors": 0
+  },
+  "treatment_pass": {
+    "k": 5,
+    "n": 5,
+    "rate": 1.0,
+    "wilson_ci": [
+      0.5655175352168251,
+      1.0
+    ],
+    "judge_errors": 0
+  },
+  "baseline_tokens": {
+    "fresh_input": 50,
+    "cache_creation": 41084,
+    "cache_read": 55005,
+    "output": 6590,
+    "logical_total": 96139,
+    "cost_usd": 0.12066849999999998
+  },
+  "treatment_tokens": {
+    "fresh_input": 50,
+    "cache_creation": 41899,
+    "cache_read": 55005,
+    "output": 11184,
+    "logical_total": 96954,
+    "cost_usd": 0.1452685
+  },
+  "token_delta": {
+    "fresh_input": {
+      "abs": 0,
+      "pct": 0.0
+    },
+    "cache_creation": {
+      "abs": 815,
+      "pct": 1.983740628955311
+    },
+    "cache_read": {
+      "abs": 0,
+      "pct": 0.0
+    },
+    "output": {
+      "abs": 4594,
+      "pct": 69.71168437025797
+    },
+    "logical_total": {
+      "abs": 815,
+      "pct": 0.8477308896493618
+    },
+    "cost_usd": {
+      "abs": 0.02460000000000001,
+      "pct": 20.38643059290537
+    }
+  },
+  "baseline_confusion": {
+    "tp": 3,
+    "fp": 0,
+    "tn": 2,
+    "fn": 0,
+    "n": 5,
+    "base_rate": 0.6,
+    "defect_recall": {
+      "found": 3,
+      "total": 3,
+      "rate": 1.0,
+      "judge_id_mismatches": 0
+    },
+    "false_findings_total": 0
+  },
+  "treatment_confusion": {
+    "tp": 3,
+    "fp": 0,
+    "tn": 2,
+    "fn": 0,
+    "n": 5,
+    "base_rate": 0.6,
+    "defect_recall": {
+      "found": 3,
+      "total": 3,
+      "rate": 1.0,
+      "judge_id_mismatches": 0
+    },
+    "false_findings_total": 0
+  },
+  "flips": {
+    "both_pass": 5,
+    "both_fail": 0,
+    "only_baseline": 0,
+    "only_treatment": 0
+  },
+  "adherence": {
+    "review-shape.checklist": 1.0,
+    "review-shape.disconfirm": 1.0,
+    "review-shape.verify": 1.0,
+    "review-shape.all_three": 1.0
+  },
+  "flags": {
+    "cost_adjusted_verdict": false,
+    "harness_broken": false,
+    "composite_floored": false,
+    "judge_errors": 0
+  },
+  "judge_errors": 0,
+  "parse_failures": 0
+}
