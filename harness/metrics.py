@@ -30,6 +30,13 @@ class TierMixError(Exception):
     """Raised when metric input rows carry more than one tier."""
 
 
+class IntegrityError(Exception):
+    """Raised when one or more per-item result JSON files cannot be parsed.
+
+    Collected across the whole glob and raised once (with every offending path)
+    so a single truncated file cannot masquerade as a clean, smaller run."""
+
+
 def _assert_single_tier(rows):
     tiers = {r["tier"] for r in rows if isinstance(r, dict) and r.get("tier") is not None}
     if len(tiers) > 1:
@@ -45,9 +52,17 @@ def load_rows(results_dir):
 
 def _load_json_glob(pattern):
     rows = []
+    bad = []
     for p in sorted(glob.glob(pattern)):
-        with open(p) as f:
-            rows.append(json.load(f))
+        try:
+            with open(p) as f:
+                rows.append(json.load(f))
+        except (json.JSONDecodeError, OSError, UnicodeDecodeError) as e:
+            bad.append(f"{p}: {e}")
+    if bad:
+        raise IntegrityError(
+            "unparseable per-item result file(s):\n  " + "\n  ".join(bad)
+        )
     return rows
 
 
@@ -139,6 +154,7 @@ def confusion(rows, arm):
     arm_rows = [r for r in rows if r.get("arm") == arm and not r.get("judge_error")]
     tp = fp = tn = fn = 0
     found = total = false_findings = 0
+    judge_id_mismatches = 0
     for r in arm_rows:
         seeded = r.get("seeded")
         flagged = r.get("verdict_flagged")
@@ -150,10 +166,19 @@ def confusion(rows, arm):
             fp += 1
         else:
             tn += 1
-        defects = r.get("defects") or []
         if seeded:
-            total += len(defects)
-            found += sum(1 for d in defects if d.get("found"))
+            # Recall is anchored to GROUND TRUTH, not the judge's own id list:
+            #   denominator = seeded defects from truth
+            #   numerator   = truth ids the judge marked found
+            # A judge-returned id NOT in truth is a hallucinated id — it can never
+            # inflate recall; it is tallied separately as a mismatch.
+            truth_ids = set(r.get("truth_defect_ids") or [])
+            defects = r.get("defects") or []
+            judge_found = {d.get("defect_id") for d in defects if d.get("found")}
+            judge_ids = {d.get("defect_id") for d in defects if d.get("defect_id") is not None}
+            total += len(truth_ids)
+            found += len(truth_ids & judge_found)
+            judge_id_mismatches += len(judge_ids - truth_ids)
         false_findings += int(r.get("false_findings", 0) or 0)
     n = len(arm_rows)
     positives = tp + fn
@@ -168,6 +193,7 @@ def confusion(rows, arm):
             "found": found,
             "total": total,
             "rate": (found / total) if total else 0.0,
+            "judge_id_mismatches": judge_id_mismatches,
         },
         "false_findings_total": false_findings,
     }

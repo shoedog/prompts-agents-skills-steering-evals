@@ -15,6 +15,7 @@ Reporting choices that are load-bearing, not cosmetic:
 """
 from __future__ import annotations
 
+import json
 import os
 
 import yaml
@@ -182,6 +183,13 @@ def render_report_md(cfg: ExperimentConfig, s: dict) -> str:
             f"{c['false_findings_total']} |"
         )
     L.append("")
+    L.append(
+        "- judge_id_mismatches (judge-returned defect ids not in ground truth; "
+        "excluded from recall): "
+        f"baseline={s['baseline_confusion']['defect_recall']['judge_id_mismatches']} "
+        f"treatment={s['treatment_confusion']['defect_recall']['judge_id_mismatches']}"
+    )
+    L.append("")
 
     fp = s["flips"]
     L.append("## Paired flip table (joined on task_id)")
@@ -267,6 +275,12 @@ def render(cfg: ExperimentConfig, results_dir) -> dict:
     report_md = render_report_md(cfg, s)
     with open(os.path.join(results_dir, "report.md"), "w") as f:
         f.write(report_md)
+
+    # metrics.json: the machine-readable reduction (drop the bulky raw row lists).
+    # This is where judge_id_mismatches and the other reduced metrics are surfaced.
+    metrics_json = {k: v for k, v in s.items() if k not in ("calls", "judges")}
+    with open(os.path.join(results_dir, "metrics.json"), "w") as f:
+        json.dump(metrics_json, f, ensure_ascii=False, indent=2)
 
     spot_md, spot_rows = render_spotcheck(s["judges"])
     with open(os.path.join(results_dir, "spotcheck.md"), "w") as f:

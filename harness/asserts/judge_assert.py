@@ -42,9 +42,24 @@ except Exception:  # pragma: no cover
         return None
 
 _FINDINGS_MARKER = "## FINDINGS"
-_VERDICT_RE = re.compile(r"^\s*VERDICT:\s*(APPROVE|REJECT)\b", re.IGNORECASE | re.MULTILINE)
-_FINDING_RE = re.compile(r"^\s*\d+\.\s*(.+?)\s*$", re.MULTILINE)
-_NO_FINDINGS_RE = re.compile(r"\bNo findings\.?", re.IGNORECASE)
+# A weak executor wraps/decorates the verdict line: `**VERDICT: REJECT**`,
+# `## VERDICT: APPROVE`, `> VERDICT: REJECT`, leading whitespace, etc. Tolerate a
+# run of markdown decoration / whitespace before the literal `VERDICT:` token
+# WITHOUT loosening what the judge sees — the re-render below is still canonical.
+_VERDICT_RE = re.compile(
+    r"^[\s*_#>~`]*VERDICT:\s*(APPROVE|REJECT)\b",
+    re.IGNORECASE | re.MULTILINE,
+)
+# Findings arrive numbered `1.` / `1)` / `1:` or bulleted `-` / `*` / `+`. Bullets
+# REQUIRE a following space so a bold marker (`**VERDICT...`) is never mistaken for
+# a `*` bullet; numbered markers may abut their text (`1.foo`), as before.
+_FINDING_RE = re.compile(
+    r"^\s*(?:\d+[.):][ \t]*|[-*+][ \t]+)(.+?)\s*$",
+    re.MULTILINE,
+)
+# A genuine, explicit empty finding list (any casing). Load-bearing: it is what
+# distinguishes an explicit "No findings." from a silent extraction failure.
+_NO_FINDINGS_RE = re.compile(r"\bno findings\b", re.IGNORECASE)
 _LABEL_RES = {
     "checklist": re.compile(r"\bCHECKLIST\b"),
     "disconfirm": re.compile(r"\bDISCONFIRM\b"),
@@ -74,7 +89,17 @@ def _detect_adherence(workspace: str) -> dict:
 def normalize_block(block: str):
     """Return (normalized_text, parse_ok, verdict_flagged).
 
-    parse_ok is False when no VERDICT line can be extracted.
+    parse_ok is False when the surface is unusable:
+      - no VERDICT line can be extracted; OR
+      - the verdict is REJECT but zero findings are extractable — a REJECT that
+        lists nothing is a contradictory surface, so we refuse it rather than
+        silently rendering "No findings." (which would flip it into a clean pass
+        to the judge); OR
+      - the verdict is APPROVE but there are neither extractable findings nor an
+        explicit "No findings." line — an extraction failure, not a clean pass.
+
+    A genuine "No findings." (any casing) IS recognized as an explicit empty
+    finding list, distinct from that extraction failure.
     """
     vm = _VERDICT_RE.search(block)
     if not vm:
@@ -82,7 +107,14 @@ def normalize_block(block: str):
     verdict = vm.group(1).upper()
     verdict_flagged = verdict == "REJECT"
 
-    findings = [m.group(1).strip() for m in _FINDING_RE.finditer(block)]
+    findings = [f for f in (m.group(1).strip() for m in _FINDING_RE.finditer(block)) if f]
+    if not findings:
+        # No findings extracted. Legitimate only for an APPROVE that explicitly
+        # says "No findings."; a REJECT here is contradictory, and an APPROVE
+        # with no explicit empty marker is an extraction failure.
+        if verdict_flagged or not _NO_FINDINGS_RE.search(block):
+            return "", False, verdict_flagged
+
     lines = [_FINDINGS_MARKER, f"VERDICT: {verdict}"]
     if findings:
         for i, f in enumerate(findings, 1):
@@ -114,6 +146,13 @@ def get_assert(output, context):
     adherence_labels = _detect_adherence(workspace)
     normalized, parse_ok, verdict_flagged = normalize_block(block)
 
+    # Ground truth is the recall anchor: the record carries the seeded defect ids
+    # so metrics can score recall against truth (not against the judge's own,
+    # possibly-hallucinated, id list). Loaded up front so even a parse-failure row
+    # records what SHOULD have been found.
+    truth = load_truth(truth_path)
+    truth_defect_ids = {d["id"] for d in (truth.get("defects") or [])}
+
     base_record = {
         "exp_id": exp_id,
         "arm": arm,
@@ -122,6 +161,7 @@ def get_assert(output, context):
         "seeded": seeded,
         "adherence_labels": adherence_labels,
         "truth_path": truth_path,
+        "truth_defect_ids": sorted(truth_defect_ids),
         "normalized_block": normalized,
     }
 
@@ -138,9 +178,6 @@ def get_assert(output, context):
         )
         _write_record(results_dir, arm, task_id, record)
         return {"pass": False, "score": 0.0, "reason": "unparseable findings block"}
-
-    truth = load_truth(truth_path)
-    truth_defect_ids = {d["id"] for d in (truth.get("defects") or [])}
 
     # (4) blind judge.
     try:
@@ -162,7 +199,10 @@ def get_assert(output, context):
 
     defects = judged.get("defects", []) or []
     false_findings = int(judged.get("false_findings", 0) or 0)
-    found_ids = {d["defect_id"] for d in defects if d.get("found")}
+    # judge.py validates each entry has a string defect_id + bool found before we
+    # get here; `.get` is belt-and-suspenders so a slipped-through entry can never
+    # KeyError this row into a crash.
+    found_ids = {d.get("defect_id") for d in defects if d.get("found")}
 
     if seeded:
         all_found = bool(truth_defect_ids) and truth_defect_ids.issubset(found_ids)

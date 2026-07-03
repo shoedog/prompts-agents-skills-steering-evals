@@ -79,8 +79,20 @@ def _parse_and_validate(text: str) -> dict:
     missing = _REQUIRED_KEYS - set(data.keys())
     if missing:
         raise ValueError(f"judge output missing keys: {sorted(missing)}")
-    if not isinstance(data.get("defects"), list):
+    defects = data.get("defects")
+    if not isinstance(defects, list):
         raise ValueError("judge 'defects' must be a list")
+    # Every defect entry must carry a string defect_id and a bool found. A
+    # malformed entry raises here, which judge_review treats like any other bad
+    # response (retry once, then JudgeError) so the caller writes a judge_error
+    # row — never a silent drop or a downstream KeyError.
+    for i, d in enumerate(defects):
+        if not isinstance(d, dict):
+            raise ValueError(f"judge 'defects'[{i}] is not an object")
+        if not isinstance(d.get("defect_id"), str):
+            raise ValueError(f"judge 'defects'[{i}] missing string 'defect_id'")
+        if not isinstance(d.get("found"), bool):
+            raise ValueError(f"judge 'defects'[{i}] missing bool 'found'")
     return data
 
 

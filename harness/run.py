@@ -57,16 +57,43 @@ def _arm_cost(results_dir, arm) -> float:
     return total
 
 
+def _count_arm_calls(results_dir, arm) -> int:
+    """Number of per-item call records promptfoo wrote for one arm."""
+    return len(glob.glob(os.path.join(str(results_dir), "calls", f"{arm}-*.json")))
+
+
+def _check_arm_integrity(results_dir, arm, expected_items) -> bool:
+    """True iff the arm produced at least `expected_items` call records.
+
+    A silent shortfall (e.g. promptfoo dying mid-run, or an n=0 arm) would
+    otherwise read as a clean, smaller run. Warn loudly and let the caller mark
+    the whole run integrity-failed."""
+    got = _count_arm_calls(results_dir, arm)
+    if got < expected_items:
+        print(
+            f"[run] INTEGRITY FAILURE: arm '{arm}' produced {got}/{expected_items} "
+            f"per-item call records — promptfoo did not complete every item. "
+            f"The run is NOT clean.",
+            file=sys.stderr, flush=True,
+        )
+        return False
+    return True
+
+
 def run_experiment(config_path) -> int:
     cfg = config_mod.load(config_path)
     results_dir = cfg.results_dir()
     results_dir.mkdir(parents=True, exist_ok=True)
 
     arms = gen_promptfoo(cfg, results_dir)
+    expected_items = len(config_mod.load_taskset(cfg))
     print(f"[run] results dir: {results_dir}", flush=True)
+    print(f"[run] expecting {expected_items} item(s) per arm", flush=True)
+    integrity_ok = True
 
     # --- baseline arm ---
     _run_arm(cfg, arms["baseline"]["yaml"], results_dir / "promptfoo-baseline.json")
+    integrity_ok = _check_arm_integrity(results_dir, "baseline", expected_items) and integrity_ok
 
     baseline_cost = _arm_cost(results_dir, "baseline")
     projected = baseline_cost * 2
@@ -82,6 +109,7 @@ def run_experiment(config_path) -> int:
 
     # --- treatment arm ---
     _run_arm(cfg, arms["treatment"]["yaml"], results_dir / "promptfoo-treatment.json")
+    integrity_ok = _check_arm_integrity(results_dir, "treatment", expected_items) and integrity_ok
 
     # --- metrics + report ---
     summary = report_mod.render(cfg, results_dir)
@@ -95,6 +123,10 @@ def run_experiment(config_path) -> int:
     if summary["judge_errors"]:
         print(f"[run] {summary['judge_errors']} judge_error(s) — run is not clean.",
               file=sys.stderr, flush=True)
+        exit_code = exit_code or 1
+    if not integrity_ok:
+        print("[run] run marked INTEGRITY-FAILED: an arm is missing per-item call "
+              "records (see warnings above).", file=sys.stderr, flush=True)
         exit_code = exit_code or 1
     return exit_code
 

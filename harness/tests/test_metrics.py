@@ -1,8 +1,12 @@
 """Metrics tests — synthetic rows only, no model calls, no promptfoo."""
+import json
+
 import pytest
 
 from harness.metrics import (
+    IntegrityError,
     TierMixError,
+    _load_json_glob,
     adherence,
     confusion,
     delta,
@@ -103,11 +107,11 @@ def test_token_totals_and_delta_breakdown():
 
 def test_confusion_hand_built_six_rows():
     rows = [
-        _judge_row(seeded=True, verdict_flagged=True,
+        _judge_row(seeded=True, verdict_flagged=True, truth_defect_ids=["a", "b"],
                    defects=[{"defect_id": "a", "found": True}, {"defect_id": "b", "found": True}]),  # TP, 2/2
-        _judge_row(seeded=True, verdict_flagged=True,
+        _judge_row(seeded=True, verdict_flagged=True, truth_defect_ids=["c"],
                    defects=[{"defect_id": "c", "found": True}]),  # TP, 1/1
-        _judge_row(seeded=True, verdict_flagged=False,
+        _judge_row(seeded=True, verdict_flagged=False, truth_defect_ids=["d"],
                    defects=[{"defect_id": "d", "found": False}]),  # FN, 0/1
         _judge_row(seeded=False, verdict_flagged=True, false_findings=1),  # FP
         _judge_row(seeded=False, verdict_flagged=False),  # TN
@@ -120,7 +124,42 @@ def test_confusion_hand_built_six_rows():
     assert c["defect_recall"]["found"] == 3
     assert c["defect_recall"]["total"] == 4
     assert c["defect_recall"]["rate"] == pytest.approx(0.75)
+    assert c["defect_recall"]["judge_id_mismatches"] == 0
     assert c["false_findings_total"] == 1
+
+
+def test_defect_recall_anchored_to_truth_not_judge_ids():
+    # Truth seeds d1 + d2. The judge:
+    #   - found d1 (a real truth id)                -> counts toward recall
+    #   - reported d99 as found (hallucinated id)   -> ignored for recall, mismatch
+    #   - never returned d2 at all (omitted truth id) -> still in the denominator
+    rows = [
+        _judge_row(
+            seeded=True, verdict_flagged=True, truth_defect_ids=["d1", "d2"],
+            defects=[
+                {"defect_id": "d1", "found": True},
+                {"defect_id": "d99", "found": True},
+            ],
+        ),
+    ]
+    c = confusion(rows, "baseline")
+    dr = c["defect_recall"]
+    assert dr["total"] == 2                      # both seeded truth defects
+    assert dr["found"] == 1                       # only d1; d99 is not truth, d2 omitted
+    assert dr["rate"] == pytest.approx(0.5)
+    assert dr["judge_id_mismatches"] == 1         # d99 tallied separately
+
+
+def test_load_json_glob_collects_named_integrity_errors(tmp_path):
+    (tmp_path / "good.json").write_text(json.dumps({"ok": True}))
+    (tmp_path / "truncated.json").write_text('{"ok": true')     # never closed
+    (tmp_path / "garbage.json").write_text("not json at all")
+    with pytest.raises(IntegrityError) as exc:
+        _load_json_glob(str(tmp_path / "*.json"))
+    msg = str(exc.value)
+    assert "truncated.json" in msg
+    assert "garbage.json" in msg
+    assert "good.json" not in msg                 # the parseable file is not flagged
 
 
 def test_paired_flips_joins_on_task_id():
