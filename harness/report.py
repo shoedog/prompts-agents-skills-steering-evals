@@ -34,6 +34,7 @@ from harness.metrics import (
 )
 
 _SPOTCHECK_LIMIT = 20
+_SPOTCHECK_PER_ARM = _SPOTCHECK_LIMIT // 2
 
 _ESTIMAND = (
     "Estimand: the effect of the varied review-procedure element on review "
@@ -222,9 +223,42 @@ def render_report_md(cfg: ExperimentConfig, s: dict) -> str:
 
 
 def _sample_items(judges):
-    """Up to _SPOTCHECK_LIMIT judged items (parse_ok, not judge_error)."""
+    """Up to _SPOTCHECK_LIMIT judged items, stratified evenly across arms.
+
+    Naively taking `graded[:_SPOTCHECK_LIMIT]` off a `judge/*.json` glob sorts
+    alphabetically by filename, and `"baseline-*"` sorts before
+    `"treatment-*"` — with >=_SPOTCHECK_LIMIT baseline items the treatment arm
+    is silently excluded from the human-calibration sample entirely (this is
+    exactly what happened on the 40-record exp1 run: 20/20 sampled rows were
+    baseline, 0 were treatment).
+
+    Instead: split graded (parse_ok, not judge_error) rows by arm, sort each
+    arm's rows by task_id (deterministic — no randomness, no Date-based
+    seed), take up to _SPOTCHECK_PER_ARM from EACH arm, then interleave them
+    round-robin (baseline, treatment, baseline, treatment, ...) so a human
+    skimming spotcheck.md always sees both arms represented, alternating, in
+    a stable order run to run.
+    """
     graded = [r for r in judges if r.get("parse_ok") and not r.get("judge_error")]
-    return graded[:_SPOTCHECK_LIMIT]
+
+    by_arm: dict = {}
+    for r in graded:
+        by_arm.setdefault(r.get("arm"), []).append(r)
+
+    for rows in by_arm.values():
+        rows.sort(key=lambda r: r.get("task_id") or "")
+
+    # Deterministic arm order (alphabetical: "baseline" before "treatment"),
+    # tolerant of a stray None/missing arm without crashing the sort.
+    arms = sorted(by_arm.keys(), key=lambda a: (a is None, a))
+    lanes = [by_arm[arm][:_SPOTCHECK_PER_ARM] for arm in arms]
+
+    out = []
+    for i in range(_SPOTCHECK_PER_ARM):
+        for lane in lanes:
+            if i < len(lane):
+                out.append(lane[i])
+    return out[:_SPOTCHECK_LIMIT]
 
 
 def render_spotcheck(judges) -> tuple[str, list[dict]]:

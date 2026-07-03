@@ -12,7 +12,10 @@ no real subprocess, no real PATH is touched or relied upon.
 import os
 import stat
 
-from harness.providers.binpath import resolve_executable
+import pytest
+
+from harness.providers.binpath import BinaryResolutionError, resolve_executable
+from harness.providers.errors import ProviderError
 
 
 def _make_executable(path):
@@ -36,14 +39,45 @@ def test_skips_node_modules_bin_entry_and_finds_real_one(tmp_path, monkeypatch):
     assert resolved == str(real_dir / "codex")
 
 
-def test_only_node_modules_entries_present_falls_back_to_bare_name(tmp_path, monkeypatch):
+def test_only_node_modules_entries_present_raises_binary_resolution_error(tmp_path, monkeypatch):
+    # This is the exact incident binpath.py exists to prevent: if every match
+    # is a node_modules shadow, a bare-name return would let subprocess's own
+    # PATH search re-resolve to the same broken shim. Must raise instead.
     shadow_dir = tmp_path / "project" / "node_modules" / ".bin"
     shadow_dir.mkdir(parents=True)
-    _make_executable(shadow_dir / "codex")
+    shadow_path = shadow_dir / "codex"
+    _make_executable(shadow_path)
 
     monkeypatch.setenv("PATH", str(shadow_dir))
 
-    assert resolve_executable("codex") == "codex"
+    with pytest.raises(BinaryResolutionError) as exc_info:
+        resolve_executable("codex")
+
+    # BinaryResolutionError must be a ProviderError so it flows through the
+    # existing except ProviderError handlers in judge.py / promptfoo_claude.py
+    # instead of crashing the whole run.
+    assert isinstance(exc_info.value, ProviderError)
+    assert str(shadow_path) in str(exc_info.value)
+    assert "codex" in str(exc_info.value)
+
+
+def test_multiple_shadowed_node_modules_matches_all_listed_in_error(tmp_path, monkeypatch):
+    shadow_dir_1 = tmp_path / "a" / "node_modules" / ".bin"
+    shadow_dir_1.mkdir(parents=True)
+    _make_executable(shadow_dir_1 / "codex")
+
+    shadow_dir_2 = tmp_path / "a" / "b" / "node_modules" / ".bin"
+    shadow_dir_2.mkdir(parents=True)
+    _make_executable(shadow_dir_2 / "codex")
+
+    monkeypatch.setenv("PATH", os.pathsep.join([str(shadow_dir_1), str(shadow_dir_2)]))
+
+    with pytest.raises(BinaryResolutionError) as exc_info:
+        resolve_executable("codex")
+
+    message = str(exc_info.value)
+    assert str(shadow_dir_1 / "codex") in message
+    assert str(shadow_dir_2 / "codex") in message
 
 
 def test_no_path_entries_falls_back_to_bare_name(monkeypatch):
