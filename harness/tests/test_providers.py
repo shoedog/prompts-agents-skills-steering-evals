@@ -116,6 +116,16 @@ class TestRunClaude:
 
         assert mock_run.call_args.kwargs["timeout"] == 7
 
+    def test_cwd_kwarg_reaches_subprocess_run(self):
+        # Untested seam (flagged in the final whole-branch review): run_claude
+        # already accepted/forwarded `cwd`, but nothing asserted it actually
+        # reached subprocess.run rather than being silently dropped.
+        with patch("harness.providers.claude_cli.subprocess.run") as mock_run:
+            mock_run.return_value = _completed(stdout=json.dumps(CANNED_CLAUDE_JSON))
+            run_claude("hi", "claude-haiku-4-5-20251001", cwd="/some/sandbox/dir")
+
+        assert mock_run.call_args.kwargs["cwd"] == "/some/sandbox/dir"
+
 
 class TestRunCodex:
     def _mock_run_writing_output_file(self, stdout_extra="", stderr="", returncode=0,
@@ -211,3 +221,55 @@ class TestRunCodex:
             run_codex("hi", timeout=7)
 
         assert mock_run.call_args.kwargs["timeout"] == 7
+
+    # ----------------------------------------------------------------- #
+    # cwd isolation (final whole-branch review, judge-blinding defect):
+    # `codex exec` must never inherit the caller's own cwd (repo root at
+    # eval-run time) — that would let the "blind" judge process read
+    # repo/results/truth files at the process level even though it never
+    # sees them in its prompt.
+    # ----------------------------------------------------------------- #
+    def test_cwd_defaults_to_a_fresh_isolated_dir_not_repo_root(self):
+        seen_cwd = {}
+
+        def side_effect(argv, **kwargs):
+            seen_cwd["cwd"] = kwargs.get("cwd")
+            out_path = argv[argv.index("-o") + 1]
+            with open(out_path, "w") as f:
+                f.write("OK")
+            return _completed(stdout="tokens used\n1\n")
+
+        with patch("harness.providers.codex_cli.subprocess.run") as mock_run:
+            mock_run.side_effect = side_effect
+            run_codex("hi")
+
+        cwd = seen_cwd["cwd"]
+        assert cwd is not None
+        # not the caller's own process cwd (repo root at eval-run time)
+        assert os.path.abspath(cwd) != os.path.abspath(os.getcwd())
+        # a scratch dir was actually created for the call...
+        assert mock_run.call_count == 1
+        # ...and removed again afterward (default isolation is cleaned up,
+        # not leaked onto disk every call).
+        assert not os.path.isdir(cwd)
+
+    def test_cwd_param_forwarded_to_subprocess_run(self, tmp_path):
+        scratch = tmp_path / "judge_scratch"
+        with patch("harness.providers.codex_cli.subprocess.run") as mock_run:
+            mock_run.side_effect = self._mock_run_writing_output_file(stdout_extra="tokens used\n1\n")
+            run_codex("hi", cwd=str(scratch))
+
+        assert mock_run.call_args.kwargs["cwd"] == str(scratch)
+        # created if missing (the caller, e.g. judge.py, may pass a path that
+        # doesn't exist yet)...
+        assert scratch.is_dir()
+
+    def test_caller_supplied_cwd_is_not_deleted_afterward(self, tmp_path):
+        # Unlike the default (owned) scratch dir, a caller-supplied cwd is
+        # left in place — run_codex only cleans up what it created itself.
+        scratch = tmp_path / "judge_scratch"
+        with patch("harness.providers.codex_cli.subprocess.run") as mock_run:
+            mock_run.side_effect = self._mock_run_writing_output_file(stdout_extra="tokens used\n1\n")
+            run_codex("hi", cwd=str(scratch))
+
+        assert scratch.is_dir()

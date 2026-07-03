@@ -185,9 +185,13 @@ def get_assert(output, context):
         _write_record(results_dir, arm, task_id, record)
         return {"pass": False, "score": 0.0, "reason": "unparseable findings block"}
 
-    # (4) blind judge.
+    # (4) blind judge. cwd is pinned to a scratch dir under this experiment's
+    # results_dir (never this worker's own cwd / repo root) so the "blind"
+    # judge process cannot read repo/results/truth files at the process
+    # level even though it never sees them in its prompt.
+    judge_scratch = os.path.join(results_dir, "judge_scratch")
     try:
-        judged = judge_review(normalized, truth, judge_cfg)
+        judged = judge_review(normalized, truth, judge_cfg, cwd=judge_scratch)
     except JudgeError as e:
         record = dict(
             base_record,

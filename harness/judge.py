@@ -96,10 +96,17 @@ def _parse_and_validate(text: str) -> dict:
     return data
 
 
-def judge_review(findings_block: str, truth: dict, judge_cfg: dict) -> dict:
+def judge_review(findings_block: str, truth: dict, judge_cfg: dict,
+                 cwd: str | None = None) -> dict:
     """Grade `findings_block` against `truth`. Returns the validated judge dict.
 
     `judge_cfg` keys: model, effort, rubric (path), schema (path).
+    `cwd`, if given, is forwarded to `run_codex` as the judge process's
+    working directory (e.g. a `results_dir/judge_scratch` the caller owns) —
+    isolating the blind judge from the caller's own cwd (repo root), which
+    could otherwise be read even though it is never in the judge's prompt.
+    Omitting `cwd` still isolates: `run_codex` defaults to a fresh empty
+    scratch dir it creates and cleans up itself.
     Retries once on a malformed/failed response; raises JudgeError on a second
     failure.
     """
@@ -117,6 +124,7 @@ def judge_review(findings_block: str, truth: dict, judge_cfg: dict) -> dict:
                 model=judge_cfg.get("model", "gpt-5.5"),
                 effort=judge_cfg.get("effort", "medium"),
                 timeout=_JUDGE_TIMEOUT,
+                cwd=cwd,
             )
             return _parse_and_validate(result["output"])
         except (json.JSONDecodeError, ValueError, ProviderError) as e:

@@ -6,9 +6,15 @@ CLI to a `-o` scratch file rather than parsed off stdout, since stdout only
 carries the last message text while the full transcript (and the `tokens
 used` line) is emitted on stderr. This module tolerates either stream for
 `tokens used` in case that routing changes between codex-cli versions.
+
+Judge blinding is only a prompt-level contract unless it also holds at the
+process level: `run_codex` therefore never lets the child inherit the
+caller's cwd (the repo root at eval-run time, which contains the results/
+and tasksets/ ground-truth files). See the `cwd` parameter below.
 """
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 
@@ -40,8 +46,19 @@ def run_codex(
     model: str = "gpt-5.5",
     effort: str = "medium",
     timeout: int = 300,
+    cwd: str | None = None,
 ) -> dict:
     """Run one `codex exec` turn (read-only sandbox) and return its result.
+
+    `cwd` is where the `codex exec` child process is launched — NEVER the
+    caller's own cwd (repo root at eval-run time) by default, since that
+    would let the "blind" judge process read repo/results/truth files off
+    the filesystem even though it never sees them in its prompt. If `cwd` is
+    omitted, a fresh empty directory is created for this call alone and
+    removed again in `finally`. If `cwd` IS given (e.g. judge.py passing a
+    `results_dir/judge_scratch` path it manages across calls), it is created
+    if missing and left in place afterward — this function only cleans up
+    a scratch directory it created itself.
 
     Returns a dict with keys: output (str, the final agent message read back
     from the `-o` scratch file) and tokens_used (int | None, parsed from the
@@ -52,6 +69,14 @@ def run_codex(
     """
     fd, out_path = tempfile.mkstemp(suffix=".codex-output.txt")
     os.close(fd)
+
+    owns_scratch_dir = cwd is None
+    scratch_dir = (
+        tempfile.mkdtemp(prefix="codex-judge-scratch-") if owns_scratch_dir else cwd
+    )
+    if not owns_scratch_dir:
+        os.makedirs(scratch_dir, exist_ok=True)
+
     try:
         argv = [
             resolve_executable("codex"),
@@ -76,6 +101,7 @@ def run_codex(
                 capture_output=True,
                 text=True,
                 timeout=timeout,
+                cwd=scratch_dir,
             )
         except subprocess.TimeoutExpired as e:
             raise ProviderError(
@@ -110,3 +136,5 @@ def run_codex(
             os.remove(out_path)
         except OSError:
             pass
+        if owns_scratch_dir:
+            shutil.rmtree(scratch_dir, ignore_errors=True)

@@ -4,6 +4,7 @@ The normalizer is deterministic and takes no model calls. The one get_assert
 test mocks the codex judge (via harness.judge.run_codex) so no live call runs.
 """
 import json
+import os
 from unittest.mock import patch
 
 from harness.asserts.judge_assert import get_assert, normalize_block
@@ -155,3 +156,37 @@ def test_get_assert_malformed_judge_defects_writes_judge_error_row(tmp_path):
     assert rec["item_pass"] is False
     assert rec["truth_defect_ids"] == ["d1"]
     assert mock_run.call_count == 2  # retried once before failing
+
+
+def test_get_assert_pins_judge_cwd_to_results_dir_scratch_not_repo_root(tmp_path):
+    # Judge blinding (final whole-branch review) is only a prompt-level
+    # contract unless get_assert also pins the judge process's cwd away from
+    # this worker's own cwd (repo root at eval-run time). get_assert must
+    # forward cwd=<results_dir>/judge_scratch through judge_review down to
+    # run_codex.
+    truth = tmp_path / "truth.yaml"
+    truth.write_text("defects: []\n")
+    rubric = tmp_path / "rubric.md"
+    rubric.write_text("Grade the block.")
+    results_dir = tmp_path / "results"
+    results_dir.mkdir()
+
+    judge_cfg = {
+        "provider": "codex", "model": "gpt-5.5", "effort": "medium",
+        "rubric": str(rubric), "schema": None,
+    }
+    context = {"vars": {
+        "task_id": "t1", "arm": "baseline", "exp_id": "e1", "tier": "weak",
+        "seeded": False, "truth_path": str(truth), "results_dir": str(results_dir),
+        "judge_json": json.dumps(judge_cfg),
+    }}
+    output = "workspace text\n## FINDINGS\nVERDICT: APPROVE\nNo findings."
+    payload = json.dumps({
+        "parse_ok": True, "defects": [], "false_findings": 0, "verdict_flagged": False,
+    })
+
+    with patch("harness.judge.run_codex") as mock_run:
+        mock_run.return_value = {"output": payload}
+        get_assert(output, context)
+
+    assert mock_run.call_args.kwargs["cwd"] == os.path.join(str(results_dir), "judge_scratch")
