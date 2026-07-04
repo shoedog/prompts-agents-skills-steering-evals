@@ -15,6 +15,7 @@ the absolute totals include that constant overhead.
 """
 import json
 import subprocess
+import time
 
 from harness.providers.binpath import resolve_executable
 from harness.providers.errors import ProviderError
@@ -55,23 +56,34 @@ def run_claude(prompt: str, model: str, cwd: str, timeout: int = 300) -> dict:
         DISALLOWED_TOOLS,
     ]
 
-    try:
-        proc = subprocess.run(
-            argv, cwd=cwd, capture_output=True, text=True, timeout=timeout
-        )
-    except subprocess.TimeoutExpired as e:
-        raise ProviderError(
-            f"claude CLI timed out after {timeout}s",
-            stderr_tail=_stderr_tail(getattr(e, "stderr", None)),
-        ) from e
-    except OSError as e:
-        raise ProviderError(
-            f"claude CLI failed to start: {e}",
-        ) from e
+    # stdin=DEVNULL: without it the CLI waits 3s probing an inherited pipe
+    # (promptfoo runs us with one) and logs a stderr warning. One retry on
+    # nonzero exit: transient rc-1 blips under load cost a whole arm's
+    # integrity otherwise (observed: rh-07/rh-14, exp-d7 treatment arm).
+    proc = None
+    for attempt in (1, 2):
+        try:
+            proc = subprocess.run(
+                argv, cwd=cwd, capture_output=True, text=True, timeout=timeout,
+                stdin=subprocess.DEVNULL,
+            )
+        except subprocess.TimeoutExpired as e:
+            raise ProviderError(
+                f"claude CLI timed out after {timeout}s",
+                stderr_tail=_stderr_tail(getattr(e, "stderr", None)),
+            ) from e
+        except OSError as e:
+            raise ProviderError(
+                f"claude CLI failed to start: {e}",
+            ) from e
+        if proc.returncode == 0:
+            break
+        if attempt == 1:
+            time.sleep(3)
 
     if proc.returncode != 0:
         raise ProviderError(
-            f"claude CLI exited with code {proc.returncode}",
+            f"claude CLI exited with code {proc.returncode} (after retry)",
             stderr_tail=_stderr_tail(proc.stderr),
         )
 
