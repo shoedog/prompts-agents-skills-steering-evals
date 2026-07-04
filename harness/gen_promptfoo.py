@@ -56,6 +56,14 @@ _SLOT_RE = re.compile(r"<[^<>\n]*(?:\.\.\.|\s)[^<>\n]*>|<\.\.\.>")
 # see module docstring.
 _HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 
+# YAML frontmatter block at the very start of a file: `---\n ... \n---\n`. The
+# `agent` deployment form carries a frontmatter header (`name:` / `description:`)
+# that is delegation metadata for routing to the agent, NOT prompt content. When
+# an agent-form element is composed into a treatment prompt, this header must be
+# stripped so the executor sees only the body — the same substance the other
+# three forms contribute. No other form has frontmatter, so this is a no-op there.
+_FRONTMATTER_RE = re.compile(r"\A---\n.*?\n---\n", re.DOTALL)
+
 
 def _check_no_unfilled_slots(text: str, source: str):
     if _SLOT_RE.search(text):
@@ -70,6 +78,16 @@ def _strip_html_comments(text: str) -> str:
     return _HTML_COMMENT_RE.sub("", text).lstrip("\n")
 
 
+def _strip_frontmatter(text: str) -> str:
+    """Remove a leading YAML frontmatter block (`--- ... ---`) if present.
+
+    Used for the `agent` deployment form, whose `name:`/`description:` header is
+    routing metadata, not prompt content. A no-op on any text with no leading
+    frontmatter block.
+    """
+    return _FRONTMATTER_RE.sub("", text, count=1).lstrip("\n")
+
+
 def _compose_prompt(cfg: ExperimentConfig, arm: str) -> str:
     parts = [_strip_html_comments(p.read_text()).rstrip("\n") for p in cfg.baseline_paths()]
     if arm == "treatment":
@@ -79,6 +97,11 @@ def _compose_prompt(cfg: ExperimentConfig, arm: str) -> str:
         # a quarantine warning) must not false-positive the slot guard, which
         # is only meant to catch template slots in the actual prompt content.
         element = _strip_html_comments(cfg.varied_element_path().read_text())
+        if cfg.varied_element_form == "agent":
+            # The agent form's frontmatter (name/description) is delegation
+            # metadata, not prompt content — strip it before the slot scan and
+            # composition so the executor sees only the body.
+            element = _strip_frontmatter(element)
         _check_no_unfilled_slots(element, str(cfg.varied_element_path()))
         parts.append(element.rstrip("\n"))
     body = "\n\n".join(parts)

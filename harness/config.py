@@ -21,7 +21,7 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 _EVAL_SHAPES = {"ablation", "adherence", "triggering"}
-_FORMS = {"prompt", "skill", "steering"}
+_FORMS = {"prompt", "skill", "steering", "agent"}
 
 
 class ConfigError(Exception):

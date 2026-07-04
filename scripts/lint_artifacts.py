@@ -11,14 +11,15 @@ root = pathlib.Path("artifacts")
 moves = yaml.safe_load(open("moves.yaml"))["moves"]
 for m in moves:
     if m["classification"] == "element" and m["verdict"] != "exclude":
-        for form in ("prompt.md", "skill.md", "steering.md"):
+        for form in ("prompt.md", "skill.md", "steering.md", "agent.md"):
             if not (root / "elements" / m["id"] / form).is_file():
                 errors.append(f"missing artifacts/elements/{m['id']}/{form}")
     if m["classification"] == "runtime":
         if not (root / "runtime" / m["id"] / "trigger.md").is_file():
             errors.append(f"missing artifacts/runtime/{m['id']}/trigger.md")
-if not (root / "composites/review-shape/prompt.md").is_file():
-    errors.append("missing artifacts/composites/review-shape/prompt.md")
+for form in ("prompt.md", "agent.md"):
+    if not (root / "composites/review-shape" / form).is_file():
+        errors.append(f"missing artifacts/composites/review-shape/{form}")
 
 for p in sorted(root.glob("elements/*/*.md")) + sorted(root.glob("composites/*/*.md")) + sorted(root.glob("baseline/*.md")):
     n = len(ENC.encode(p.read_text()))
