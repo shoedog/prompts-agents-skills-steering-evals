@@ -1,0 +1,144 @@
+# bench task spec - IMPL-12 (prism-rust-recv-2.2-binding-lookup)
+# Generated from mining/out/nominations.md (shortlist runs 7-12, owner-approved
+# 2026-07-04). task_prompt is the VERBATIM task envelope from the source codex
+# session (codex-CLI AGENTS.md wrapper messages trimmed - the runner's
+# CLAUDE.md shim equalizes that priming).
+# LATENT-BUG PROBE: gpt-5.5's tests missed a per-param ordinal collision (fn f(a,b) both ordinal 0; amended 287f8d2d). Post-hoc judging must grade whether the candidate's tests catch it. task_prompt verbatim (AGENTS.md wrapper trimmed).
+id: IMPL-12
+nomination: prism-rust-recv-2.2-binding-lookup
+source_repo: /Users/wesleyjinks/code/slicing
+pre_tag: bench/IMPL-12-pre
+pre_sha: 48f15d9bc46c104d9aea902e487b7f9a3931581f
+source_session: /Users/wesleyjinks/.codex/sessions/2026/06/17/rollout-2026-06-17T23-33-32-019ed938-63f6-7b13-90a4-d17a95b967cc.jsonl
+est_duration_min: 45
+task_prompt: |
+  You are an expert Rust engineer working as the IMPLEMENTER on `prism` (a Rust tree-sitter code-slicing
+  tool). Your session cwd IS the prism repo. You are on a feature git branch — you EDIT the working tree,
+  run `cargo`, and COMMIT your work. The specific task is below the marker; do EXACTLY it, no more.
+
+  ## Operating rules
+  - **Scope discipline:** implement only what the task specifies. Do NOT touch files outside the task's
+    stated set. If the task says a change must be INERT / no-behavior-change, honor that exactly.
+  - **TDD:** when adding behavior, write the failing test FIRST and run it to watch it fail, then implement
+    to green. When fixing a bug, add a regression test that fails before your fix.
+  - **Recall-safety (this subsystem's cardinal rule):** name resolution must **resolve-or-fall-through,
+    NEVER emit a wrong target**. A bare/qualified name must never resolve to a wrong same-name item; when
+    unsure, return a non-`Resolved` status (`Unresolved`/`Ambiguous`/`Poisoned`/`ResolvedSet`) and let the
+    consumer fall through. Never trade this for precision.
+  - **Conventions:** `BTreeMap`/`BTreeSet` (never `HashMap`/`HashSet`) for determinism; keep each file
+    under 600 lines (split by concern if needed, mirroring the existing module layout); match the
+    surrounding code's style; derive `Serialize/Deserialize/Clone` on data types; `#[serde(default)]` on
+    new fields of cached structs so old caches deserialize.
+  - **Authoritative sources:** the task cites spec sections (in `docs/superpowers/specs/…`) and file:line
+    refs — READ them before coding; transcribe/follow them faithfully (do not invent or rename).
+
+  ## Process
+  1. Read the cited spec sections + the existing code you'll touch (and any PR-1 types the task builds on).
+  2. If a requirement is genuinely ambiguous in a way that affects recall-safety or correctness, make the
+     minimal SAFE choice and note it in your report — do not guess on anything expensive to redo.
+  3. Implement TDD. Then run, in order, and make all green:
+     - `cargo test` (the specific `--test` target named in the task, then the full suite — zero regressions)
+     - `cargo fmt` then `cargo fmt --check`
+     - `cargo clippy --all-targets` (no new warnings in the files you touched)
+     - `cargo build` (and `cargo build --features mcp` if the task touches anything build/cache-related)
+  4. Self-review: completeness vs the task; recall-safety (no path resolves to a wrong target); YAGNI (only
+     what was asked); determinism; tests assert real behavior (not trivially-true), with wrong-target
+     "decoy" assertions where the task involves fall-through.
+  5. COMMIT with the exact commit message the task specifies (including its `Co-Authored-By:` trailer).
+
+  ## Report (plain text, after committing)
+  - **STATUS:** DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
+  - What you implemented; the test list + results (e.g. `cargo test --test name_resolution` count);
+    files changed; the **commit SHA**; any file split.
+  - Self-review findings + any concerns or recall-safety decisions you made.
+  - If BLOCKED/NEEDS_CONTEXT: exactly what you're stuck on and what you tried. Never silently produce
+    recall-safety logic you're unsure about — flag it.
+
+  THE TASK:
+
+  # Phase-2a PR-2 Task 2.2: direct visible-binding lookup (F5) + def-byte local facts
+
+  CONTEXT. PR-2 of Phase-2a receiver typing. Spec
+  `docs/superpowers/specs/2026-06-17-prism-rust-receiver-typing-design.md` §3.2b; plan
+  `docs/superpowers/plans/2026-06-17-prism-rust-receiver-typing-phase2a.md` **Task 2.2**. Do EXACTLY Task 2.2.
+  **INERT**: the lookup + facts are built but NOTHING reads them until Task 2.3. No resolution/nav/cpg behavior
+  changes.
+
+  ## Why (round-1 finding F5)
+  The Phase-1 graph resolves a name to a `Target::Local(BindingRef)`, but `BindingRef{scope,ordinal}` is NOT a
+  unique key (`add_locals` resets `ordinal` per call). So the Task-2.3 typer must resolve a receiver name to its
+  binding **directly** (the rib search returning the `Binding`, which carries the `Span` → `(FileId, def_byte)`)
+  rather than deref a serialized `BindingRef`. This task provides that lookup + a def-byte-keyed local-fact table.
+
+  ## Files
+  - Create `src/name_resolution/binding_lookup.rs` (declare `pub mod binding_lookup;` in
+    `src/name_resolution/mod.rs`). Build the `local_facts` table where it fits (on `ScopeGraph` or alongside it —
+    match the existing module layout; the Task-2.3 typer + Task-2.4 post-pass will consume it). Test: inline.
+
+  ## Implement
+  1. `pub fn lookup_visible_binding<'a>(graph: &'a ScopeGraph, file: FileId, at_byte: usize, name: &str)
+     -> Option<&'a Binding>`:
+     - find the enclosing scope for `(file, at_byte)` (reuse `enclosing_scope`/the populator helper);
+     - walk inner→outer ribs; return the NEAREST `Binding` whose `name` matches AND whose `vis_extents` cover
+       `at_byte` (the same range gate `resolve` uses).
+     - Returns the `Binding` (so the caller reads `Span`/`def_byte`), NOT a `Candidate` (which drops identity).
+     - Recall-safe: if >1 candidate binding is equally-near/ambiguous, return `None` (let the caller fall
+       through) — never guess.
+  2. `LocalFact` + the table:
+     ```rust
+     pub enum BindingKind { Param, Let, Pattern }
+     pub enum InitExpr { Ctor(String /*T::new()/T{}*/), Field(String /*e.f syntax*/), Call(String /*g(...) syntax*/), Other }
+     pub struct LocalFact { pub kind: BindingKind, pub annotation: Option<String>, pub init: Option<InitExpr> }
+     // table: BTreeMap<(FileId, usize /*def_byte*/), LocalFact>
+     ```
+     Populate it during the Rust populator's local-binding walk (params/lets/patterns), capturing the
+     syntactic annotation (`x: T`) and the init RHS shape (`T::new()`/`T{…}`/`e.f`/`g(…)`). Key by
+     `(FileId, def_byte)` from the binding's `Span`. (Capture syntax only — string forms; no type resolution
+     here. The Task-2.3 typer resolves them.)
+
+  ## Test (concrete)
+  ```rust
+  #[test]
+  fn lookup_visible_binding_returns_binding_by_name_and_byte() {
+      // fn f(){ let a = 1; let b = X::new(); b.m(); }  -- looking up `b` at the `b.m()` byte returns the
+      // binding whose def_byte is the `let b` site; local_facts[(file, that def_byte)] has init = Ctor("X::new()").
+      // Build a complete graph (ScopeGraphBuildInputs), compute the call byte from the source.
+      ...assert binding.span().lo.byte == let_b_def_byte;
+      ...assert matches!(local_facts.get(&(file, let_b_def_byte)).unwrap().init, Some(InitExpr::Ctor(_)));
+  }
+  ```
+  Add a shadowing decoy if feasible (an inner `let b` shadows an outer — lookup at the inner use returns the
+  inner binding).
+
+  ## Process
+  TDD. `cargo test --lib binding_lookup` + full `cargo test` (zero regressions; macOS `_dyld_start` transient —
+  terminate+rerun a stalled target; `cli` dogfood slow → allow time/`--test-threads=1`); `cargo fmt`; `cargo
+  clippy --all-targets`; `cargo build`. Then `cargo build --release && cd eval && uv run tier-a --matrix-only
+  --allow-stale-sut` (0 regressions — INERT).
+
+  Commit (exact + trailer):
+  ```
+  feat(rust-recv): direct visible-binding lookup (F5) + def-byte local facts — PR-2 Task 2.2
+
+  lookup_visible_binding returns the Binding (carrying Span/def_byte) via the rib
+  search, not a serialized BindingRef (which is non-unique). local_facts keyed by
+  (FileId, def_byte) capture binding kind/annotation/init-shape for the Task-2.3
+  typer. INERT: nothing reads them yet.
+
+  Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+  ```
+
+  ## Acceptance
+  - Lookup returns the right (shadow-correct) binding; recall-safe on ambiguity (None). local_facts populated +
+    unread (grep). Full suite green; --matrix-only 0 regressions. STATUS + commit SHA. Leave untracked artifacts.
+success_evidence:
+  - cmd: 'cargo test --lib binding_lookup'
+    desc: "the task's named test target"
+    expect_min_tests: 1
+  - cmd: 'cargo test'
+    desc: 'full suite, zero regressions'
+    expect_min_tests: 1500
+  - cmd: 'cargo clippy --all-targets'
+    desc: 'clippy gate from the prompt'
+  - cmd: 'cargo build'
+    desc: 'build clean'

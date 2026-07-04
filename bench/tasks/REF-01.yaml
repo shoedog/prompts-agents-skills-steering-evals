@@ -1,0 +1,49 @@
+# bench task spec - REF-01 (a2a-slice1-t4-config-surface-refactor)
+# Generated from mining/out/nominations.md (shortlist runs 7-12, owner-approved
+# 2026-07-04). task_prompt is the VERBATIM task envelope from the source codex
+# session (codex-CLI AGENTS.md wrapper messages trimmed - the runner's
+# CLAUDE.md shim equalizes that priming).
+# task_prompt is the VERBATIM task envelope (2nd user msg; 1st was the codex AGENTS.md wrapper, equalized by the runner's CLAUDE.md shim).
+id: REF-01
+nomination: a2a-slice1-t4-config-surface-refactor
+source_repo: /Users/wesleyjinks/code/a2a-bridge
+pre_tag: bench/REF-01-pre
+pre_sha: 523134d142d5996024f63dfa0e006a4ad32a2b0c
+source_session: /Users/wesleyjinks/.codex/sessions/2026/06/17/rollout-2026-06-17T22-15-34-019ed8f1-0381-7df0-8c6f-f339ffcb6da1.jsonl
+est_duration_min: 40
+task_prompt: |
+  You are implementing ONE task in the a2a-bridge Rust workspace. Session cwd IS the repo root (/Users/wesleyjinks/code/a2a-bridge, branch feat/slice-1-config-reconcile). TDD, test+impl TOGETHER. Work ONLY on this task's file. EXACT commit message. This is a REFACTOR that MUST preserve mint behavior byte-identical.
+
+  KNOWN FLAKE: if `cargo test`/golden frames hang at `_dyld_start`, leave UNCOMMITTED, confirm `cargo build -p bridge-acp` clean, report BLOCKED(_dyld_start) + files — controller verifies+commits.
+
+  READ FIRST (authoritative, on disk): docs/superpowers/plans/2026-06-17-slice-1-config-reconcile.md — read **Task 4** AND the "v2 — dual plan-review fixes folded" section (PF-1, PF-5) AND the "v3 — apply-or-expire" section (PF-9). These are BINDING. Also read the real code: crates/bridge-acp/src/acp_backend.rs (AgentSession ~266-310, mint closure ~1184-1290, configure_model_option ~524-584, apply_effort_walkdown ~622-710, set_config_option ~480-495, set_model ~605-620) and crates/bridge-acp/src/model_effort.rs (EffortDecision, effort_opt, etc.).
+
+  === TASK 4 (per the plan, with PF-1/PF-5/PF-9 folded) ===
+  Implement Task 4 from the plan: cache the session/new config surface on `AgentSession` + extract a callable-on-warm `apply_model_effort` helper from the mint closure. Key requirements (from the plan's Task 4 + PF sections):
+
+  1. Add to `AgentSession`: `config_surface: StdMutex<Option<ConfigSurface>>` (init None in `new()`); define `struct ConfigSurface { opts: Vec<SessionConfigOption>, models: Option<SessionModelState> }` (derive Clone, Default) near it.
+  2. Extract `apply_model_effort(cx, agent_session_id, agent_id, surface: &ConfigSurface, model: Option<&str>, effort: Option<Effort>, purpose: ApplyPurpose) -> Result<(ConfigSurface /*refreshed*/, String /*current_model*/), ApplyConfigError>` where `enum ApplyPurpose { Mint, Warm }` and `enum ApplyConfigError { NotAdvertised(BridgeError), Rejected(BridgeError) }` (carry the NATIVE error). It reuses `configure_model_option` (model) + the effort path (effort). PF-5: change `apply_effort_walkdown` to ALSO return the last refreshed `Vec<SessionConfigOption>` so `apply_model_effort` folds it into the returned `ConfigSurface.opts` (cache stays fresh). PF-1/PF-9 effort semantics: at `Mint`, effort-no-surface / FellBack / Skip stay NON-fatal (today's behavior). At `Warm`, a requested effort that does NOT apply EXACTLY (no surface, Unsupported, FellBack, or skipped) → `Err(ApplyConfigError::NotAdvertised)`; an effort RPC rejection → `Err(Rejected)`. Model: map `configure_model_option`'s `Err(config_invalid)` → `NotAdvertised(b)`, `Err(agent_crashed)` → `Rejected(b)` (preserve the native error b).
+  3. Rewire the mint closure to call `apply_model_effort(..., ApplyPurpose::Mint)`, `.map_err(|e| match e { NotAdvertised(b) | Rejected(b) => b })?` so MINT re-raises the EXACT native error (byte-identical: the "valid models: …" message, the resolved_log_line, the model_current). Keep `set_mode` + `minted_cwd.set` in the closure unchanged. After mint, cache the refreshed surface: `*entry.config_surface.lock() = Some(refreshed)`.
+
+  CRITICAL: mint behavior MUST stay byte-identical — the golden-frame + `configure_session_applies_*_at_mint` tests are the regression guard. Run them.
+
+  Tests to add: (a) mint still applies model/effort (regression — or rely on existing golden/mint tests passing); (b) after mint, `config_surface` is populated.
+
+  Verify: `cargo test -p bridge-acp --lib` + `cargo test -p bridge-acp --test golden_frames` + `cargo build -p bridge-acp`.
+
+  Commit:
+  ```
+  git add crates/bridge-acp/src/acp_backend.rs crates/bridge-acp/src/model_effort.rs
+  git commit -m "refactor(acp): cache session/new config surface + extract apply_model_effort (mint-parity, PF-1/5/9)"
+  ```
+  (stage model_effort.rs only if you changed apply_effort_walkdown's return there; do NOT stage examples/prompts.)
+
+  REPORT BACK: status DONE(committed)/BLOCKED(_dyld_start)/BLOCKED(other); golden-frame + mint test results if obtained; how you preserved the native mint error (PF-1); whether apply_effort_walkdown now returns refreshed opts (PF-5); commit hash; modified files. If preserving mint byte-identical is impossible with this extraction, STOP and report the specifics rather than changing mint behavior.
+success_evidence:
+  - cmd: 'cargo test -p bridge-acp --lib'
+    desc: 'lib suite incl mint-parity regressions (original session: 94 passed)'
+    expect_min_tests: 90
+  - cmd: 'cargo test -p bridge-acp --test golden_frames'
+    desc: 'golden frames = the byte-identical mint oracle. KNOWN FLAKE: may hang at _dyld_start (prompt permits BLOCKED report); a timeout here needs manual inspection, not auto-fail'
+  - cmd: 'cargo build -p bridge-acp'
+    desc: 'build clean'

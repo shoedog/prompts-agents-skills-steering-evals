@@ -1,0 +1,62 @@
+# bench task spec - REF-03 (prism-slice2-narrow-python-only)
+# Generated from mining/out/nominations.md (shortlist runs 7-12, owner-approved
+# 2026-07-04). task_prompt is the VERBATIM task envelope from the source codex
+# session (codex-CLI AGENTS.md wrapper messages trimmed - the runner's
+# CLAUDE.md shim equalizes that priming).
+# Descope refactor probe: grades REMOVING shipped JS/TS behavior rather than patching around it. task_prompt verbatim (AGENTS.md wrapper trimmed; original ran in a /tmp worktree of this repo).
+id: REF-03
+nomination: prism-slice2-narrow-python-only
+source_repo: /Users/wesleyjinks/code/slicing
+pre_tag: bench/REF-03-pre
+pre_sha: 0ddfe98a30fdcd417fdd7f78a688aa63c116c14a
+source_session: /Users/wesleyjinks/.codex/sessions/2026/06/23/rollout-2026-06-23T06-16-45-019ef469-5a60-7cf3-b07d-da03e0b90340.jsonl
+est_duration_min: 35
+task_prompt: |
+  # Narrow slice 2 to PYTHON-ONLY typed-receiver recovery (drop JS/TS) — strict TDD
+
+  Senior Rust engineer. Session cwd = `/tmp/prism-slice2` (branch `slice2-typed-receivers`). workspace-write.
+  The slice + the diff-review fix are committed (tip `0ddfe98`). A fix re-review found a NEW BLOCKER: JS/TS
+  `walk_receiver_bindings` descends into nested lexical blocks (`{ const x = … }`) and materializes the
+  receiver from a binding NOT visible at the call site → suppresses legit R3 import-qualified.
+
+  **Decision: narrow the slice to PYTHON-ONLY recovery** (JS measured buy ≈ 0 — Express is CommonJS — so JS/TS
+  recovery adds a lexical-scope soundness trap for ~no buy; the architect recommended deferring JS). This
+  REMOVES the trap-class entirely. Python is function-scoped (no `let`/`const` block scope), so the existing
+  function/class skip is sufficient for Python.
+
+  ## Changes (strict TDD — adjust tests first, then narrow)
+  1. **Gates:** `receiver_type_in_fn` (`src/ast.rs:424`) and `recover_simple_ident` (`src/resolution.rs:320`)
+     recover for **Python ONLY** (remove `JavaScript|TypeScript|Tsx`).
+  2. **Recovery cases:** keep Python typed_parameter/`x = Foo()`/`x: Foo`; **remove** the TS `type_annotation`
+     + `new_expression` recovery cases.
+  3. **Materialized-receiver R3/R3b suppression** (`src/resolution.rs` ~:1057): narrow the language gate from
+     Python/JS/TS to **Python only**.
+  4. **Import/wildcard guard + wildcard sentinel:** Python only (unchanged behavior for Python).
+  5. **Tests:** keep all Python tests (they must stay green: typed-param hit, constructor-local, annotation,
+     poisoned-materialized→NameOnly, import-shadow→typed_param, nested-class skip, same-line-after-call).
+     **Convert the TS typed-receiver tests** to assert **TS is NOT recovered** (`receiver_type.is_none()`,
+     `receiver_materialized == false`) — i.e. TS behavior is unchanged from main. **Add a JS/TS lexical-block
+     non-regression** (the re-review's repro: `import api from "./api"; function run(){ { const api: Foo =
+     make(); } api.m(); }` → R3 `import_qualified` preserved, NOT suppressed). Keep Rust/Go non-regression.
+  6. **Docs:** update the spec (`docs/superpowers/specs/2026-06-23-python-js-typed-receiver-recovery.md`) +
+     plan to state **Python-only this slice; JS/TS deferred** (architect's recommendation; JS buy ≈0 + the
+     lexical-scope trap). Keep `CACHE_VERSION` at 25 (already bumped; the `CallSite` field stays).
+
+  ## Rules
+  - Git: explicit `git add`, never `-a`, never `eval/`; trailer
+    `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`. Can't write `.git` — implement+
+    verify, orchestrator commits.
+  - Finish: `cargo fmt`; `cargo fmt --check` + `cargo test` + `cargo test --features mcp` green.
+
+  ## Report
+  Confirm gates are Python-only; TS recovery removed; the JS lexical-block non-regression passes (R3 preserved);
+  Python tests green; Rust/Go/JS-TS non-regression; cargo counts; any deviation.
+success_evidence:
+  - cmd: 'cargo fmt --check'
+    desc: 'fmt gate (required by the prompt)'
+  - cmd: 'cargo test'
+    desc: 'full suite (original session: 2495 green)'
+    expect_min_tests: 2000
+  - cmd: 'cargo test --features mcp'
+    desc: 'mcp suite (original session: 2588 green)'
+    expect_min_tests: 2000

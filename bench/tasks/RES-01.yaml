@@ -1,0 +1,22 @@
+# bench task spec - RES-01 (agent-knowledge-doc-audit)
+# Generated from mining/out/nominations.md (shortlist runs 7-12, owner-approved
+# 2026-07-04). task_prompt is the VERBATIM task envelope from the source codex
+# session (codex-CLI AGENTS.md wrapper messages trimmed - the runner's
+# CLAUDE.md shim equalizes that priming).
+# Fills the EMPTY research_analysis Fable category. task_prompt = the session's first TWO real user turns joined (per nominations caveat: session pivots to unrelated work after) + a bracketed replay adaptation redirecting the ~/code/tasks deliverable INSIDE the workspace (the real ~/code/tasks holds the ground truth - must not be written).
+id: RES-01
+nomination: agent-knowledge-doc-audit
+source_repo: /Users/wesleyjinks/code/agent-knowledge
+pre_tag: bench/RES-01-pre
+pre_sha: fd287ebe8c3d88d07f3bc6149618a5ad3058ad9d
+source_session: /Users/wesleyjinks/.codex/sessions/2026/04/13/rollout-2026-04-13T20-26-11-019d89cf-8277-78d2-a3e7-bc2e96f93137.jsonl
+est_duration_min: 30
+task_prompt: |
+  Review this project in depth with the goal of planning documentation for LLMs to quickly get up to speed on what is where and why and for humans tk quickly get up to speed as well. if the current documents are optimal then we will leave them.
+
+  write a doc cleanup markdown in ~/code/tasks - new directory.We will delegate it and then have you review. I have another task once the handlff doc is ready
+
+  [Replay adaptation: ~/code/tasks is not available in this environment. Create the new directory inside this repository instead - write the handoff doc as ./doc-cleanup-task/README.md.]
+success_evidence:
+  - cmd: 'test -s doc-cleanup-task/README.md'
+    desc: 'handoff deliverable exists, non-empty (replay-adapted path). Judging: checklist vs the 7 confirmed drift findings in the ground truth snapshot bench/fixtures/RES-01/ground-truth/README.md (recall) + false-drift precision'

@@ -1,0 +1,58 @@
+# bench task spec - IMPL-13 (alb-mailbox-loop-command)
+# Generated from mining/out/nominations.md (shortlist runs 7-12, owner-approved
+# 2026-07-04). task_prompt is the VERBATIM task envelope from the source codex
+# session (codex-CLI AGENTS.md wrapper messages trimmed - the runner's
+# CLAUDE.md shim equalizes that priming).
+# Python-language diversity item. task_prompt is the VERBATIM a2a-bridge dispatch JSON envelope the original agent received (its branch/worktree paths are neutralized by the replay preface). uv cache pre-warmed on this machine.
+id: IMPL-13
+nomination: alb-mailbox-loop-command
+source_repo: /Users/wesleyjinks/code/a2a-local-bridge
+pre_tag: bench/IMPL-13-pre
+pre_sha: 231905de8301042bfc403c949ec00934a94dcc37
+source_session: /Users/wesleyjinks/.codex/sessions/2026/04/29/rollout-2026-04-29T21-50-00-019ddc82-01a4-72f1-bf93-f717ce742e7a.jsonl
+est_duration_min: 25
+task_prompt: |
+  {
+    "agent_name": "codex",
+    "base_ref": "HEAD",
+    "base_sha": "231905de8301042bfc403c949ec00934a94dcc37",
+    "branch": "a2a/a2a6f771ac72-implement-mailbox-loop-command-retry",
+    "context_id": "9f500187-47d3-4644-8b58-26e2527d74e1",
+    "follow_up_threads": [
+      {
+        "id": "task-thread-94a0199c-4bf5-5a69-a0d7-a53d68dfd3a0",
+        "messages": [],
+        "metadata": {
+          "createdForTaskId": "a2a6f771-ac72-4c20-af75-ae2f7eb8fa6c",
+          "purpose": "follow_up",
+          "source": "task-thread",
+          "taskId": "a2a6f771-ac72-4c20-af75-ae2f7eb8fa6c",
+          "taskKind": "implementation"
+        },
+        "status": "open",
+        "task_id": "a2a6f771-ac72-4c20-af75-ae2f7eb8fa6c",
+        "title": "Follow Up: Implement mailbox loop command retry"
+      }
+    ],
+    "kind": "implementation",
+    "metadata": {
+      "runner": {
+        "host": "Wesleys-MacBook-Pro.local",
+        "pid": 71437,
+        "startedAt": 1777521000.739549
+      }
+    },
+    "parent_task_id": null,
+    "prompt": "Implement the next persistent-mailbox ergonomics slice: a CLI loop runner around the existing session/message mailbox APIs. Scope: add a2a-bridge message loop SESSION_ID with a handler command that repeatedly polls/claims one delivery at a time, passes the claimed delivery JSON to the handler on stdin, then applies a handler action. Keep the design small and testable. Suggested semantics: options should include --context-id, --wait-seconds or --idle-timeout, --interval, --heartbeat-interval, --heartbeat-status, --claim-status, --max-deliveries, and --handler. The handler should be invoked as a local subprocess with the claimed delivery JSON on stdin. Handler stdout should be parsed as JSON object with action values reply, ack, release, or none. reply requires body and should support ack true/false, role, metadata; ack/release use the current claimToken; none leaves the delivery claimed and exits nonzero or reports clearly. On handler nonzero or invalid JSON, release the claimed delivery by default and return failure so work is not lost. Add focused tests in tests/test_cli.py and update README/docs/tests README as executable documentation. Reuse existing CLI/store helpers and keep changes scoped. Run the relevant tests before finishing. Do not merge; return summary, changed files, and test results.",
+    "repo_path": "/Users/wesleyjinks/code/a2a-local-bridge",
+    "task_id": "a2a6f771-ac72-4c20-af75-ae2f7eb8fa6c",
+    "title": "Implement mailbox loop command retry",
+    "worktree_path": "/Users/wesleyjinks/.a2a-bridge/worktrees/9f500187-47d3-4644-8b58-26e2527d74e1/a2a6f771-ac72-4c20-af75-ae2f7eb8fa6c/a2a-local-bridge"
+  }
+success_evidence:
+  - cmd: 'uv run --frozen pytest tests/test_cli.py -q'
+    desc: 'the new CLI loop tests (original session: 26 passed)'
+    expect_min_tests: 15
+  - cmd: 'uv run --frozen pytest -q'
+    desc: 'full suite (original: 220 passed; base collects 216)'
+    expect_min_tests: 200
