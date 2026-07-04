@@ -1,0 +1,110 @@
+# bench task spec - DBG-03 (prism-rust-recv-2.2-amend-fix)
+# Mini-wave (owner-approved 2026-07-04): fills the plan_design / debug
+# Fable-coverage gaps before the 2026-07-07 plan change. task_prompt is
+# the VERBATIM task envelope from the source codex session (AGENTS.md
+# wrapper trimmed; the runner's CLAUDE.md shim equalizes priming).
+# debug family (ZERO prior Fable coverage - the last empty category). Pre-tag IS the buggy commit f89dd5c0 (dangling, tagged before gc). Post-hoc judging: root-cause match + regression-test quality vs the reference amend 287f8d2d. Pairs narratively with IMPL-12.
+id: DBG-03
+nomination: prism-rust-recv-2.2-amend-fix
+source_repo: /Users/wesleyjinks/code/slicing
+pre_tag: bench/DBG-03-pre
+pre_sha: f89dd5c070a284e01ea114b39798a7be4e44a5d2
+source_session: /Users/wesleyjinks/.codex/sessions/2026/06/18/rollout-2026-06-18T00-00-16-019ed950-de2e-7991-a07d-ed19148f0f3b.jsonl
+est_duration_min: 40
+task_prompt: |
+  You are an expert Rust engineer working as the IMPLEMENTER on `prism` (a Rust tree-sitter code-slicing
+  tool). Your session cwd IS the prism repo. You are on a feature git branch — you EDIT the working tree,
+  run `cargo`, and COMMIT your work. The specific task is below the marker; do EXACTLY it, no more.
+
+  ## Operating rules
+  - **Scope discipline:** implement only what the task specifies. Do NOT touch files outside the task's
+    stated set. If the task says a change must be INERT / no-behavior-change, honor that exactly.
+  - **TDD:** when adding behavior, write the failing test FIRST and run it to watch it fail, then implement
+    to green. When fixing a bug, add a regression test that fails before your fix.
+  - **Recall-safety (this subsystem's cardinal rule):** name resolution must **resolve-or-fall-through,
+    NEVER emit a wrong target**. A bare/qualified name must never resolve to a wrong same-name item; when
+    unsure, return a non-`Resolved` status (`Unresolved`/`Ambiguous`/`Poisoned`/`ResolvedSet`) and let the
+    consumer fall through. Never trade this for precision.
+  - **Conventions:** `BTreeMap`/`BTreeSet` (never `HashMap`/`HashSet`) for determinism; keep each file
+    under 600 lines (split by concern if needed, mirroring the existing module layout); match the
+    surrounding code's style; derive `Serialize/Deserialize/Clone` on data types; `#[serde(default)]` on
+    new fields of cached structs so old caches deserialize.
+  - **Authoritative sources:** the task cites spec sections (in `docs/superpowers/specs/…`) and file:line
+    refs — READ them before coding; transcribe/follow them faithfully (do not invent or rename).
+
+  ## Process
+  1. Read the cited spec sections + the existing code you'll touch (and any PR-1 types the task builds on).
+  2. If a requirement is genuinely ambiguous in a way that affects recall-safety or correctness, make the
+     minimal SAFE choice and note it in your report — do not guess on anything expensive to redo.
+  3. Implement TDD. Then run, in order, and make all green:
+     - `cargo test` (the specific `--test` target named in the task, then the full suite — zero regressions)
+     - `cargo fmt` then `cargo fmt --check`
+     - `cargo clippy --all-targets` (no new warnings in the files you touched)
+     - `cargo build` (and `cargo build --features mcp` if the task touches anything build/cache-related)
+  4. Self-review: completeness vs the task; recall-safety (no path resolves to a wrong target); YAGNI (only
+     what was asked); determinism; tests assert real behavior (not trivially-true), with wrong-target
+     "decoy" assertions where the task involves fall-through.
+  5. COMMIT with the exact commit message the task specifies (including its `Co-Authored-By:` trailer).
+
+  ## Report (plain text, after committing)
+  - **STATUS:** DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
+  - What you implemented; the test list + results (e.g. `cargo test --test name_resolution` count);
+    files changed; the **commit SHA**; any file split.
+  - Self-review findings + any concerns or recall-safety decisions you made.
+  - If BLOCKED/NEEDS_CONTEXT: exactly what you're stuck on and what you tried. Never silently produce
+    recall-safety logic you're unsure about — flag it.
+
+  THE TASK:
+
+  # Phase-2a PR-2 Task 2.2 — FIX (fold xhigh review [BLOCKER]: param BindingRef ordinal change)
+
+  You implemented Task 2.2 as commit `f89dd5c` (HEAD). An adversarial review found ONE real [BLOCKER] —
+  an INERTNESS BREACH. Fix it + add regressions, then **amend `f89dd5c`** keeping its message.
+
+  ## The finding (inertness breach in bind_params)
+  To attach per-binding `local_facts`, `bind_params` now calls `add_locals` ONCE PER PARAMETER
+  (`src/name_resolution/rust_populator/walk/items.rs:~360` + `walk/locals.rs:~349`). But `add_locals` derives
+  `Target::Local(BindingRef.ordinal)` from the per-call slice INDEX. So `fn f(a: i32, b: i32)` now gives BOTH
+  params `ordinal = 0`; parent `48f15d9` gave `a=0, b=1`. That CHANGES the Phase-1 scope-graph `BindingRef`
+  data (serialized) — an observable populator-data change, violating PR-2's inertness contract. (The matrix
+  didn't move because no consumer derefs param ordinals today, but inertness means NO Phase-1 data change.)
+
+  ## Fix
+  Restore a SINGLE ordered parameter-binding pass so ordinals are `0,1,2,…` exactly as before, while still
+  capturing per-binding facts:
+  - Collect all params first as `(name, def_byte, LocalFact)` in source order, then call `add_locals` ONCE with
+    the full ordered name/def_byte slice (preserving the original enumerate-based ordinals), and populate
+    `local_facts[(file, def_byte)]` for each from the collected vector (facts attach by def_byte, NOT by a
+    per-name add_locals call).
+  - Do the same for any other binding site you split into per-name `add_locals` calls (lets/patterns) IF that
+    split likewise changed ordinals — verify each `add_locals` call site still produces the same ordinals as
+    parent `48f15d9`. The invariant: `Target::Local(BindingRef)` for every binding must be byte-for-byte
+    identical to parent.
+
+  ## Regression tests (committed; the shipped test missed this)
+  1. **ordinal preservation:** for `fn f(a: i32, b: i32)`, the two params resolve to distinct `BindingRef`s with
+     ordinals `0` and `1` (not both `0`) — assert against the scope graph. (This pins the inertness fix.)
+  2. **ambiguity → None:** a manually-duplicated same-rib local (`let x; let x;` in one block) → lookup returns
+     `None` (recall-safe).
+  (The shadow + ctor-fact cases are already covered.)
+
+  ## Verify + amend
+  Add the ordinal-preservation regression FIRST (watch it fail on the current per-param code), then fix to
+  green. `cargo test --lib` (relevant) + `cargo test --test name_resolution` → full `cargo test` (zero
+  regressions; macOS `_dyld_start`/slow-cli transients — terminate+rerun / `--test-threads=1`) → `cargo fmt` →
+  `cargo clippy --all-targets` → `cargo build` → `cargo build --release && cd eval && uv run tier-a
+  --matrix-only --allow-stale-sut` (0 regressions). `git commit --amend --no-edit` onto `f89dd5c`; report new SHA.
+
+  ## Acceptance
+  - Param/let/pattern `BindingRef` ordinals byte-identical to parent `48f15d9` (inertness restored);
+    local_facts still populated; lookup unchanged. STATUS + new SHA + the ordinal regression result.
+  - Leave untracked eval/snapshot artifacts alone.
+success_evidence:
+  - cmd: 'cargo test --lib binding_lookup'
+    desc: 'the module under fix'
+    expect_min_tests: 1
+  - cmd: 'cargo test'
+    desc: 'full suite green after the ordinal fix'
+    expect_min_tests: 1500
+  - cmd: 'cargo build'
+    desc: 'build clean'

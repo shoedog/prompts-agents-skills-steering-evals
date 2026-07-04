@@ -1,0 +1,95 @@
+# bench task spec - PLAN-01 (prism-step5b-architecture-pass)
+# Mini-wave (owner-approved 2026-07-04): fills the plan_design / debug
+# Fable-coverage gaps before the 2026-07-07 plan change. task_prompt is
+# the VERBATIM task envelope from the source codex session (AGENTS.md
+# wrapper trimmed; the runner's CLAUDE.md shim equalizes priming).
+# plan_design family (near-empty Fable coverage). Deliverable = the design in the final assistant message (transcript). The prompt warns not to assume the directive's premise is correct - the hard-to-game part.
+id: PLAN-01
+nomination: prism-step5b-architecture-pass
+source_repo: /Users/wesleyjinks/code/slicing
+pre_tag: bench/PLAN-01-pre
+pre_sha: f6499f8d14d3ae1dd7e62e9e50bce6d446c186f8
+source_session: /Users/wesleyjinks/.codex/sessions/2026/06/19/rollout-2026-06-19T15-27-11-019ee1c7-d979-7eb0-9596-20686c43b5a3.jsonl
+est_duration_min: 20
+task_prompt: |
+  You are a Rust performance + static-analysis architect doing an INDEPENDENT analysis + design + architecture
+  pass for `prism`. session-cwd = the prism repo, on branch `s1.5-call-args-index` (S1.5 just landed:
+  `call_argument_texts_at` is now backed by a per-file `CallArgsIndex`, not a tree walk). READ-ONLY: read/grep/
+  `git log`/`git show`. Do NOT edit/build/test. Produce a design, not code.
+
+  ## The problem
+  S1.5 removed the serial Step-5b `collect_call_args` quadratic walk — the ~98% dominator of the remaining cold
+  `assemble_graph` time (cold hugo 86.4→18.4s = 4.68×). But the cold-hugo user/wall ratio is now **1.42**, still
+  under the s1-followups gate-9 ≥1.5 target. The residual gap is serial work in the cold CPG build. The owner's
+  directive: **parallelize the rest of Step 5b** (the interprocedural data-flow edge assembly in
+  `src/cpg/build.rs`). Your job is to analyze whether that is the right target and design how to do it SOUNDLY.
+
+  ## Deliver THREE things
+
+  ### A. ANALYSIS — locate the residual serial cost (be skeptical; measure-by-reasoning)
+  - Read `src/cpg/build.rs` `assemble_graph` (~:245) end to end: enumerate its phases (Step 1..Step 5b and any
+    pre/post), and for each say whether it is already parallel (S1 C1/C2 parallelized parse + Phase-1/2/DFG
+    extraction) or serial. Read `src/cpg/context.rs` `build_with_scope_graph_inputs` (~:67) for the phases
+    BEFORE `assemble_graph` (scope-graph build, `CallGraph::build_with_scope_graph_inputs`, `DataFlowGraph::build`).
+  - The KEY question: is the residual serial time actually in **Step 5b** (the `for (caller_id, sites) in
+    &cg.calls` interprocedural-DFG loop, ~:428–460), or is it dominated by something else on the cold path
+    (scope-graph build, call-graph build, DFG build, or the petgraph node/edge assembly in Steps 1–5a)? Reason
+    from the code structure + complexity. If Step 5b is NOT the dominant residual serial cost, say so plainly and
+    name what is — do not assume the directive's target is correct without evidence. (You cannot run a profiler;
+    reason structurally and flag what should be profiled to confirm.)
+
+  ### B. DESIGN — parallelize Step 5b soundly (if A confirms it's worth it)
+  - The proven prism pattern for parallelizing serial assembly is **parallel-compute → serial-deterministic-apply**
+    (S1 C1/C2; and `CallGraph::rematerialize_rust_receiver_keys` in `src/call_graph.rs` — read it as the template:
+    `par_iter` over an immutable read set → collect updates → deterministic sorted serial apply). Design Step 5b
+    to fit this: which work is read-only and parallelizable (e.g. `cg.resolve_call_site(site)`, the `CallArgsIndex`
+    lookup, callee param-name mapping, computing the `(caller_idx, callee_idx, CpgEdge)` tuples) vs which MUST
+    stay serial and ordered (the `graph.add_edge` into the petgraph — NodeIndex assignment + edge insertion order).
+  - Specify the exact map output type, the deterministic apply order, and where the barrier is.
+
+  ### C. ARCHITECTURE — the invariants that make it safe
+  - **Determinism + cache-byte parity (the hard constraint).** s1-followups item 2: "lifting the serial-assembly
+    constraint is S2-adjacent NodeIndex-identity work… cache bytes serialize insertion order with no CACHE_VERSION
+    bump." Check whether the S2 node-identity work (merged to main — find it via `git log`) changed this: are
+    petgraph NodeIndex/edge-insertion order still cache-byte-significant? Does parallelizing the COMPUTE while
+    keeping the APPLY in the exact current order preserve byte-identical cache output? What is the parity test
+    (mirror S1's exact-order + cache-byte parity tests)?
+  - **Send/Sync + borrow.** Is `resolve_call_site` (`src/call_graph.rs` / `src/resolution.rs`) `&self` read-only
+    and the indices it reads `Sync`? The `CallArgsIndex` is a lazy `OnceLock` on `ParsedFile` — is concurrent
+    first-init under `par_iter` sound? Any interior mutability / `&mut` hazard in the parallel map?
+  - **Option-C safety.** Diff-review output must stay byte-identical (the `cli_nav_compat` invariant).
+
+  ### D. VERDICT — GO / NO-GO + expected buy
+  - Given A, is parallelizing Step 5b worth it (does it plausibly move gate-9 1.42→≥1.5, and how much absolute
+    cold-time)? Or is the residual serial cost elsewhere (→ redirect the effort)? State a decisive recommendation
+    with the reasoning, and the measurements that should confirm it before implementation.
+
+  ## Read for ground truth (cite file:line)
+  `src/cpg/build.rs` (`assemble_graph`, Step 5b ~:428), `src/cpg/context.rs` (`build_with_scope_graph_inputs`),
+  `src/call_graph.rs` (`rematerialize_rust_receiver_keys` = the parallel template; `resolve_call_site`),
+  `src/ast.rs` (the `CallArgsIndex` / `call_argument_texts_at`), `docs/prism-query-layer/s1-followups.md`
+  (items 2 + 9), `docs/superpowers/specs/2026-06-11-prism-s1-perf-level4-index-design.md` (the C1/C2 parallel
+  pattern + cache-byte parity), and the S2 node-identity work (`git log --oneline | grep -i s2/identity` or
+  search specs). rayon is already a dep.
+
+  ## Output (plain text, no fence)
+  - **ANALYSIS:** the phase-by-phase serial/parallel map + where the residual serial cost actually is (decisive).
+  - **DESIGN:** the parallel-compute→serial-apply for Step 5b (types, apply order, barrier).
+  - **ARCHITECTURE / INVARIANTS:** determinism + cache-byte parity strategy + parity test; Send/Sync; Option-C.
+  - **VERDICT:** GO / NO-GO + expected gate-9 + absolute buy + what to profile to confirm. Be decisive.
+
+  ADDITIONAL CONTEXT (may be empty): The working tree (branch `s1.5-call-args-index`, PR #111) has S1.5 applied:
+  `ParsedFile::call_argument_texts_at` is now a `CallArgsIndex` (`BTreeMap<(start_byte,callee_name),Vec<CallArg>>`,
+  lazy `OnceLock`) lookup, not a tree walk — so the old serial dominator in Step 5b is gone.
+
+  Measured AFTER S1.5 (cold `nav --no-cache call-stats`, this branch vs baseline `e72a0c8`):
+  hugo 86.4→18.4s (4.68×), tokio 8.2→6.5s, prism 27.4→22.7s; cold-hugo user/wall 1.09→1.42.
+  gate-9 (s1-followups item 9) target is ≥1.5; the 1.42 residual gap is the directive's subject.
+
+  Analyze the CURRENT (post-S1.5) cold build. The S1 perf work (FunctionTable, Level-4 index, C1/C2 rayon
+  parse+extraction with serial assembly) is on main; `rematerialize_rust_receiver_keys` (the Phase-2/3 receiver
+  post-pass) is the most recent in-repo example of the parallel-compute→serial-deterministic-apply pattern —
+  read it as the template. S2 node-identity hardening is merged to main (find it in git log).
+success_evidence:
+  - cmd: 'git diff --quiet'
+    desc: 'READ-ONLY task - workspace must be unmodified. The real oracle is post-hoc conclusion-match: NO-GO on blind Step-5b parallelization + identifying redundant all_functions() reconstruction as the true cost (vindicated by 193c760 and 0f98dea in the source repo); a blind GO fails.'
