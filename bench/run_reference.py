@@ -184,11 +184,16 @@ def check_scaffold(ws_dir: Path, pre_tag: str) -> dict:
             f"disk after checkout (broken clone?): {missing_on_disk}",
             file=sys.stderr, flush=True,
         )
+    agents_md_shimmed = False
     if has_agents_md and not (has_claude_md or has_dot_claude):
+        # Equalize priming with the original codex session: codex auto-injects
+        # AGENTS.md; Claude Code auto-loads CLAUDE.md. Copy (untracked, clone-only)
+        # so the Fable reference gets the same repo scaffold the source run had.
+        shutil.copyfile(ws_dir / "AGENTS.md", ws_dir / "CLAUDE.md")
+        agents_md_shimmed = True
         print(
-            "[bench] NOTE: this repo's scaffold is AGENTS.md-only. Claude Code does not "
-            "auto-load AGENTS.md (unlike the original codex session) — this run gets "
-            "less repo-specific priming than the source session. See --help framing.",
+            "[bench] NOTE: AGENTS.md-only scaffold — copied AGENTS.md -> CLAUDE.md "
+            "in the clone to equalize priming with the original codex session.",
             flush=True,
         )
     return {
@@ -197,6 +202,7 @@ def check_scaffold(ws_dir: Path, pre_tag: str) -> dict:
         "has_CLAUDE_md": has_claude_md,
         "has_dot_claude_dir": has_dot_claude,
         "has_AGENTS_md": has_agents_md,
+        "agents_md_shimmed": agents_md_shimmed,
     }
 
 
