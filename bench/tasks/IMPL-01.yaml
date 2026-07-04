@@ -140,10 +140,13 @@ task_prompt: |
 success_evidence:
 - cmd: cargo test -p bridge-acp watchdog_cancels_a_hung_turn_as_timed_out
   desc: named test 1/3
+  expect_min_tests: 1
 - cmd: cargo test -p bridge-acp watchdog_does_not_trip_active_or_unmodeled_turn
   desc: named test 2/3
+  expect_min_tests: 1
 - cmd: cargo test -p bridge-acp no_watchdog_config_is_byte_identical
   desc: named test 3/3 — the disabled-path byte-identical golden oracle
+  expect_min_tests: 1
 - cmd: cargo test -p bridge-acp
   desc: full bridge-acp crate suite (all existing turn/cancel tests must stay green alongside the 3 new
     ones)

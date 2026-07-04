@@ -67,6 +67,7 @@ success_evidence:
     inherent_plus_trait_owner_demotes_not_drops, unresolved_owner_path_keeps_full_pool_not_drop, block_local_glob_shadow_keeps_all,
     macro_wildcard_shadow_keeps_all, pending_import_alias_over_colliding_pool_keeps_all, non_uniform_edition_keeps_all,
     free_fn_path_not_misrouted_to_colliding_method_pool'
+  expect_min_tests: 8
 - cmd: cargo test --test integration
   desc: full integration suite (132 passed/1 ignored per the reference session) — re-confirms the three
     pre-existing drop invariants near resolution_test.rs:1528/1596/1641 are undisturbed

@@ -81,6 +81,7 @@ task_prompt: |
 success_evidence:
 - cmd: cargo test -p a2a-bridge commit_precedence_and_comment_only_falls_back_to_title
   desc: the new named test for the 4-arg precedence signature
+  expect_min_tests: 1
 - cmd: cargo build --workspace
   desc: 'THE DISCRIMINATOR: tweak.rs:260 builds a (String, CommitSource) tuple consumed by implement::decide
     and does not itself call commit_message, but its literal must be updated from the old (String, bool)

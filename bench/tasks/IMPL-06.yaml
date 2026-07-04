@@ -119,8 +119,10 @@ task_prompt: |
 success_evidence:
 - cmd: cargo test -p bridge-a2a-inbound golden_two_node_run_wire_tuples
   desc: the S6 golden — MUST still pass byte-identical for a no-rich task (the hard back-compat constraint)
+  expect_min_tests: 1
 - cmd: cargo test -p bridge-a2a-inbound rich_snapshot_folds_toolcall_interleaved
   desc: the new rich-fold test named in the task prompt
+  expect_min_tests: 1
 - cmd: cargo test -p bridge-a2a-inbound
   desc: full bridge-a2a-inbound crate suite (217 unit + 47 integration per the reference session)
 - cmd: cargo test --workspace --no-run

@@ -9,13 +9,13 @@ cheaper models get graded against it. Fable-5 leaves the owner's plan
 ## Reference framing (read this before trusting a run)
 
 The reference condition is **Fable-5 running in a fresh local clone of the
-task's source repo, checked out at the pinned pre-task git tag, with
-whatever repo scaffold already existed there** — CLAUDE.md, `.claude/`,
-`.claude-plugin/`, AGENTS.md, whatever the repo actually tracked at that ref.
-This harness injects NOTHING beyond that: no synthetic system prompt, no
-extra CLAUDE.md, no MCP config. `git clone --local` + `git checkout <tag>`
-naturally preserves every tracked file, so "the reference" is just Fable
-plus the owner's real scaffold, exactly as it stood at the pre-task commit.
+task's source repo, checked out at the pinned pre-task git tag, with the
+owner's normal Claude environment still active**. That means tracked repo
+scaffold (CLAUDE.md, `.claude/`, `.claude-plugin/`, AGENTS.md, whatever the
+repo actually tracked at that ref) plus the owner's global SessionStart hooks.
+Those global hooks are intentional: this benchmark asks what Fable does as the
+owner really uses it, not under an isolated synthetic config. Each run's
+`summary.json` records this as `scaffold.global_hooks_present`.
 
 **Known asymmetry — read before comparing against the original session:**
 Claude Code auto-discovers and loads `CLAUDE.md` / `.claude/` on startup, but
@@ -40,9 +40,10 @@ For each task id in `--tasks`:
       `git remote remove origin` (no accidental push target exists).
   (b) verify + record which of CLAUDE.md/.claude//AGENTS.md were tracked at
       that ref and actually present on disk post-checkout (see framing
-      above).
+      above). AGENTS.md-only repos get an untracked CLAUDE.md shim, excluded
+      as a harness artifact and hashed before/after the run.
   (c) [skipped under --dry-run] run Fable headlessly in the workspace:
-      `claude -p <task_prompt> --model claude-fable-5 --output-format json
+      `claude -p <replay_preface + task_prompt> --model claude-fable-5 --output-format json
       --dangerously-skip-permissions`, cwd = the workspace, a generous
       timeout (`--timeout-min`, default 75) and NO turn cap. The parsed CLI
       JSON (usage/cost/duration/result) is written to `run.json`.
@@ -52,9 +53,9 @@ For each task id in `--tasks`:
       against the UNTOUCHED pre-task tree — failures there are EXPECTED (the
       evidence commands assert the post-task state; the delta between their
       pre-state and post-state failure/pass IS the task).
-  (e) locate the Claude Code session transcript this run created under
-      `~/.claude/projects/` (the newest *.jsonl whose recorded `cwd` matches
-      the workspace path) and copy it to `transcript.jsonl`.
+  (e) locate the Claude Code session transcript by the CLI JSON `session_id`,
+      verify the first JSONL line's `sessionId`, wait for size/mtime
+      stability, and copy it to `transcript.jsonl`.
   (f) write `summary.json`: id, workspace path, duration, usage tokens,
       total_cost_usd, a mechanical tests_passed guess (derived from the
       success_evidence exit codes), and the transcript path.
@@ -75,8 +76,10 @@ disjoint `--tasks` lists) rather than asking this script to fork internally.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
+import re
 import shlex
 import shutil
 import signal
@@ -103,10 +106,27 @@ DEFAULT_EVIDENCE_TIMEOUT_MIN = 25
 DEFAULT_GIT_TIMEOUT_SEC = 300
 
 REQUIRED_TASK_FIELDS = ("id", "source_repo", "pre_tag", "task_prompt", "success_evidence")
+REPLAY_PREFACE_TEMPLATE = (
+    "Replay note: you are working in {ws} (an isolated clone). Treat this directory as the "
+    "repository root; ignore any absolute paths or branch names mentioned below — the task "
+    "content is otherwise unchanged."
+)
+CARGO_PASSED_RE = re.compile(r"\btest result:.*?\b(\d+)\s+passed\b")
+PYTEST_PASSED_RE = re.compile(r"(?:^|[=\s])(\d+)\s+passed(?:\b|[,=\s])")
 
 
 def utcnow_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def sha256_file(path: Path) -> str | None:
+    if not path.is_file():
+        return None
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 # --------------------------------------------------------------------------
@@ -154,7 +174,16 @@ def clone_and_checkout(source_repo: str, pre_tag: str, ws_dir: Path) -> None:
         shutil.rmtree(ws_dir)
     ws_dir.parent.mkdir(parents=True, exist_ok=True)
     print(f"[bench] git clone --local {source_repo} {ws_dir}", flush=True)
-    git(["clone", "--local", source_repo, str(ws_dir)])
+    try:
+        git(["clone", "--local", source_repo, str(ws_dir)])
+    except RuntimeError as e:
+        if ws_dir.exists():
+            shutil.rmtree(ws_dir)
+        print(
+            f"[bench] git clone --local failed ({e}); retrying with --no-hardlinks",
+            file=sys.stderr, flush=True,
+        )
+        git(["clone", "--no-hardlinks", source_repo, str(ws_dir)])
     print(f"[bench] git -C {ws_dir} checkout {pre_tag}", flush=True)
     git(["-C", str(ws_dir), "checkout", pre_tag])
     print(f"[bench] git -C {ws_dir} remote remove origin", flush=True)
@@ -185,15 +214,33 @@ def check_scaffold(ws_dir: Path, pre_tag: str) -> dict:
             file=sys.stderr, flush=True,
         )
     agents_md_shimmed = False
+    shim = {
+        "present": False,
+        "sha256_at_write": None,
+    }
     if has_agents_md and not (has_claude_md or has_dot_claude):
         # Equalize priming with the original codex session: codex auto-injects
         # AGENTS.md; Claude Code auto-loads CLAUDE.md. Copy (untracked, clone-only)
         # so the Fable reference gets the same repo scaffold the source run had.
-        shutil.copyfile(ws_dir / "AGENTS.md", ws_dir / "CLAUDE.md")
+        shim_path = ws_dir / "CLAUDE.md"
+        shutil.copyfile(ws_dir / "AGENTS.md", shim_path)
+        exclude_path = ws_dir / ".git" / "info" / "exclude"
+        exclude_path.parent.mkdir(parents=True, exist_ok=True)
+        exclude_text = exclude_path.read_text() if exclude_path.exists() else ""
+        if "CLAUDE.md" not in exclude_text.splitlines():
+            with open(exclude_path, "a") as f:
+                if exclude_text and not exclude_text.endswith("\n"):
+                    f.write("\n")
+                f.write("CLAUDE.md\n")
         agents_md_shimmed = True
+        shim = {
+            "present": True,
+            "sha256_at_write": sha256_file(shim_path),
+        }
         print(
             "[bench] NOTE: AGENTS.md-only scaffold — copied AGENTS.md -> CLAUDE.md "
-            "in the clone to equalize priming with the original codex session.",
+            "in the clone to equalize priming with the original codex session "
+            "and excluded it as a harness artifact.",
             flush=True,
         )
     return {
@@ -203,6 +250,9 @@ def check_scaffold(ws_dir: Path, pre_tag: str) -> dict:
         "has_dot_claude_dir": has_dot_claude,
         "has_AGENTS_md": has_agents_md,
         "agents_md_shimmed": agents_md_shimmed,
+        # Global SessionStart hook injection is the intended owner-reference condition.
+        "global_hooks_present": True,
+        "shim": shim,
     }
 
 
@@ -296,15 +346,57 @@ def run_fable(task_prompt: str, model: str, ws_dir: Path, timeout_sec: int) -> d
     }
 
 
+def build_replay_preface(ws_dir: Path) -> str:
+    return REPLAY_PREFACE_TEMPLATE.format(ws=str(ws_dir))
+
+
 # --------------------------------------------------------------------------
 # success_evidence execution
 # --------------------------------------------------------------------------
+
+def count_passed_tests(stdout: str, stderr: str) -> int:
+    total = 0
+    for line in (stdout + "\n" + stderr).splitlines():
+        cargo_match = CARGO_PASSED_RE.search(line)
+        if cargo_match:
+            total += int(cargo_match.group(1))
+            continue
+        pytest_match = PYTEST_PASSED_RE.search(line)
+        if pytest_match:
+            total += int(pytest_match.group(1))
+    return total
+
+
+def annotate_evidence_min_tests(result: dict) -> dict:
+    expect_min_tests = result.get("expect_min_tests")
+    if expect_min_tests is None:
+        return result
+    matched_tests = count_passed_tests(result.get("stdout_tail", ""), result.get("stderr_tail", ""))
+    result["matched_tests"] = matched_tests
+    result["min_tests_satisfied"] = matched_tests >= expect_min_tests
+    if not result["min_tests_satisfied"]:
+        result["min_tests_failure"] = (
+            f"matched {matched_tests} passed test(s), expected at least {expect_min_tests}"
+        )
+    return result
+
+
+def evidence_entry_passed(result: dict) -> bool:
+    if result.get("error") or result.get("timed_out"):
+        return False
+    if result.get("returncode") != 0:
+        return False
+    if result.get("expect_min_tests") is not None and not result.get("min_tests_satisfied", False):
+        return False
+    return True
+
 
 def run_evidence(commands: list, ws_dir: Path, timeout_sec: int) -> list:
     results = []
     for item in commands:
         cmd = item["cmd"] if isinstance(item, dict) else item
         desc = item.get("desc", "") if isinstance(item, dict) else ""
+        expect_min_tests = item.get("expect_min_tests") if isinstance(item, dict) else None
         print(f"[bench] evidence: {cmd}", flush=True)
         t0 = time.time()
         try:
@@ -312,29 +404,32 @@ def run_evidence(commands: list, ws_dir: Path, timeout_sec: int) -> list:
             proc = subprocess.run(
                 argv, cwd=str(ws_dir), capture_output=True, text=True, timeout=timeout_sec,
             )
-            results.append({
+            results.append(annotate_evidence_min_tests({
                 "cmd": cmd, "desc": desc,
+                "expect_min_tests": expect_min_tests,
                 "returncode": proc.returncode, "timed_out": False,
                 "wall_sec": round(time.time() - t0, 3),
                 "stdout_tail": proc.stdout[-8000:],
                 "stderr_tail": proc.stderr[-8000:],
-            })
+            }))
         except subprocess.TimeoutExpired as e:
             out = e.stdout if isinstance(e.stdout, str) else ""
             err = e.stderr if isinstance(e.stderr, str) else ""
-            results.append({
+            results.append(annotate_evidence_min_tests({
                 "cmd": cmd, "desc": desc,
+                "expect_min_tests": expect_min_tests,
                 "returncode": None, "timed_out": True,
                 "wall_sec": round(time.time() - t0, 3),
                 "stdout_tail": out[-8000:], "stderr_tail": err[-8000:],
-            })
+            }))
         except FileNotFoundError as e:
-            results.append({
+            results.append(annotate_evidence_min_tests({
                 "cmd": cmd, "desc": desc,
+                "expect_min_tests": expect_min_tests,
                 "returncode": None, "timed_out": False, "error": f"executable not found: {e}",
                 "wall_sec": round(time.time() - t0, 3),
                 "stdout_tail": "", "stderr_tail": "",
-            })
+            }))
     return results
 
 
@@ -352,6 +447,14 @@ def render_evidence_txt(results: list, dry_run: bool) -> str:
         lines.append(f"$ {r['cmd']}")
         if r.get("desc"):
             lines.append(f"  # {r['desc']}")
+        if r.get("expect_min_tests") is not None:
+            lines.append(
+                f"  # expect_min_tests={r['expect_min_tests']} "
+                f"matched_tests={r.get('matched_tests', 0)} "
+                f"min_tests_satisfied={r.get('min_tests_satisfied', False)}"
+            )
+        if r.get("min_tests_failure"):
+            lines.append(f"  MIN-TESTS FAILED: {r['min_tests_failure']}")
         if r.get("error"):
             lines.append(f"  ERROR: {r['error']}")
             continue
@@ -373,7 +476,7 @@ def tests_passed_guess(evidence_results: list, dry_run: bool) -> str:
         return "fail (an evidence command could not even run)"
     if any(r["timed_out"] for r in evidence_results):
         return "fail (an evidence command timed out)"
-    all_pass = all(r["returncode"] == 0 for r in evidence_results)
+    all_pass = all(evidence_entry_passed(r) for r in evidence_results)
     if dry_run:
         # Pre-task state passing the post-task evidence would be a red flag
         # (the tests should not exist / should fail yet) — surface it as such.
@@ -385,11 +488,49 @@ def tests_passed_guess(evidence_results: list, dry_run: bool) -> str:
 # transcript location
 # --------------------------------------------------------------------------
 
-def find_transcript(ws_dir: Path, since_ts: float) -> Path | None:
-    """Newest ~/.claude/projects/*/*.jsonl whose recorded `cwd` matches
-    `ws_dir`, restricted to files modified at/after `since_ts` (a small
-    buffer before the Fable invocation started) so this does not have to
-    read the full content of all ~200 historical project transcripts."""
+def encoded_claude_project_dir(ws_dir: Path) -> str:
+    return str(ws_dir).replace("/", "-")
+
+
+def wait_for_stable_file(path: Path, checks: int = 2, interval_sec: int = 3) -> bool:
+    stable = 0
+    previous = None
+    while stable < checks:
+        try:
+            st = path.stat()
+        except OSError:
+            return False
+        current = (st.st_size, st.st_mtime_ns)
+        if current == previous:
+            stable += 1
+        else:
+            stable = 0
+            previous = current
+        if stable < checks:
+            time.sleep(interval_sec)
+    return True
+
+
+def first_line_session_id(path: Path) -> str | None:
+    try:
+        with open(path) as f:
+            first = f.readline()
+    except OSError:
+        return None
+    if not first:
+        return None
+    try:
+        obj = json.loads(first)
+    except json.JSONDecodeError:
+        return None
+    return obj.get("sessionId")
+
+
+def find_transcript_by_cwd(ws_dir: Path, since_ts: float) -> Path | None:
+    """Diagnostic fallback: newest ~/.claude/projects/*/*.jsonl whose recorded
+    `cwd` matches `ws_dir`, restricted to files modified at/after `since_ts`.
+    Live copying is keyed by session_id; this heuristic is logged only when
+    the exact session path is missing/invalid."""
     projects_dir = Path.home() / ".claude" / "projects"
     if not projects_dir.is_dir():
         return None
@@ -412,6 +553,77 @@ def find_transcript(ws_dir: Path, since_ts: float) -> Path | None:
         return None
     candidates.sort(key=lambda pair: pair[0], reverse=True)
     return candidates[0][1]
+
+
+def find_transcript_by_session(ws_dir: Path, session_id: str, since_ts: float) -> tuple[Path | None, str | None]:
+    projects_dir = Path.home() / ".claude" / "projects"
+    transcript = projects_dir / encoded_claude_project_dir(ws_dir) / f"{session_id}.jsonl"
+    if not transcript.is_file():
+        fallback = find_transcript_by_cwd(ws_dir, since_ts)
+        return None, f"expected {transcript}; cwd fallback candidate={fallback}"
+    observed_session_id = first_line_session_id(transcript)
+    if observed_session_id != session_id:
+        fallback = find_transcript_by_cwd(ws_dir, since_ts)
+        return (
+            None,
+            f"expected first-line sessionId={session_id}, got {observed_session_id!r} "
+            f"at {transcript}; cwd fallback candidate={fallback}",
+        )
+    if not wait_for_stable_file(transcript):
+        fallback = find_transcript_by_cwd(ws_dir, since_ts)
+        return None, f"transcript did not stabilize at {transcript}; cwd fallback candidate={fallback}"
+    return transcript, None
+
+
+# --------------------------------------------------------------------------
+# run classification and source-repo guard
+# --------------------------------------------------------------------------
+
+def source_repo_status(source_repo: str) -> dict:
+    proc = git(["-C", source_repo, "status", "--porcelain"], check=False)
+    return {
+        "returncode": proc.returncode,
+        "stdout": proc.stdout,
+        "stderr": proc.stderr,
+    }
+
+
+def render_source_repo_guard(source_repo: str, before: dict, after: dict) -> str:
+    return "\n".join([
+        f"# source_repo: {source_repo}",
+        "# before: git -C <source_repo> status --porcelain",
+        before.get("stdout", ""),
+        f"# before_returncode: {before.get('returncode')}",
+        before.get("stderr", ""),
+        "# after: git -C <source_repo> status --porcelain",
+        after.get("stdout", ""),
+        f"# after_returncode: {after.get('returncode')}",
+        after.get("stderr", ""),
+    ]).rstrip() + "\n"
+
+
+def source_repo_touched(before: dict, after: dict) -> bool:
+    return (
+        before.get("returncode") != after.get("returncode")
+        or before.get("stdout") != after.get("stdout")
+        or before.get("stderr") != after.get("stderr")
+    )
+
+
+def classify_run(run_record: dict, transcript_missing: bool) -> str:
+    harness = run_record.get("harness", {})
+    cli_result = run_record.get("cli_result") or {}
+    if harness.get("timed_out"):
+        return "timeout"
+    if run_record.get("parse_error"):
+        return "parse_error"
+    if harness.get("returncode") not in (0, None):
+        return "nonzero_exit"
+    if cli_result.get("is_error") or cli_result.get("subtype") in {"api_error", "error"}:
+        return "api_error"
+    if transcript_missing:
+        return "transcript_missing"
+    return "ok"
 
 
 # --------------------------------------------------------------------------
@@ -438,6 +650,8 @@ def run_task(task_id: str, args: argparse.Namespace) -> int:
     print(f"\n[bench] === {task_id} === ws={ws_dir} dry_run={args.dry_run} model={args.model}",
           flush=True)
 
+    source_before = source_repo_status(task["source_repo"])
+
     try:
         clone_and_checkout(task["source_repo"], task["pre_tag"], ws_dir)
     except (RuntimeError, subprocess.TimeoutExpired) as e:
@@ -447,11 +661,14 @@ def run_task(task_id: str, args: argparse.Namespace) -> int:
         return 5
 
     scaffold = check_scaffold(ws_dir, task["pre_tag"])
+    replay_preface = build_replay_preface(ws_dir)
+    replay_prompt = f"{replay_preface}\n\n{task['task_prompt']}"
 
     since_ts = time.time()
     if args.dry_run:
         run_record = {
             "dry_run": True,
+            "replay_preface": replay_preface,
             "harness": {
                 "task_id": task_id, "model": args.model, "cwd": str(ws_dir),
                 "timeout_sec": args.timeout_min * 60,
@@ -460,9 +677,24 @@ def run_task(task_id: str, args: argparse.Namespace) -> int:
             "note": "Fable invocation SKIPPED (--dry-run). This stub documents what would have run; steps (d)/(e)/(f) still ran against the untouched pre-task workspace.",
         }
     else:
-        run_record = run_fable(task["task_prompt"], args.model, ws_dir, args.timeout_min * 60)
+        run_record = run_fable(replay_prompt, args.model, ws_dir, args.timeout_min * 60)
+        run_record["replay_preface"] = replay_preface
 
     (out_dir / "run.json").write_text(json.dumps(run_record, indent=2, default=str))
+
+    source_after = source_repo_status(task["source_repo"])
+    (out_dir / "source_repo_guard.txt").write_text(
+        render_source_repo_guard(task["source_repo"], source_before, source_after)
+    )
+
+    shim_info = dict(scaffold.get("shim", {}))
+    shim_after_hash = sha256_file(ws_dir / "CLAUDE.md") if shim_info.get("present") else None
+    shim_info["sha256_after_run"] = shim_after_hash
+    shim_info["changed"] = (
+        bool(shim_info.get("present"))
+        and shim_info.get("sha256_at_write") != shim_after_hash
+    )
+    scaffold["shim"] = shim_info
 
     diff_proc = git(["-C", str(ws_dir), "diff"], check=False)
     status_proc = git(["-C", str(ws_dir), "status", "--short"], check=False)
@@ -478,26 +710,42 @@ def run_task(task_id: str, args: argparse.Namespace) -> int:
     (out_dir / "evidence.txt").write_text(render_evidence_txt(evidence_results, args.dry_run))
 
     transcript_path = None
+    transcript_missing = False
+    transcript_lookup_note = None
     if not args.dry_run:
-        found = find_transcript(ws_dir, since_ts)
+        session_id = (run_record.get("cli_result") or {}).get("session_id")
+        if session_id:
+            found, transcript_lookup_note = find_transcript_by_session(ws_dir, session_id, since_ts)
+        else:
+            found = None
+            transcript_lookup_note = "cli_result.session_id was absent"
         if found:
             transcript_path = out_dir / "transcript.jsonl"
             shutil.copy2(found, transcript_path)
             print(f"[bench] transcript: {found} -> {transcript_path}", flush=True)
         else:
+            transcript_missing = True
             print(
-                f"[bench] WARNING: no session transcript found under ~/.claude/projects "
-                f"matching cwd={ws_dir}",
+                f"[bench] ERROR: no verified session transcript found for cwd={ws_dir}; "
+                f"{transcript_lookup_note}",
                 file=sys.stderr, flush=True,
             )
 
     guess = tests_passed_guess(evidence_results, args.dry_run)
     cli_result = (run_record.get("cli_result") or {})
+    harness = run_record.get("harness", {})
+    run_status = classify_run(run_record, transcript_missing)
     summary = {
         "id": task_id,
         "ws": str(ws_dir),
         "dry_run": args.dry_run,
         "model": args.model,
+        "replay_preface": replay_preface,
+        "run_status": run_status,
+        "subtype": cli_result.get("subtype"),
+        "api_error_status": cli_result.get("api_error_status"),
+        "returncode": harness.get("returncode"),
+        "session_id": cli_result.get("session_id"),
         "duration_ms": cli_result.get("duration_ms"),
         "num_turns": cli_result.get("num_turns"),
         "usage": cli_result.get("usage"),
@@ -505,13 +753,30 @@ def run_task(task_id: str, args: argparse.Namespace) -> int:
         "stop_reason": cli_result.get("stop_reason"),
         "is_error": cli_result.get("is_error"),
         "result_text": cli_result.get("result"),
-        "timed_out": run_record.get("harness", {}).get("timed_out", False),
+        "timed_out": harness.get("timed_out", False),
+        "parse_error": run_record.get("parse_error"),
+        "terminal_reason": cli_result.get("terminal_reason"),
         "tests_passed_guess": guess,
         "evidence_summary": [
-            {"cmd": r["cmd"], "returncode": r.get("returncode"), "timed_out": r.get("timed_out")}
+            {
+                "cmd": r["cmd"],
+                "returncode": r.get("returncode"),
+                "timed_out": r.get("timed_out"),
+                "expect_min_tests": r.get("expect_min_tests"),
+                "matched_tests": r.get("matched_tests"),
+                "min_tests_satisfied": r.get("min_tests_satisfied"),
+            }
             for r in evidence_results
         ],
         "scaffold": scaffold,
+        "shim": {
+            "present": shim_info.get("present", False),
+            "changed": shim_info.get("changed", False),
+            "sha256_at_write": shim_info.get("sha256_at_write"),
+            "sha256_after_run": shim_info.get("sha256_after_run"),
+        },
+        "source_repo_touched": source_repo_touched(source_before, source_after),
+        "transcript_lookup_note": transcript_lookup_note,
         "transcript_path": str(transcript_path) if transcript_path else None,
     }
     (out_dir / "summary.json").write_text(json.dumps(summary, indent=2, default=str))
@@ -521,6 +786,8 @@ def run_task(task_id: str, args: argparse.Namespace) -> int:
         f"cost=${summary['total_cost_usd']} out={out_dir}",
         flush=True,
     )
+    if run_status == "transcript_missing":
+        return 7
     return 0
 
 
