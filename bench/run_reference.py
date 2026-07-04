@@ -346,6 +346,112 @@ def run_fable(task_prompt: str, model: str, ws_dir: Path, timeout_sec: int) -> d
     }
 
 
+def inject_tree(src_dir: Path, ws_dir: Path) -> dict:
+    """Copy a treatment tree (e.g. .claude/ hook config) into the workspace and
+    exclude every injected path from git (same mechanism as the CLAUDE.md
+    shim) so evidence/status capture stays clean."""
+    injected = []
+    for p in sorted(src_dir.rglob("*")):
+        if not p.is_file():
+            continue
+        rel = p.relative_to(src_dir)
+        dst = ws_dir / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(p, dst)
+        dst.chmod(p.stat().st_mode)
+        injected.append(str(rel))
+    exclude = ws_dir / ".git" / "info" / "exclude"
+    with open(exclude, "a") as f:
+        for rel in injected:
+            f.write(f"/{rel}\n")
+    print(f"[bench] injected {len(injected)} treatment file(s) from {src_dir}", flush=True)
+    return {"from": str(src_dir), "files": injected}
+
+
+def run_codex_impl(task_prompt: str, effort: str, ws_dir: Path, timeout_sec: int) -> dict:
+    """Run one headless `codex exec` turn in `ws_dir` (workspace-write sandbox)
+    and return a run_record shaped like run_fable()'s, so the summary code
+    downstream works unchanged. Cost is not reported by the codex CLI (plan
+    billing); tokens_used is parsed best-effort from its output."""
+    codex_bin = shutil.which("codex")
+    if not codex_bin:
+        raise RuntimeError("codex CLI not found on PATH")
+    out_file = ws_dir / ".codex-final-message.md"
+    argv = [
+        codex_bin, "exec",
+        "--sandbox", "workspace-write",
+        "-c", f'model_reasoning_effort="{effort}"',
+        "-o", str(out_file), "-",
+    ]
+    started_at = utcnow_iso()
+    t0 = time.time()
+    timed_out = False
+    proc = subprocess.Popen(
+        argv, cwd=str(ws_dir), stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        text=True, start_new_session=True,
+    )
+    try:
+        stdout, stderr = proc.communicate(input=task_prompt, timeout=timeout_sec)
+    except subprocess.TimeoutExpired:
+        timed_out = True
+        print(f"[bench] codex invocation exceeded {timeout_sec}s — killing process group",
+              file=sys.stderr, flush=True)
+        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        stdout, stderr = proc.communicate(timeout=15)
+    duration_ms = int((time.time() - t0) * 1000)
+    tokens_used = None
+    m = re.search(r"tokens used[:\s]+([\d,]+)", stdout + "\n" + stderr, re.IGNORECASE)
+    if m:
+        tokens_used = int(m.group(1).replace(",", ""))
+    final_text = out_file.read_text() if out_file.exists() else None
+    if out_file.exists():
+        out_file.unlink()  # keep the workspace clean for status/diff capture
+    cli_result = {
+        "subtype": "success" if proc.returncode == 0 and not timed_out else "error",
+        "is_error": proc.returncode != 0 or timed_out,
+        "num_turns": None,
+        "usage": {"tokens_used": tokens_used},
+        "total_cost_usd": None,
+        "result": final_text,
+        "session_id": None,  # codex rollouts are matched by cwd+mtime downstream
+        "duration_ms": duration_ms,
+    }
+    return {
+        "harness": {
+            "executor": "codex", "effort": effort, "cwd": str(ws_dir),
+            "argv": argv, "started_at": started_at,
+            "returncode": proc.returncode, "timed_out": timed_out,
+            "timeout_sec": timeout_sec,
+            "stderr_tail": (stderr or "")[-4000:],
+        },
+        "cli_result": cli_result,
+    }
+
+
+def find_codex_rollout(ws_dir: Path, since_ts: float):
+    """Find the codex rollout JSONL whose session_meta cwd == ws_dir, written
+    after since_ts. Returns (path|None, note)."""
+    root = Path.home() / ".codex" / "sessions"
+    candidates = []
+    for p in root.rglob("rollout-*.jsonl"):
+        try:
+            if p.stat().st_mtime < since_ts - 5:
+                continue
+            with open(p) as f:
+                head = f.readline()
+            meta = json.loads(head)
+            cwd = (meta.get("payload") or {}).get("cwd") or ""
+            if cwd == str(ws_dir):
+                candidates.append(p)
+        except (OSError, json.JSONDecodeError):
+            continue
+    if not candidates:
+        return None, f"no codex rollout with cwd={ws_dir} newer than since_ts"
+    newest = max(candidates, key=lambda p: p.stat().st_mtime)
+    return newest, f"matched codex rollout by cwd ({len(candidates)} candidate(s))"
+
+
 def build_replay_preface(ws_dir: Path) -> str:
     return REPLAY_PREFACE_TEMPLATE.format(ws=str(ws_dir))
 
@@ -667,6 +773,8 @@ def run_task(task_id: str, args: argparse.Namespace) -> int:
         return 5
 
     scaffold = check_scaffold(ws_dir, task["pre_tag"])
+    if args.inject_dir:
+        scaffold["injected"] = inject_tree(args.inject_dir, ws_dir)
     replay_preface = build_replay_preface(ws_dir)
     replay_prompt = f"{replay_preface}\n\n{task['task_prompt']}"
 
@@ -682,6 +790,9 @@ def run_task(task_id: str, args: argparse.Namespace) -> int:
             "cli_result": None,
             "note": "Fable invocation SKIPPED (--dry-run). This stub documents what would have run; steps (d)/(e)/(f) still ran against the untouched pre-task workspace.",
         }
+    elif args.executor == "codex":
+        run_record = run_codex_impl(replay_prompt, args.codex_effort, ws_dir, args.timeout_min * 60)
+        run_record["replay_preface"] = replay_preface
     else:
         run_record = run_fable(replay_prompt, args.model, ws_dir, args.timeout_min * 60)
         run_record["replay_preface"] = replay_preface
@@ -719,12 +830,15 @@ def run_task(task_id: str, args: argparse.Namespace) -> int:
     transcript_missing = False
     transcript_lookup_note = None
     if not args.dry_run:
-        session_id = (run_record.get("cli_result") or {}).get("session_id")
-        if session_id:
-            found, transcript_lookup_note = find_transcript_by_session(ws_dir, session_id, since_ts)
+        if args.executor == "codex":
+            found, transcript_lookup_note = find_codex_rollout(ws_dir, since_ts)
         else:
-            found = None
-            transcript_lookup_note = "cli_result.session_id was absent"
+            session_id = (run_record.get("cli_result") or {}).get("session_id")
+            if session_id:
+                found, transcript_lookup_note = find_transcript_by_session(ws_dir, session_id, since_ts)
+            else:
+                found = None
+                transcript_lookup_note = "cli_result.session_id was absent"
         if found:
             transcript_path = out_dir / "transcript.jsonl"
             shutil.copy2(found, transcript_path)
@@ -848,6 +962,20 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--tasks-dir", type=Path, default=DEFAULT_TASKS_DIR,
         help=f"directory of <ID>.yaml task specs (default: {DEFAULT_TASKS_DIR}).",
+    )
+    p.add_argument(
+        "--executor", choices=["claude", "codex"], default="claude",
+        help="CLI executor. 'codex' runs `codex exec` (workspace-write sandbox, "
+             "gpt-5.5); --model is ignored, --codex-effort applies.",
+    )
+    p.add_argument(
+        "--codex-effort", default="high",
+        help="model_reasoning_effort for --executor codex (default: high).",
+    )
+    p.add_argument(
+        "--inject-dir", type=Path, default=None,
+        help="copy this tree into each workspace after clone (git-excluded), "
+             "e.g. a .claude/ hook-config treatment.",
     )
     p.add_argument(
         "--out-dir", type=Path, default=DEFAULT_OUT_DIR,
