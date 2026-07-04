@@ -1,0 +1,62 @@
+--- a/totals.py
++++ b/totals.py
+@@ -1,14 +1,16 @@
+-def lookup(mapping, key):
++def lookup(data, key):
+     """Return the value for key, or None if absent."""
+-    return mapping.get(key)
++    return data.get(key)
+ 
+ 
+-def present_keys(mapping, keys):
+-    """Subset of `keys` that exist in `mapping`."""
+-    return [k for k in keys if k in mapping]
++def present_keys(data, keys):
++    """Subset of `keys` that exist in `data`."""
++    return [k for k in keys if k in data]
+ 
+ 
+-def label_for(mapping, key):
++def label_for(data, key):
+     """Human label for key's value, or a placeholder if absent."""
+-    v = lookup(mapping, key)
++    v = lookup(data, key)
++    if v is None:
++        return "(unknown)"
+     return str(v)
+@@ -16,8 +18,8 @@
+ 
+-def missing_keys(mapping, keys):
+-    """Subset of `keys` absent from `mapping`."""
+-    return [k for k in keys if k not in mapping]
++def missing_keys(data, keys):
++    """Subset of `keys` absent from `data`."""
++    return [k for k in keys if k not in data]
+ 
+ 
+-def collect(mapping, keys):
++def collect(data, keys):
+     """Values for the present `keys`, in order."""
+@@ -25,3 +27,3 @@
+     for k in keys:
+-        v = lookup(mapping, k)
++        v = lookup(data, k)
+         if v is not None:
+@@ -31,4 +33,14 @@
+ 
+-def count_present(mapping, keys):
+-    """How many of `keys` are present in `mapping`."""
+-    return len(present_keys(mapping, keys))
++def total_of(data, keys):
++    """Sum of the values for `keys` that are present."""
++    total = 0
++    for k in keys:
++        v = lookup(data, k)
++        if v is not None:
++            total += v
++    return total
++
++
++def count_present(data, keys):
++    """How many of `keys` are present in `data`."""
++    return len(present_keys(data, keys))

@@ -1,0 +1,19 @@
+seeded: true
+defects:
+- id: rh-02-d1
+  defect_class: cache key / invalidation shape mismatch
+  location: 'memo.py: invalidate() vs _key()/get()'
+  hunk_lines: the _key()/get() hunks vs the new invalidate() hunk
+  description: '`_key()` (and `get()`/`peek()`/`contains()`) now key the cache on the 3-tuple `(a, b,
+    tuple(sorted(opts.items())))`, but `invalidate(a, b)` pops the 2-tuple `(a, b)`. That 2-tuple never
+    matches any stored 3-tuple key, so invalidate() is a silent no-op.'
+  root_cause: invalidate() was written against the old 2-tuple key shape and not updated when the key
+    gained the opts component.
+  bad_behavior: after invalidate(a, b), a later get(a, b, opts) still returns the stale cached value instead
+    of recomputing; the cache can never be invalidated.
+  minimal_trigger: get(1,2,{}) caches a value; invalidate(1,2); get(1,2,{}) returns the cached value (compute
+    is not re-run).
+  acceptable_match: any finding that invalidate() uses the old (a, b) key while _key()/get() store under
+    (a, b, opts), so invalidate() never matches a stored key and does nothing.
+  reject_if: a finding that only says invalidate() is wrong, without connecting its 2-tuple key to the
+    3-tuple (a, b, opts) shape that _key()/get() actually store under.

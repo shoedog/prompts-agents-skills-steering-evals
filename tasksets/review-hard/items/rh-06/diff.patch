@@ -1,0 +1,66 @@
+--- a/settings.py
++++ b/settings.py
+@@ -5,7 +5,7 @@
+         self._defaults = defaults
+ 
+-    def get(self, key):
++    def get(self, name):
+         """Look up one default value, or None."""
+-        return self._defaults.get(key)
++        return self._defaults.get(name)
+ 
+     def as_dict(self):
+@@ -13,7 +13,7 @@
+         return dict(self._defaults)
+ 
+-    def has(self, key):
+-        """Whether `key` has a default."""
+-        return key in self._defaults
++    def has(self, name):
++        """Whether `name` has a default."""
++        return name in self._defaults
+ 
+     def is_empty(self):
+@@ -23,11 +23,11 @@
+     def defaults(self):
+         """Return the baseline defaults."""
+-        return dict(self._defaults)
++        return self._defaults
+ 
+-    def effective(self, overrides):
+-        """Defaults with `overrides` applied on top (defaults unchanged)."""
+-        base = dict(self._defaults)
+-        base.update(overrides)
+-        return base
++    def effective(self, extra):
++        """Defaults with `extra` applied on top (defaults unchanged)."""
++        cfg = self.defaults()
++        cfg.update(extra)
++        return cfg
+ 
+     def keys(self):
+@@ -35,10 +35,10 @@
+         return sorted(self._defaults)
+ 
+-    def changed_keys(self, overrides):
+-        """Keys whose value would change under `overrides`."""
++    def changed_keys(self, extra):
++        """Keys whose value would change under `extra`."""
+         changed = []
+-        for key, value in overrides.items():
+-            if self._defaults.get(key) != value:
+-                changed.append(key)
++        for name, value in extra.items():
++            if self._defaults.get(name) != value:
++                changed.append(name)
+         return sorted(changed)
+ 
+@@ -46,2 +46,8 @@
+         """Number of defaults."""
+         return len(self._defaults)
++
++    def without(self, name):
++        """A fresh dict of the defaults with `name` removed (self unchanged)."""
++        out = dict(self._defaults)
++        out.pop(name, None)
++        return out

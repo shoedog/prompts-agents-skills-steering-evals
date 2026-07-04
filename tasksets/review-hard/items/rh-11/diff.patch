@@ -1,0 +1,63 @@
+--- a/rate_window.py
++++ b/rate_window.py
+@@ -7,7 +7,7 @@
+     """Sliding-window event counter. Timestamps are supplied in seconds."""
+ 
+     def __init__(self, window_seconds):
+-        self._window_ms = to_ms(window_seconds)
++        self._span_ms = to_ms(window_seconds)
+         self._events = []
+ 
+     def total(self):
+@@ -16,7 +16,7 @@
+ 
+     def record(self, at_seconds):
+         """Record an event at `at_seconds`."""
+-        self._events.append(at_seconds)
++        self._events.append(to_ms(at_seconds))
+ 
+     def earliest(self):
+         """The oldest recorded timestamp (ms), or None."""
+@@ -24,8 +24,14 @@
+ 
+     def count_since(self, now_seconds):
+         """Events within the window ending at `now_seconds`."""
+-        cutoff = now_seconds - self._window_ms
++        cutoff = to_ms(now_seconds) - self._span_ms
+         return sum(1 for e in self._events if e >= cutoff)
++
++    def prune(self, now_seconds):
++        """Drop events older than the window; return how many remain."""
++        cutoff = to_ms(now_seconds) - self._span_ms
++        self._events = [e for e in self._events if e >= cutoff]
++        return len(self._events)
+ 
+     def newest(self):
+         """The most recent recorded timestamp (ms), or None."""
+@@ -33,9 +39,25 @@
+ 
+     def in_window(self, now_seconds):
+         """The event timestamps (ms) still inside the window."""
+-        cutoff = to_ms(now_seconds) - self._window_ms
++        cutoff = to_ms(now_seconds) - self._span_ms
+         kept = []
+         for e in self._events:
+             if e >= cutoff:
+                 kept.append(e)
+         return kept
++
++    def span_ms(self):
++        """The configured window length in milliseconds."""
++        return self._span_ms
++
++    def reset(self):
++        """Forget every recorded event."""
++        self._events = []
++
++    def is_empty(self):
++        """Whether no events are recorded."""
++        return not self._events
++
++    def window_ms(self):
++        """The configured window length, in milliseconds."""
++        return self._span_ms

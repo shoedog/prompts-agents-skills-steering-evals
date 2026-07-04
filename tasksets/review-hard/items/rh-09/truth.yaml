@@ -1,0 +1,36 @@
+seeded: true
+defects:
+- id: rh-09-d1
+  defect_class: transactional atomicity / missing rollback
+  location: 'bank.py: transfer() (_debit before _credit)'
+  hunk_lines: the transfer() hunk and the _debit()/_credit() hunks
+  description: transfer() was split into `_debit(src)` then `_credit(dst)`. `_credit()` raises KeyError
+    when `dst` is unknown, but by then `_debit()` has already reduced `src`'s balance, and there is no
+    rollback, so a failed transfer leaves `src` debited.
+  root_cause: the dst-existence check that used to run before any mutation now runs inside _credit(),
+    after _debit() has mutated src; nothing compensates when _credit raises.
+  bad_behavior: transfer('a','b',30) with an unknown 'b' raises KeyError but leaves a's balance reduced
+    by 30 (not all-or-nothing).
+  minimal_trigger: deposit('a',100); transfer('a','b',30) raises KeyError and balance('a') == 70 (should
+    still be 100).
+  acceptable_match: any finding that transfer() debits src before _credit() validates dst, so a failed
+    credit leaves src debited with no rollback (loss of atomicity).
+  reject_if: a finding that only flags safe_transfer, or says 'error handling could be better', without
+    naming the debit-before-validate ordering / missing rollback in transfer().
+- id: rh-09-d2
+  defect_class: over-broad swallowed exception with misleading return
+  location: 'bank.py: safe_transfer()'
+  hunk_lines: the new safe_transfer() hunk
+  description: 'safe_transfer() wraps transfer() in `except Exception: return False`, swallowing every
+    error and reporting False. Combined with the non-atomic transfer, it returns False even though `src`
+    was already debited, so the caller cannot tell a rejected transfer from a partially-applied one.'
+  root_cause: the broad except converts all failures into a silent False without restoring state or distinguishing
+    failure kinds.
+  bad_behavior: safe_transfer('a','b',30) to an unknown 'b' returns False while a has already been debited;
+    the False return masks the partial mutation.
+  minimal_trigger: deposit('a',100); safe_transfer('a','b',30) returns False yet balance('a') == 70.
+  acceptable_match: 'any finding that safe_transfer()''s broad `except Exception: return False` swallows
+    the failure and returns False even though transfer() left balances partially mutated (masking the
+    non-atomic state).'
+  reject_if: a finding that only flags transfer()'s ordering, or gives a generic 'avoid bare except' note,
+    without observing that it returns False while state was already changed.

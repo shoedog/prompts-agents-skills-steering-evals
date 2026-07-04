@@ -1,0 +1,20 @@
+seeded: true
+defects:
+- id: rh-07-d1
+  defect_class: changed return contract (None) unhandled by a caller
+  location: 'parsing.py: strip_marker() vs find_range()'
+  hunk_lines: the find_range() hunk vs the strip_marker() hunk
+  description: find_range() was softened to return None when the marker is absent (previously it raised
+    ValueError). The new extract_section()/before_marker() guard for None, but the pre-existing strip_marker()
+    still does `start, end = find_range(text, marker)`, which raises TypeError (cannot unpack None) when
+    the marker is absent.
+  root_cause: find_range()'s contract changed from raise-on-absent to return-None; strip_marker() was
+    not updated to handle the new None case.
+  bad_behavior: 'strip_marker(text, marker) with an absent marker raises TypeError: cannot unpack non-iterable
+    NoneType, rather than removing nothing or raising a meaningful error.'
+  minimal_trigger: strip_marker('hello', 'z') raises TypeError (find_range returns None, which is then
+    unpacked into start, end).
+  acceptable_match: any finding that find_range() now returns None on absence while strip_marker() still
+    unpacks its result, so strip_marker raises TypeError when the marker is absent.
+  reject_if: a finding that only notes find_range() changed, or only that strip_marker() might fail, without
+    connecting the new None return to strip_marker()'s unguarded tuple unpack.

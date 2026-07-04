@@ -1,0 +1,35 @@
+seeded: true
+defects:
+- id: rh-10-d1
+  defect_class: operation ordering (validate before normalize)
+  location: 'importer.py: add() (_validate before _normalize)'
+  hunk_lines: the add() hunk and the new _validate() hunk
+  description: add() calls `_validate(raw)` on the RAW input and only then `_normalize()`. _validate rejects
+    empty/oversized raw strings, so a whitespace-only name like '   ' passes validation but normalizes
+    to '' and is stored, violating the non-empty-record contract.
+  root_cause: validation runs on the raw value before normalization, so the empty-after-trim case is never
+    checked; validation should apply to the normalized key.
+  bad_behavior: add('   ') stores '' as a record (and marks it seen), so blank/whitespace inputs become
+    empty records.
+  minimal_trigger: add('   ') then '' in records() (an empty string was stored as a record).
+  acceptable_match: any finding that add() validates the raw value before normalizing, so whitespace-only
+    input passes _validate but normalizes to '' and is stored (the non-empty check does not apply to the
+    normalized key).
+  reject_if: a finding that only says validation is incomplete, without naming the validate-before-normalize
+    ordering that lets whitespace-only become an empty stored record.
+- id: rh-10-d2
+  defect_class: broken idempotency (dedup invariant bypassed)
+  location: 'importer.py: retry_import() vs add()/_seen'
+  hunk_lines: the new retry_import() hunk vs the add() hunk
+  description: add() enforces uniqueness via `self._seen`, but retry_import() appends `self._normalize(n)`
+    straight into `self._records` without consulting or updating `_seen`, so re-running an import that
+    already stored some names duplicates them.
+  root_cause: retry_import() bypasses the _seen dedup invariant that add() maintains (and never updates
+    _seen), so it is not idempotent.
+  bad_behavior: add('x') then retry_import(['x']) leaves 'x' in _records twice; _records and _seen also
+    diverge.
+  minimal_trigger: add('x'); retry_import(['x']); records().count('x') == 2 (should be 1).
+  acceptable_match: any finding that retry_import() appends normalized names without the _seen dedup check
+    add() enforces, so retrying duplicates already-stored records (not idempotent).
+  reject_if: a finding that only flags the validation-order bug, or calls retry_import odd, without naming
+    that it skips the _seen dedup and duplicates existing records.

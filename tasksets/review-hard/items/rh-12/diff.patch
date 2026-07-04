@@ -1,0 +1,62 @@
+--- a/query_cache.py
++++ b/query_cache.py
+@@ -1,10 +1,10 @@
+ class QueryCache:
+-    """Caches loader(table, filters) results keyed on (table, filters)."""
++    """Caches loader(table, where) results keyed on (table, where)."""
+ 
+     def __init__(self):
+         self._cache = {}
+ 
+-    def _key(self, table, filters):
+-        return (table, tuple(sorted(filters.items())))
++    def _key(self, table, where):
++        return (table, tuple(sorted(where.items())))
+ 
+     def size(self):
+@@ -12,9 +12,13 @@
+         return len(self._cache)
+ 
+-    def fetch(self, table, filters, loader):
+-        key = self._key(table, filters)
++    def fetch(self, table, where, loader):
++        key = self._key(table, where)
+         if key not in self._cache:
+-            self._cache[key] = loader(table, filters)
++            self._cache[key] = loader(table, where)
+         return self._cache[key]
++
++    def invalidate(self, table, where):
++        """Drop the cached result for one (table, where) pair."""
++        self._cache.pop(self._key(table, where), None)
+ 
+     def tables(self):
+@@ -26,7 +30,12 @@
+         return names
+ 
+-    def cached(self, table, filters):
+-        """Whether a result is cached for this exact (table, filters)."""
+-        return self._key(table, filters) in self._cache
++    def invalidate_table(self, table):
++        """Drop every cached result for `table`, any filters."""
++        for k in [k for k in self._cache if k[0] == table]:
++            del self._cache[k]
++
++    def cached(self, table, where):
++        """Whether a result is cached for this exact (table, where)."""
++        return self._key(table, where) in self._cache
+ 
+     def keys(self):
+@@ -34,4 +43,12 @@
+         return list(self._cache)
+ 
++    def is_empty(self):
++        """Whether the cache holds nothing."""
++        return not self._cache
++
++    def has_table(self, table):
++        """Whether any entry is cached for `table`."""
++        return any(k[0] == table for k in self._cache)
++
+     def clear(self):
+         self._cache.clear()

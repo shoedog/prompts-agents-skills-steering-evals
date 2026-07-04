@@ -1,0 +1,61 @@
+--- a/search.py
++++ b/search.py
+@@ -9,7 +9,7 @@
+         return list(self._items)
+ 
+-    def matching(self, predicate):
+-        """All items satisfying `predicate`."""
+-        return [x for x in self._items if predicate(x)]
++    def matching(self, pred):
++        """All items satisfying `pred`."""
++        return [x for x in self._items if pred(x)]
+ 
+     def size(self):
+@@ -17,11 +17,11 @@
+         return len(self._items)
+ 
+-    def count(self, predicate):
++    def count(self, pred):
+         """How many items match."""
+-        return len(self.matching(predicate))
++        return len(self.matching(pred))
+ 
+-    def find(self, predicate, limit=20):
+-        """First `limit` items matching `predicate`."""
+-        return self.matching(predicate)[:limit]
++    def find(self, pred, offset=0, limit=20):
++        """Items matching `pred`, skipping `offset`, capped at `limit`."""
++        return self.matching(pred)[offset:offset + limit]
+ 
+     def is_empty(self):
+@@ -29,7 +29,7 @@
+         return not self._items
+ 
+-    def batches(self, predicate, size):
++    def batches(self, pred, size):
+         """All fixed-size batches of matches, as a list of lists."""
+-        rows = self.matching(predicate)
++        rows = self.matching(pred)
+         out = []
+         for start in range(0, len(rows), size):
+@@ -37,5 +37,18 @@
+         return out
+ 
+-    def first(self, predicate, n):
++    def page(self, pred, page_num, size):
++        """The 1-indexed `page_num` of matches, `size` per page."""
++        return self.find(pred, offset=(page_num - 1) * size, limit=size)
++
++    def first(self, pred, n):
+         """First `n` matching items."""
+-        return self.find(predicate, limit=n)
++        return self.find(pred, offset=0, limit=n)
++
++    def any(self, pred):
++        """Whether any item matches `pred`."""
++        return self.count(pred) > 0
++
++    def nth(self, pred, index):
++        """The match at `index`, or None if out of range."""
++        rows = self.matching(pred)
++        return rows[index] if 0 <= index < len(rows) else None

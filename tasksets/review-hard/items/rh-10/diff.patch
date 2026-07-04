@@ -1,0 +1,79 @@
+--- a/importer.py
++++ b/importer.py
+@@ -4,23 +4,30 @@
+     def __init__(self):
+         self._seen = set()
+         self._records = []
+ 
+-    def _normalize(self, name):
+-        return name.strip().lower()
++    def _normalize(self, raw):
++        return raw.strip().lower()
+ 
+-    def add(self, name):
+-        """Store a unique, normalized record."""
+-        key = self._normalize(name)
++    def add(self, raw):
++        """Validate and store a unique, normalized record."""
++        self._validate(raw)
++        key = self._normalize(raw)
+         if key in self._seen:
+             return False
+         self._seen.add(key)
+         self._records.append(key)
+         return True
+ 
+-    def has(self, name):
+-        """Whether a normalized `name` is already stored."""
+-        return self._normalize(name) in self._seen
++    def has(self, raw):
++        """Whether a normalized `raw` name is already stored."""
++        return self._normalize(raw) in self._seen
++
++    def _validate(self, raw):
++        if not raw:
++            raise ValueError("empty name")
++        if len(raw) > 64:
++            raise ValueError("name too long")
+ 
+     def import_all(self, names):
+         """Import many; return count actually stored."""
+         count = 0
+@@ -28,14 +35,20 @@
+             if self.add(n):
+                 count += 1
+         return count
+ 
++    def retry_import(self, names):
++        """Re-run an import that may have partially completed."""
++        for n in names:
++            self._records.append(self._normalize(n))
++        return len(self._records)
++
+     def duplicates(self, names):
+         """Which of `names` are already stored (normalized)."""
+         dups = []
+-        for n in names:
+-            if self._normalize(n) in self._seen:
+-                dups.append(n)
++        for raw in names:
++            if self._normalize(raw) in self._seen:
++                dups.append(raw)
+         return dups
+ 
+     def records(self):
+         """The stored records."""
+@@ -43,4 +56,13 @@
+ 
+     def count(self):
+         """How many records stored."""
+         return len(self._records)
++
++    def is_empty(self):
++        """Whether no records are stored."""
++        return not self._records
++
++    def reset(self):
++        """Forget every stored record."""
++        self._seen.clear()
++        self._records.clear()

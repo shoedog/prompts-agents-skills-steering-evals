@@ -1,0 +1,10 @@
+seeded: false
+clean_rationale: 'invalidate() and invalidate_table() are consistent with fetch()''s key shape: invalidate()
+  pops `self._key(table, where)` (the same tuple fetch stores under), and invalidate_table() matches on
+  `key[0]`. Invalidation actually removes the intended entries, so no stale value survives.'
+tempting_non_defects:
+- invalidate() builds its key via the same _key(table, where) helper fetch() uses, so the key shapes match
+  (unlike a stale hard-coded key that would never match).
+- invalidate_table() iterates a snapshot list comprehension before deleting, so it does not mutate the
+  dict while iterating it.
+- the param rename filters -> where is mechanical and applied consistently across _key/fetch/invalidate/cached.

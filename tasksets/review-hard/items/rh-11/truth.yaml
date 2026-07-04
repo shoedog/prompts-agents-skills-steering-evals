@@ -1,0 +1,11 @@
+seeded: false
+clean_rationale: 'Every timestamp entering or bounding the store is converted to milliseconds via to_ms:
+  record(), count_since(), prune() and in_window() all apply to_ms to their seconds inputs, and _span_ms
+  is compared against millisecond timestamps. Units are consistent at every site; no site mixes seconds
+  and milliseconds.'
+tempting_non_defects:
+- record() converts at_seconds with to_ms before storing, so stored timestamps and the _span_ms window
+  are both in milliseconds (unlike a bug where one site forgets the conversion).
+- count_since() and prune() compute the identical cutoff `to_ms(now_seconds) - _span_ms`, so they agree
+  exactly on the window boundary.
+- the field rename _window_ms -> _span_ms is purely mechanical and every reference was updated.

@@ -1,0 +1,22 @@
+seeded: true
+defects:
+- id: rh-06-d1
+  defect_class: aliasing / shared-mutable-state (two changes combine)
+  location: 'settings.py: defaults() together with effective()'
+  hunk_lines: the defaults() hunk and the effective() hunk
+  description: 'Two edits combine into the bug: defaults() now returns the internal dict directly (previously
+    `return dict(self._defaults)`), and effective() now builds on `cfg = self.defaults()` (previously
+    its own copy `base = dict(self._defaults)`). Together, `effective(extra)` then does `cfg.update(extra)`
+    on the internal dict, mutating the stored defaults.'
+  root_cause: neither edit is harmful alone, but removing the copy in defaults() while making effective()
+    reuse defaults()'s result deletes the last defensive copy on the mutation path.
+  bad_behavior: calling effective({'b':2}) permanently inserts 'b' into the stored defaults; every later
+    get()/defaults()/effective() sees the leaked override.
+  minimal_trigger: Settings({'a':1}); effective({'b':2}); afterwards defaults() contains 'b' (the override
+    leaked into the internal defaults).
+  acceptable_match: 'any finding that names the interaction: defaults() returning the internal dict (no
+    copy) together with effective() updating the result of self.defaults() causes effective() to mutate/corrupt
+    the stored defaults.'
+  reject_if: a finding that flags ONLY defaults() returning a reference, or ONLY effective() calling update,
+    without connecting the two (a bare 'defaults() returns the internal dict' that does not note effective()
+    mutates it, or vice versa, is insufficient).

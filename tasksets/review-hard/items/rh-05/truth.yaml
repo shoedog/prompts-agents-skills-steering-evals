@@ -1,0 +1,20 @@
+seeded: true
+defects:
+- id: rh-05-d1
+  defect_class: positional-argument transposition (inserted parameter)
+  location: 'repo.py: recent() vs query()'
+  hunk_lines: the query() signature hunk vs the recent() hunk
+  description: 'query()''s signature changed from (table, where, limit) to (table, predicate, offset=0,
+    limit=100). first_page() and page() were updated to pass offset/limit by keyword, but recent() still
+    calls `self.query(table, lambda r: True, limit)` positionally, so its `limit` argument now binds to
+    the new `offset` parameter.'
+  root_cause: inserting `offset` ahead of `limit` shifted positional binding; recent()'s positional third
+    argument was not converted to a keyword like the other call sites.
+  bad_behavior: recent(table, n) returns rows[n:n+100] (skipping the first n rows) instead of the first
+    n rows; it is a silent wrong result because limit has a default so no error is raised.
+  minimal_trigger: rows 0..9; recent('logs', 3) returns [3,4,5,6,7,8,9] instead of [0,1,2].
+  acceptable_match: any finding that recent() passes its argument positionally where query() now expects
+    `offset` (so it binds to offset, not limit), because query gained an offset parameter that first_page/page
+    pass by keyword but recent does not.
+  reject_if: a finding that only says recent() is wrong or that query()'s signature changed, without naming
+    that recent's positional argument now binds to offset instead of limit.

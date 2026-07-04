@@ -1,0 +1,64 @@
+--- a/guard.py
++++ b/guard.py
+@@ -4,14 +4,17 @@
+ class Guard:
+-    """Guards a critical section with a single lock."""
++    """Re-entrant guard: nested enter/exit share one mutex."""
+ 
+     def __init__(self):
+-        self._lock = threading.Lock()
++        self._mutex = threading.Lock()
++        self._depth = 0
+ 
+     def depth(self):
+-        """Nesting depth (0 or 1 in the non-reentrant guard)."""
+-        return 1 if self._lock.locked() else 0
++        """Current nesting depth."""
++        return self._depth
+ 
+     def enter(self):
+-        """Enter the guarded section."""
+-        self._lock.acquire()
++        """Enter a (possibly nested) guarded section."""
++        if self._depth == 0:
++            self._mutex.acquire()
++        self._depth += 1
+ 
+@@ -19,8 +22,10 @@
+         """Whether the lock is currently held."""
+-        return self._lock.locked()
++        return self._mutex.locked()
+ 
+     def exit(self):
+-        """Leave the guarded section."""
+-        self._lock.release()
+-        return True
++        """Leave one nesting level."""
++        self._depth -= 1
++        if self._depth == 0:
++            self._mutex.release()
++        return self._depth
+ 
+@@ -34,3 +39,21 @@
+ 
++    def is_root(self):
++        """Whether at most one level is open."""
++        return self._depth <= 1
++
++    def force_reset(self):
++        """Abort all nesting levels and release the lock if held."""
++        self._depth = 0
++        if self._mutex.locked():
++            self._mutex.release()
++
++    def state(self):
++        """A (depth, held) snapshot of the guard."""
++        return (self._depth, self._mutex.locked())
++
++    def reset(self):
++        """Alias for force_reset()."""
++        self.force_reset()
++
+     def locked(self):
+-        return self._lock.locked()
++        return self._mutex.locked()

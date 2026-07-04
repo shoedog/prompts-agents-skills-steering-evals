@@ -1,0 +1,10 @@
+seeded: false
+clean_rationale: 'lookup() may return None for an absent key, and every caller guards for it: label_for()
+  returns ''(unknown)'' when the value is None, and total_of()/collect() skip None values. No caller assumes
+  lookup() returns a non-None value.'
+tempting_non_defects:
+- label_for() checks `if v is None` before str(v), so an absent key yields the placeholder rather than
+  the string 'None' or an AttributeError.
+- total_of() and collect() test `if v is not None` before using v, so absent keys are skipped, not summed
+  or dereferenced.
+- the param rename mapping -> data is mechanical and consistent across every function.

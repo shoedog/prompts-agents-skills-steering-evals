@@ -1,0 +1,64 @@
+--- a/allocate.py
++++ b/allocate.py
+@@ -1,19 +1,17 @@
+ def _share(total, weight, total_weight):
+-    """This weight's integer slice of `total` (floor)."""
+-    return total * weight // total_weight
++    """This weight's proportional slice of `total` (nearest integer)."""
++    return round(total * weight / total_weight)
+ 
+ 
+-def total_weight(weights):
++def total_weight(ws):
+     """Sum of all weights."""
+-    return sum(weights)
++    return sum(ws)
+ 
+ 
+-def allocate(total, weights):
+-    """Split integer `total` across `weights`. Result sums to `total`."""
+-    tw = sum(weights)
+-    shares = [_share(total, w, tw) for w in weights]
+-    shares[-1] += total - sum(shares)
+-    return shares
++def allocate(total, ws):
++    """Split integer `total` across `ws`. Result sums to `total`."""
++    tw = sum(ws)
++    return [_share(total, w, tw) for w in ws]
+ 
+ 
+ def is_empty(weights):
+@@ -21,9 +19,16 @@
+     return len(weights) == 0
+ 
+ 
+-def largest_index(weights):
++def largest_index(ws):
+     """Index of the single heaviest weight."""
+-    return weights.index(max(weights))
++    return ws.index(max(ws))
++
++
++def allocate_budget(total, categories):
++    """Split `total` across a name->weight mapping, returning name->amount."""
++    names = list(categories)
++    ws = [categories[n] for n in names]
++    return dict(zip(names, allocate(total, ws)))
+ 
+ 
+ def rebalance(shares, spare):
+@@ -32,3 +37,14 @@
+     i = out.index(min(out))
+     out[i] += spare
+     return out
++
++
++def percentages(ws):
++    """Each weight as a percentage of the total (rounded floats)."""
++    tw = sum(ws)
++    return [round(100 * w / tw, 2) for w in ws]
++
++
++def scaled(shares, factor):
++    """Each share multiplied by `factor`."""
++    return [s * factor for s in shares]

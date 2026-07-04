@@ -1,0 +1,73 @@
+--- a/ttl_cache.py
++++ b/ttl_cache.py
+@@ -1,14 +1,14 @@
+ import time
+ 
+ 
+-def now_ts():
+-    """Current wall-clock time, in seconds."""
+-    return time.time()
++def now_ms():
++    """Current wall-clock time, in integer milliseconds."""
++    return int(time.time() * 1000)
+ 
+ 
+ class TTLCache:
+-    """Expiring key/value store."""
++    """Expiring key/value store. Internal clock is integer milliseconds."""
+ 
+     def __init__(self):
+         self._store = {}
+ 
+@@ -17,28 +17,36 @@
+         return key in self._store
+ 
+     def set(self, key, value, ttl_seconds):
+         """Insert/replace key, expiring ttl_seconds from now."""
+-        expiry = now_ts() + ttl_seconds
++        expiry = now_ms() + ttl_seconds * 1000
+         self._store[key] = [value, expiry]
+ 
+     def get(self, key):
+         """Return the live value for key, or None if missing/expired."""
+         entry = self._store.get(key)
+         if entry is None:
+             return None
+         value, expiry = entry
+-        if now_ts() >= expiry:
++        if now_ms() >= expiry:
+             del self._store[key]
+             return None
+         return value
+ 
+     def ttl_left(self, key):
+-        """Time until key expires, or None if missing."""
++        """Milliseconds until key expires, or None if missing."""
+         entry = self._store.get(key)
+         if entry is None:
+             return None
+-        return entry[1] - now_ts()
++        return entry[1] - now_ms()
++
++    def touch(self, key, ttl_seconds):
++        """Extend an existing key's lifetime to ttl_seconds from now."""
++        entry = self._store.get(key)
++        if entry is None:
++            return False
++        entry[1] = now_ms() + ttl_seconds
++        return True
+ 
+     def get_or(self, key, default):
+         """Live value for key, or `default`."""
+         value = self.get(key)
+@@ -47,9 +55,9 @@
+     def live_items(self):
+         """(key, value) pairs whose expiry has not yet passed."""
+         out = []
+         for key, (value, expiry) in self._store.items():
+-            if now_ts() < expiry:
++            if now_ms() < expiry:
+                 out.append((key, value))
+         return out
+ 
+     def keys(self):

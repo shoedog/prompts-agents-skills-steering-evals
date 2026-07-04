@@ -1,0 +1,11 @@
+seeded: false
+clean_rationale: 'find() gained an offset parameter and both call sites pass offset and limit by keyword:
+  first() calls find(pred, offset=0, limit=n) and page() calls find(pred, offset=(page_num-1)*size, limit=size).
+  No call site relies on positional binding, so no argument transposes, and page() uses the correct 1-indexed
+  offset.'
+tempting_non_defects:
+- first() and page() both pass offset/limit as keywords, so inserting offset into find()'s signature transposes
+  nothing (unlike a positional call that would bind to offset).
+- page()'s offset is (page_num - 1) * size (correct 1-indexed), not page_num * size, so page 1 starts
+  at index 0.
+- the param rename predicate -> pred is mechanical and consistent across matching/count/find/batches/page/first.

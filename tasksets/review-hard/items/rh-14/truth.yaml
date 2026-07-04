@@ -1,0 +1,9 @@
+seeded: false
+clean_rationale: enter() acquires the mutex only at the outermost level (`if self._depth == 0`) and exit()
+  releases only when `_depth` returns to 0, so acquire and release are symmetric. Nested enter/exit never
+  over-release, and force_reset() releases only if the mutex is actually held.
+tempting_non_defects:
+- exit() guards its release with `if self._depth == 0`, mirroring enter()'s acquire guard, so a nested
+  exit does not free the mutex early (unlike an unconditional release).
+- force_reset() checks self._mutex.locked() before releasing, so it never releases an unheld mutex.
+- the field rename _lock -> _mutex is mechanical and applied to every reference.

@@ -1,0 +1,33 @@
+taskset: review-hard
+task_family: review
+items:
+- id: rh-01
+  seeded: true
+- id: rh-02
+  seeded: true
+- id: rh-03
+  seeded: true
+- id: rh-04
+  seeded: true
+- id: rh-05
+  seeded: true
+- id: rh-06
+  seeded: true
+- id: rh-07
+  seeded: true
+- id: rh-08
+  seeded: true
+- id: rh-09
+  seeded: true
+- id: rh-10
+  seeded: true
+- id: rh-11
+  seeded: false
+- id: rh-12
+  seeded: false
+- id: rh-13
+  seeded: false
+- id: rh-14
+  seeded: false
+- id: rh-15
+  seeded: false

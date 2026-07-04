@@ -1,0 +1,63 @@
+--- a/memo.py
++++ b/memo.py
+@@ -1,11 +1,12 @@
+ class Memo:
+-    """Memoizes compute(a, b) keyed on the (a, b) pair."""
++    """Memoizes compute(a, b, opts) keyed on (a, b) and the options dict."""
+ 
+     def __init__(self, compute):
+         self._compute = compute
+         self._cache = {}
++        self._hits = 0
+ 
+-    def _key(self, a, b):
+-        return (a, b)
++    def _key(self, a, b, opts):
++        return (a, b, tuple(sorted(opts.items())))
+ 
+     def size(self):
+@@ -13,9 +14,11 @@
+         return len(self._cache)
+ 
+-    def get(self, a, b):
+-        key = self._key(a, b)
++    def get(self, a, b, opts=None):
++        opts = opts or {}
++        key = self._key(a, b, opts)
+         if key in self._cache:
++            self._hits += 1
+             return self._cache[key]
+-        value = self._compute(a, b)
++        value = self._compute(a, b, opts)
+         self._cache[key] = value
+         return value
+@@ -27,7 +30,7 @@
+         return len(self._cache)
+ 
+-    def peek(self, a, b):
+-        """Cached value for (a, b) without computing, or None."""
+-        return self._cache.get(self._key(a, b))
++    def peek(self, a, b, opts=None):
++        """Cached value for (a, b, opts) without computing, or None."""
++        return self._cache.get(self._key(a, b, opts or {}))
+ 
+     def keys(self):
+@@ -35,9 +38,14 @@
+         return list(self._cache)
+ 
+-    def contains(self, a, b):
+-        """Whether (a, b) is already cached."""
+-        return self._key(a, b) in self._cache
++    def invalidate(self, a, b):
++        """Drop any cached result for (a, b)."""
++        self._cache.pop((a, b), None)
++
++    def contains(self, a, b, opts=None):
++        """Whether (a, b, opts) is already cached."""
++        return self._key(a, b, opts or {}) in self._cache
+ 
+     def clear(self):
+-        """Drop the whole cache."""
++        """Drop the whole cache and reset stats."""
+         self._cache.clear()
++        self._hits = 0

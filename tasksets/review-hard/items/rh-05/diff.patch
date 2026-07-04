@@ -1,0 +1,66 @@
+--- a/repo.py
++++ b/repo.py
+@@ -5,6 +5,6 @@
+         self._rows = rows
+ 
+-    def _all(self, table, where):
+-        return [r for r in self._rows.get(table, []) if where(r)]
++    def _all(self, table, predicate):
++        return [r for r in self._rows.get(table, []) if predicate(r)]
+ 
+     def table_names(self):
+@@ -12,12 +12,12 @@
+         return [t for t, rows in self._rows.items() if rows]
+ 
+-    def count(self, table, where):
+-        """How many rows match `where`."""
+-        return len(self._all(table, where))
++    def count(self, table, predicate):
++        """How many rows match `predicate`."""
++        return len(self._all(table, predicate))
+ 
+-    def query(self, table, where, limit):
+-        """First `limit` rows matching `where`."""
+-        rows = self._all(table, where)
+-        return rows[:limit]
++    def query(self, table, predicate, offset=0, limit=100):
++        """Rows matching `predicate`, skipping `offset`, capped at `limit`."""
++        rows = self._all(table, predicate)
++        return rows[offset:offset + limit]
+ 
+     def size(self, table):
+@@ -25,15 +25,15 @@
+         return len(self._rows.get(table, []))
+ 
+-    def first_page(self, table, where, size):
++    def first_page(self, table, predicate, size):
+         """First `size` matching rows."""
+-        return self.query(table, where, size)
++        return self.query(table, predicate, offset=0, limit=size)
+ 
+-    def exists(self, table, where):
+-        """Whether any row matches `where`."""
+-        return self.count(table, where) > 0
++    def exists(self, table, predicate):
++        """Whether any row matches `predicate`."""
++        return self.count(table, predicate) > 0
+ 
+-    def all_pages(self, table, where, size):
++    def all_pages(self, table, predicate, size):
+         """Every full/partial page of matches, as a list of lists."""
+-        rows = self._all(table, where)
++        rows = self._all(table, predicate)
+         pages = []
+         for start in range(0, len(rows), size):
+@@ -41,5 +41,10 @@
+         return pages
+ 
++    def page(self, table, predicate, page_num, size):
++        """The 1-indexed `page_num` of matching rows, `size` per page."""
++        offset = (page_num - 1) * size
++        return self.query(table, predicate, offset=offset, limit=size)
++
+     def recent(self, table, limit):
+-        """The first `limit` rows of the table."""
++        """The `limit` most recently added rows of the table."""
+         return self.query(table, lambda r: True, limit)

@@ -1,0 +1,24 @@
+seeded: true
+defects:
+- id: rh-04-d1
+  defect_class: broken sortedness invariant
+  location: 'leaderboard.py: add_many() vs add()/rank()/contains()'
+  hunk_lines: the new add_many() hunk vs the add()/rank()/contains() hunks
+  description: add()/rank()/contains() maintain and rely on `_scores` being globally sorted (insort /
+    bisect). add_many() does `self._scores.extend(sorted(values))`, which appends a locally-sorted block
+    onto the end without merging it into the existing list, so `_scores` is no longer globally sorted;
+    the bisect-based rank()/contains() then return wrong answers.
+  root_cause: '`extend(sorted(values))` sorts only the new block, not the combined list; it should insort
+    each value (or re-sort the whole list) to preserve the invariant.'
+  bad_behavior: after add(10);add(20);add(30);add_many([5,15]) the list is [10,20,30,5,15]; rank(15) returns
+    1 (should be 2) and contains() can miss present values.
+  minimal_trigger: 'scores 10,20,30 then add_many([5,15]): `_scores` is unsorted and rank(15) == 1 instead
+    of 2.'
+  acceptable_match: any finding that add_many() breaks the sorted invariant (it extends with a locally-sorted
+    block instead of merging), so the bisect-based rank()/contains() give wrong results.
+  reject_if: a finding that only calls add_many() inefficient, or flags rank/contains in isolation, without
+    naming that add_many() leaves _scores globally unsorted.
+neutral_findings:
+- top(n) uses `self._scores[-n:]`, so top(0) returns the whole list reversed rather than []; this is a
+  pre-existing quirk in the unchanged top() shown as context, not the seeded add_many sorting defect and
+  not a false alarm.

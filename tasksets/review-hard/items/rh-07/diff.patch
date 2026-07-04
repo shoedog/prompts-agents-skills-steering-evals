@@ -1,0 +1,72 @@
+--- a/parsing.py
++++ b/parsing.py
+@@ -1,12 +1,21 @@
+-def find_range(text, marker):
+-    """Return (start, end) of `marker` in `text`; raise ValueError if absent."""
+-    idx = text.find(marker)
++def find_range(text, needle):
++    """Return (start, end) of `needle` in `text`, or None if absent."""
++    idx = text.find(needle)
+     if idx == -1:
+-        raise ValueError("marker not found")
+-    return (idx, idx + len(marker))
++        return None
++    return (idx, idx + len(needle))
+ 
+ 
+-def marker_present(text, marker):
+-    """Whether `marker` occurs anywhere in `text`."""
+-    return marker in text
++def marker_present(text, needle):
++    """Whether `needle` occurs anywhere in `text`."""
++    return needle in text
++
++
++def extract_section(text, needle):
++    """Text from just after `needle` to the end, or '' if needle absent."""
++    span = find_range(text, needle)
++    if span is None:
++        return ""
++    _, end = span
++    return text[end:]
+ 
+@@ -14,3 +23,3 @@
+ def strip_marker(text, marker):
+-    """Return `text` with the first occurrence of `marker` removed."""
++    """Return `text` with the first occurrence of `marker` cut out."""
+     start, end = find_range(text, marker)
+@@ -19,5 +28,5 @@
+ 
+-def count_markers(text, marker):
+-    """How many times `marker` occurs in `text`."""
+-    return text.count(marker)
++def count_markers(text, needle):
++    """How many times `needle` occurs in `text`."""
++    return text.count(needle)
+ 
+@@ -29,4 +38,13 @@
+ 
+-def all_ranges(text, marker):
+-    """All (start, end) spans of `marker` in `text`, left to right."""
++def before_marker(text, needle):
++    """Text up to `needle`, or the whole text if the needle is absent."""
++    span = find_range(text, needle)
++    if span is None:
++        return text
++    start, _ = span
++    return text[:start]
++
++
++def all_ranges(text, needle):
++    """All (start, end) spans of `needle` in `text`, left to right."""
+     spans = []
+@@ -34,6 +52,6 @@
+     while True:
+-        idx = text.find(marker, start)
++        idx = text.find(needle, start)
+         if idx == -1:
+             return spans
+-        spans.append((idx, idx + len(marker)))
+-        start = idx + len(marker)
++        spans.append((idx, idx + len(needle)))
++        start = idx + len(needle)

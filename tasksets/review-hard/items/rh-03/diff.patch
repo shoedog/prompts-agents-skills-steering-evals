@@ -1,0 +1,65 @@
+--- a/transaction.py
++++ b/transaction.py
+@@ -4,3 +4,3 @@
+ class Transaction:
+-    """Re-entrant transaction guard: nested begin/commit share one lock."""
++    """Re-entrant transaction guard with named savepoints."""
+ 
+@@ -8,3 +8,4 @@
+         self._lock = threading.Lock()
+-        self._depth = 0
++        self._level = 0
++        self._savepoints = []
+ 
+@@ -12,3 +13,3 @@
+         """Current nesting depth."""
+-        return self._depth
++        return self._level
+ 
+@@ -16,5 +17,10 @@
+         """Enter a (possibly nested) transaction level."""
+-        if self._depth == 0:
++        if self._level == 0:
+             self._lock.acquire()
+-        self._depth += 1
++        self._level += 1
++
++    def savepoint(self, name):
++        """Record a named savepoint in the current transaction."""
++        self._savepoints.append(name)
++        return name
+ 
+@@ -22,3 +28,3 @@
+         """Whether any transaction level is open."""
+-        return self._depth > 0
++        return self._level > 0
+ 
+@@ -26,6 +32,5 @@
+         """Leave one transaction level."""
+-        self._depth -= 1
+-        if self._depth == 0:
+-            self._lock.release()
+-        return self._depth
++        self._level -= 1
++        self._lock.release()
++        return self._level
+ 
+@@ -39,2 +44,18 @@
+ 
++    def rollback(self):
++        """Abort the whole transaction and release the lock if held."""
++        self._level = 0
++        if self._lock.locked():
++            self._lock.release()
++
++    def savepoints(self):
++        """Names of savepoints recorded so far."""
++        return list(self._savepoints)
++
++    def release_savepoint(self, name):
++        """Discard a single named savepoint if present."""
++        if name in self._savepoints:
++            self._savepoints.remove(name)
++        return name
++
+     def locked(self):

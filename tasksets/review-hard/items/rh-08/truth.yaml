@@ -1,0 +1,38 @@
+seeded: true
+defects:
+- id: rh-08-d1
+  defect_class: numeric allocation no longer sums to total
+  location: 'allocate.py: allocate() together with _share()'
+  hunk_lines: the _share() hunk and the allocate() hunk
+  description: _share() changed from floor division to `round(total * weight / total_weight)`, and allocate()
+    dropped its remainder-correction line (`shares[-1] += total - sum(shares)`). With per-share rounding
+    and no correction, the returned shares no longer sum to `total`.
+  root_cause: rounding each share independently does not preserve the sum; removing the correction step
+    means allocate() no longer reconciles the rounding drift back to `total`.
+  bad_behavior: allocate(10, [1,1,1]) returns [3,3,3] which sums to 9, not 10, violating the documented
+    sum-to-total contract.
+  minimal_trigger: sum(allocate(10, [1,1,1])) == 9 != 10.
+  acceptable_match: any finding that per-share round() in _share() combined with allocate() no longer
+    applying a remainder correction makes the shares fail to sum to total.
+  reject_if: a finding that only calls the rounding imprecise, or flags only _share() or only allocate(),
+    without naming the consequence that the shares no longer sum to total.
+- id: rh-08-d2
+  defect_class: unguarded division by zero (reachable via new caller)
+  location: 'allocate.py: allocate() reached through allocate_budget()'
+  hunk_lines: the allocate() hunk and the new allocate_budget() hunk
+  description: allocate() divides by `tw = sum(ws)` with no guard for tw == 0. The new allocate_budget()
+    builds weights from a category mapping and can pass all-zero weights, so allocating a budget over
+    categories that all weigh 0 raises ZeroDivisionError in _share().
+  root_cause: neither allocate() nor the new allocate_budget() guards the total-weight-zero case that
+    allocate_budget can now produce from a plausible mapping.
+  bad_behavior: allocate_budget(total, categories) with all-zero category weights raises ZeroDivisionError
+    instead of returning zero allocations.
+  minimal_trigger: allocate_budget(10, {'a':0,'b':0}) raises ZeroDivisionError (tw == 0).
+  acceptable_match: any finding that allocate()/allocate_budget() divides by the weight total without
+    a zero guard, so all-zero weights (reachable via allocate_budget) raise ZeroDivisionError.
+  reject_if: a finding that only mentions empty input generically, or does not tie the all-zero / zero-total-weight
+    case to the unguarded division.
+neutral_findings:
+- percentages(ws) also divides by `sum(ws)` without a zero guard, so it too raises ZeroDivisionError on
+  all-zero weights; that is a true sibling observation, but the seeded division-by-zero defect concerns
+  allocate()/allocate_budget(), not percentages().

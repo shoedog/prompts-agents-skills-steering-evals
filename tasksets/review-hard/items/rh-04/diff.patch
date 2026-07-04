@@ -1,0 +1,64 @@
+--- a/leaderboard.py
++++ b/leaderboard.py
+@@ -1,5 +1,8 @@
++import bisect
++
++
+ class Leaderboard:
+-    """Keeps scores in ascending sorted order."""
++    """Keeps scores in ascending sorted order for O(log n) rank queries."""
+ 
+     def __init__(self):
+         self._scores = []
+@@ -8,20 +11,18 @@
+         """The single lowest score, or None."""
+         return self._scores[0] if self._scores else None
+ 
+-    def add(self, score):
++    def add(self, value):
+         """Insert one score, keeping the list sorted."""
+-        i = 0
+-        while i < len(self._scores) and self._scores[i] < score:
+-            i += 1
+-        self._scores.insert(i, score)
++        bisect.insort(self._scores, value)
+ 
+     def size(self):
+         """Number of stored scores."""
+         return len(self._scores)
+ 
+-    def rank(self, score):
+-        """Count of stored scores strictly less than `score`."""
+-        return sum(1 for s in self._scores if s < score)
++    def add_many(self, values):
++        """Bulk-insert many scores at once."""
++        self._scores.extend(sorted(values))
++        return len(self._scores)
+ 
+     def percentile(self, p):
+         """The score at percentile `p` (0..100), or None if empty."""
+@@ -30,10 +31,21 @@
+         idx = (len(self._scores) - 1) * p // 100
+         return self._scores[idx]
+ 
+-    def contains(self, score):
+-        """Whether `score` is present."""
+-        return score in self._scores
++    def rank(self, value):
++        """Count of stored scores strictly less than `value`."""
++        return bisect.bisect_left(self._scores, value)
++
++    def median(self):
++        """The middle score by position, or None if empty."""
++        if not self._scores:
++            return None
++        return self._scores[len(self._scores) // 2]
+ 
+     def top(self, n):
+         """The `n` highest scores, descending."""
+         return self._scores[-n:][::-1]
++
++    def contains(self, value):
++        """Whether `value` is present (binary search)."""
++        i = bisect.bisect_left(self._scores, value)
++        return i < len(self._scores) and self._scores[i] == value

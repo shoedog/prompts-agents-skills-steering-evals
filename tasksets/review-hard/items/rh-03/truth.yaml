@@ -1,0 +1,35 @@
+seeded: true
+defects:
+- id: rh-03-d1
+  defect_class: lock acquire/release asymmetry
+  location: 'transaction.py: commit() vs begin()'
+  hunk_lines: the begin() hunk vs the commit() hunk
+  description: begin() acquires the lock only at the outermost level (`if self._level == 0`), but commit()
+    calls `self._lock.release()` unconditionally on every level. A nested commit therefore releases the
+    lock while an outer level is still open, and the following commit calls release() on an already-unlocked
+    lock.
+  root_cause: the `if self._level == 0` guard present in begin()'s acquire was dropped from commit()'s
+    release, breaking acquire/release symmetry.
+  bad_behavior: 'begin();begin();commit() frees the lock early (another thread could enter mid-transaction);
+    the next commit raises RuntimeError: release unlocked lock.'
+  minimal_trigger: begin(); begin(); commit(); commit() -> the second commit raises RuntimeError (the
+    lock was already released by the first, nested commit).
+  acceptable_match: any finding that commit() releases the lock on every level while begin() only acquires
+    at level 0 (commit is missing the depth==0 guard), causing early release / RuntimeError.
+  reject_if: a finding that only flags rollback or savepoints, or says 'locking looks off', without naming
+    the commit-vs-begin acquire/release asymmetry (unconditional release).
+- id: rh-03-d2
+  defect_class: state leak across lifecycle (savepoints not cleared)
+  location: 'transaction.py: rollback()'
+  hunk_lines: the new rollback() hunk
+  description: rollback() resets `_level` and releases the lock but never clears `self._savepoints`, so
+    savepoints recorded in an aborted transaction persist into the next transaction.
+  root_cause: rollback() omits clearing/resetting `_savepoints`; it only resets the level counter.
+  bad_behavior: a transaction's savepoints survive its rollback and bleed into the next transaction, so
+    savepoints() reports stale entries that were never committed.
+  minimal_trigger: begin(); savepoint('sp1'); rollback(); begin(); savepoint('sp2') -> savepoints() ==
+    ['sp1','sp2'] instead of ['sp2'].
+  acceptable_match: any finding that rollback() fails to clear _savepoints, so savepoints leak from an
+    aborted transaction into the next one.
+  reject_if: a finding that only flags the commit release bug, or does not identify that rollback leaves
+    _savepoints uncleared across transactions.

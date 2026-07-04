@@ -1,0 +1,19 @@
+seeded: true
+defects:
+- id: rh-01-d1
+  defect_class: unit mismatch (milliseconds vs seconds)
+  location: 'ttl_cache.py: touch() vs set()'
+  hunk_lines: the new touch() hunk vs the set() hunk
+  description: '`set()` computes `expiry = now_ms() + ttl_seconds * 1000`, but the newly added `touch()`
+    computes `expiry = now_ms() + ttl_seconds` with no `* 1000`. Since `now_ms()` is in milliseconds and
+    `ttl_seconds` is seconds, a touched key''s lifetime is 1000x too short.'
+  root_cause: the ms migration scaled seconds->ms with `* 1000` in set() but the new touch() reuses the
+    raw ttl_seconds without the same scaling.
+  bad_behavior: 'a touched key expires almost immediately: touch(k, 300) keeps it alive for ~300 ms instead
+    of ~300 s, so get() returns None far sooner than the caller asked.'
+  minimal_trigger: 'set(''a'',''v'',5) then touch(''a'',5): set stores an expiry ~5000 ms out, but after
+    touch the stored expiry is only ~5 ms out (1000x too small).'
+  acceptable_match: any finding that touch() omits the `* 1000` that set() applies, i.e. it adds ttl_seconds
+    (seconds) to a millisecond clock, making the two methods use inconsistent units.
+  reject_if: a finding that only says 'touch looks wrong' or comments on now_ms generally, without naming
+    the missing *1000 / the seconds-vs-milliseconds inconsistency between touch and set.
