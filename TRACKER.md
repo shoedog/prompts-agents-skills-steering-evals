@@ -3,6 +3,9 @@
 Owner-approved backlog (2026-07-03). Items move to "Done" with the commit that closes them.
 
 ## Harness improvements (codex final-review triage)
+- [ ] Judge-token parse undercount: 5/30 exp1H codex judge calls reported anomalously low "tokens used" (partial parse) — totals are a floor; harden the codex_cli token parse.
+- [ ] Claude-as-judge provider (judge.py is codex-only) — REQUIRED before cross-family runs with a gpt-5.5 executor (same-family guard otherwise forces an override).
+- [ ] Forward-only truth tightening for review-hard (FRESH runs only — retro edits proven asymmetric/gaming-prone by exp1H review): rh-06 split-finding granularity (rubric: credit interaction named across multiple findings), rh-10 neutral siblings, rh-14 documented robustness angles.
 - [ ] Judge cost rate wiring: usd_per_mtok plumbing exists (judge tolerant-read + executor config field) but no experiment YAML sets a rate; verify config.py accepts judge.usd_per_mtok and set real rates.
 - [ ] executor/judge effort enum validation in config.py (surfaces only at call time today).
 - [ ] rejudge.py judge_cost_usd stays None (no rate source) — unify with rate wiring above.
@@ -16,6 +19,7 @@ Owner-approved backlog (2026-07-03). Items move to "Done" with the commit that c
 - [ ] Exp 1 re-run on the harder set (after ceiling is fixed).
 
 ## Done
+- [x] Exp 1H — review shape vs plain on review-hard: DEAD HEAT off ceiling (8/15 both arms, identical 11/14 defect sets, McNemar p=1.0, +6.5% USD; treatment false findings 5 vs 8) — 3f2ad05. Combined with exp1-rescored: no detectable review-shape gain on Haiku; consistent noise-suppression glimmer.
 - [x] Cleanup wave: McNemar trigger, judge token tracking, stratified spotcheck, empty-items PROVISIONAL, floored reorder, ci content gates, TOML guard (+fullmatch), rejudge exp_id+trace, moves.yaml polish, verdict-markdown probes — fa8fc89/c83bc64/5a079e8.
 - [x] Custom agents 4th deployment form (agent.md ×15, lint, config enum, frontmatter stripping) — f094e4f/9a0f5cb.
 - [x] Multi-family executor tiers: codex executor provider + same-family-judge guard + tokens-only cost; gpt-5.5 live-verified, gpt-4o-mini NOT entitled on this login, qwen untested — 9b1f033.
