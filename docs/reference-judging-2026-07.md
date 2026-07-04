@@ -38,8 +38,19 @@ covered, 10 correct extras, 1 unsupported → candidate better); codex graded
 against the GT doc as spec (13/18 covered but 7 prescriptions unsupported /
 required outputs missing, e.g. no `docs/REPO_MAP.md` → GT better).
 
-**Tally (valid consensus): Fable 4 · Reference 3 · Parity 1 · Split 2 ·
-single-judge 1.** Judge agreement 8/11 (73%); each judge leaned mildly toward
+**Mini-wave addenda (2026-07-04 late, both judges unanimous on each):**
+- **DBG-03** (debug: fix-your-own-bug replay of the IMPL-12 amend): **Fable
+  materially better, tests stronger** — both judges, including codex. Fable
+  matched the reference's root cause exactly and its regression test would
+  fail on the buggy code.
+- **PLAN-01** (plan_design conclusion-match vs vindicated NO-GO): **Fable
+  FAILED the verdict match** — both judges score true-bottleneck-identified
+  and premise-challenged TRUE, but verdict (scoped GO), buy estimate (2–6s vs
+  measured ~0.3s ceiling), and would-have-prevented-wasted-work all FALSE.
+  The original gpt-5.5 xhigh session made the vindicated call; Fable did not.
+
+**Tally (valid consensus): Fable 5 · Reference 3 · Parity 1 · Split 2 ·
+single-judge 1 · conclusion-match fail 1 (PLAN-01).** Judge agreement 8/11 (73%); each judge leaned mildly toward
 its own family (sonnet +2 fable-relative, codex +3 reference-relative) — the
 consensus core is the robust result. The 3 unresolved rows (IMPL-03, IMPL-05,
 REF-03) go to owner spotcheck.
