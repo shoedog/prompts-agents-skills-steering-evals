@@ -1,0 +1,24 @@
+{
+  "exp_id": "exp-d7-wrong-vs-smell",
+  "arm": "treatment",
+  "task_id": "rh-14",
+  "tier": "mid",
+  "seeded": false,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-14/truth.yaml",
+  "truth_defect_ids": [],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. guard.py:17-19 (enter()) — WRONG: `enter()` only checks `self._depth == 0` before acquiring the mutex, with no thread-ownership tracking, so a second thread calling `enter()` while another thread already holds the guard (`_depth` already ≥ 1) skips `_mutex.acquire()` and proceeds concurrently, breaking the mutual exclusion the guard exists to provide.\n2. guard.py:26-29 (exit()) — SMELL: `exit()` now returns `self._depth` instead of always `True`; the return value is falsy exactly when the mutex is released, inverting the old always-truthy contract for any caller checking the return value.\n3. guard.py:26-27 (exit()) — SMELL: an unbalanced `exit()` call (no matching prior `enter()`) drives `_depth` negative and no longer raises (previously `Lock.release()` on an unlocked lock raised `RuntimeError`); this silently corrupts state such that a later `enter()` call may skip acquiring the mutex.\n4. guard.py:40-42 (is_root()) — SMELL: `is_root()` returns `True` for both `_depth == 0` (not entered) and `_depth == 1` (outermost level), which conflates \"no active section\" with \"at the root level,\" a naming/semantics ambiguity rather than a demonstrated misuse.\n",
+  "parse_ok": true,
+  "defects": [],
+  "false_findings": 4,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 723,
+  "judge_cost_usd": null
+}

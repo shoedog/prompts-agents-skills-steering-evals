@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-d7-wrong-vs-smell",
+  "arm": "baseline",
+  "task_id": "rh-01",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-01/truth.yaml",
+  "truth_defect_ids": [
+    "rh-01-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. ttl_cache.py:47 — `touch()` adds raw `ttl_seconds` to the millisecond clock instead of `ttl_seconds * 1000`, so touched keys expire in milliseconds rather than the intended number of seconds.\n2. ttl_cache.py:40 — `ttl_left()` now returns milliseconds instead of seconds (unconverted), silently breaking the public API's seconds-based unit contract for any existing caller.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-01-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 1,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 7537,
+  "judge_cost_usd": null
+}

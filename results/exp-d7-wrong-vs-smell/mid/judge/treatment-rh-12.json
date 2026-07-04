@@ -1,0 +1,24 @@
+{
+  "exp_id": "exp-d7-wrong-vs-smell",
+  "arm": "treatment",
+  "task_id": "rh-12",
+  "tier": "mid",
+  "seeded": false,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-12/truth.yaml",
+  "truth_defect_ids": [],
+  "normalized_block": "## FINDINGS\nVERDICT: APPROVE\n1. query_cache.py — SMELL: the diff adds four new public methods (`invalidate`, `invalidate_table`, `is_empty`, `has_table`) with no test file included in the diff to confirm coverage; not a demonstrated defect, just an untested-surface risk.\n",
+  "parse_ok": true,
+  "defects": [],
+  "false_findings": 1,
+  "neutral_matched": 0,
+  "verdict_flagged": false,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 456,
+  "judge_cost_usd": null
+}

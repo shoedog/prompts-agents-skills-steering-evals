@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-d7-wrong-vs-smell",
+  "arm": "treatment",
+  "task_id": "rh-06",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-06/truth.yaml",
+  "truth_defect_ids": [
+    "rh-06-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. settings.py:25 — WRONG: `defaults()` returns the internal `_defaults` dict by reference instead of a copy, so callers mutating the returned dict corrupt internal state (e.g. `s.defaults()['x']=1` then `s.has('x')` becomes `True`).\n2. settings.py:29-30 — WRONG: `effective()` calls the now-uncopied `self.defaults()` and mutates it via `.update(extra)`, permanently altering `self._defaults` in place; e.g. `Settings({'a':1}).effective({'a':99})` leaves `.get('a') == 99` afterward, contradicting the documented \"defaults unchanged\" contract.\n3. settings.py:7,15,27,37 — SMELL: parameter renames (`key`→`name`, `overrides`→`extra`) on public methods (`get`, `has`, `effective`, `changed_keys`) are a breaking change for any caller passing these as keyword arguments.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-06-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 2,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 670,
+  "judge_cost_usd": null
+}

@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-d7-wrong-vs-smell",
+  "arm": "treatment",
+  "task_id": "rh-01",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-01/truth.yaml",
+  "truth_defect_ids": [
+    "rh-01-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. ttl_cache.py:47 — WRONG: `touch()` computes `entry[1] = now_ms() + ttl_seconds` without multiplying by 1000 (unlike `set()`), so `touch(key, 60)` extends the key's life by 60 milliseconds instead of 60 seconds, causing the entry to expire almost immediately after being \"extended.\"\n2. ttl_cache.py:40 — WRONG: `ttl_left()` now returns `entry[1] - now_ms()` in raw milliseconds instead of seconds; previously (and per the module contract that \"the public API takes TTLs in seconds\") it returned seconds, so callers comparing the result against a seconds-based threshold now get values 1000x too large.\n3. ttl_cache.py:44-48 — SMELL: `touch()` looks up the entry via `self._store.get(key)` directly rather than through the same live-check `get()` uses, so it can silently revive a key that has already logically expired but hasn't been purged yet; contract wording (\"existing key\") doesn't explicitly resolve whether this is intended.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-01-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 2,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 636,
+  "judge_cost_usd": null
+}

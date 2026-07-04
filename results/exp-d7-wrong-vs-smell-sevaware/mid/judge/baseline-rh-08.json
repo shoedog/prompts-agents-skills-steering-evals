@@ -1,0 +1,36 @@
+{
+  "exp_id": "exp-d7-wrong-vs-smell-sevaware",
+  "arm": "baseline",
+  "task_id": "rh-08",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-08/truth.yaml",
+  "truth_defect_ids": [
+    "rh-08-d1",
+    "rh-08-d2"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. allocate.py:2-14 (new `_share`/`allocate`) — `allocate` no longer corrects for rounding error after computing each share via `round()`, so the returned shares do not reliably sum to `total`, violating the documented contract and the function's own docstring (e.g. `allocate(10, [1,1,1])` returns `[3,3,3]`, summing to 9).\n2. allocate.py:6,11,19 — `total_weight`, `allocate`, and `largest_index` had their parameter renamed from `weights` to `ws`, which would break any caller using keyword arguments with the old name.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-08-d1",
+      "found": true
+    },
+    {
+      "defect_id": "rh-08-d2",
+      "found": false
+    }
+  ],
+  "false_findings": 1,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 1363,
+  "judge_cost_usd": null
+}

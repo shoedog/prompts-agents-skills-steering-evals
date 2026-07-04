@@ -1,0 +1,36 @@
+{
+  "exp_id": "exp-d7-wrong-vs-smell-sevaware",
+  "arm": "treatment",
+  "task_id": "rh-03",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-03/truth.yaml",
+  "truth_defect_ids": [
+    "rh-03-d1",
+    "rh-03-d2"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. transaction.py:38 — WRONG: `commit()` calls `self._lock.release()` unconditionally instead of only when `self._level` reaches 0, so `begin(); begin(); commit()` releases the lock while the transaction is still nested/active, and a second `commit()` then raises `RuntimeError: release unlocked lock`.\n2. transaction.py:45-49 — WRONG: `rollback()` resets `_level` and releases the lock but never clears `self._savepoints`, so `begin(); savepoint(\"sp1\"); rollback(); savepoints()` still returns `[\"sp1\"]`, contradicting the documented contract that rollback discards the transaction's savepoints.\n3. transaction.py:45-58 — SMELL: no method clears `_savepoints` on a normal full commit (only rollback attempts to, and does so incorrectly), so savepoints from a completed transaction can leak into the next transaction's `savepoints()` output.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-03-d1",
+      "found": true
+    },
+    {
+      "defect_id": "rh-03-d2",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 15148,
+  "judge_cost_usd": null
+}

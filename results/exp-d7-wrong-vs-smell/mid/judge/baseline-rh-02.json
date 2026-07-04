@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-d7-wrong-vs-smell",
+  "arm": "baseline",
+  "task_id": "rh-02",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-02/truth.yaml",
+  "truth_defect_ids": [
+    "rh-02-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. memo.py:42 — `invalidate(a, b)` pops the cache using a 2-tuple `(a, b)` key, but all entries are stored under 3-tuple keys `(a, b, opts_tuple)` produced by `_key`, so the pop never matches anything and invalidation silently does nothing, leaving stale cached values in place.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-02-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 442,
+  "judge_cost_usd": null
+}

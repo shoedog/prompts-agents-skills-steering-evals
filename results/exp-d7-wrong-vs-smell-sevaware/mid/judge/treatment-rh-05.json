@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-d7-wrong-vs-smell-sevaware",
+  "arm": "treatment",
+  "task_id": "rh-05",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-05/truth.yaml",
+  "truth_defect_ids": [
+    "rh-05-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. repo.py:50 (`recent`, `return self.query(table, lambda r: True, limit)`) — WRONG: this call is still positional under `query`'s new `(table, predicate, offset=0, limit=100)` signature, so the caller's `limit` value now binds to `offset` instead of `limit`; e.g. `recent(table, 3)` on a 10-row table returns `[r3..r9]` (7 rows) instead of the first 3 rows.\n2. repo.py:49 — SMELL: the updated docstring (\"most recently added rows\") contradicts the module-level contract comment (\"returns the first `limit` rows of the table\"), leaving the intended behavior ambiguous.\n3. repo.py:44-46 (`page`) — SMELL: no validation that `page_num >= 1`; passing `0` or a negative page number silently produces an empty/undefined slice rather than an error.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-05-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 1225,
+  "judge_cost_usd": null
+}

@@ -1,0 +1,36 @@
+{
+  "exp_id": "exp-d7-wrong-vs-smell",
+  "arm": "treatment",
+  "task_id": "rh-10",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-10/truth.yaml",
+  "truth_defect_ids": [
+    "rh-10-d1",
+    "rh-10-d2"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. importer.py:26 — WRONG: `_validate` checks `not raw` instead of the normalized key, so whitespace-only input (e.g. `\"   \"`) bypasses validation and `add()` stores an empty-string record, violating the \"non-empty\" / \"empty after normalization is rejected\" contract.\n2. importer.py:41-43 — WRONG: `retry_import` never checks or updates `self._seen`, so re-importing already-stored names appends duplicate entries to `_records` (e.g. `add(\"Alice\")` then `retry_import([\"alice\"])` yields `_records == [\"alice\",\"alice\"]`), violating the \"without creating duplicate records\" contract; it also bypasses `_validate`, allowing invalid names through this path.\n3. importer.py:28 — SMELL: length check uses raw (untrimmed) length rather than the normalized length, so a name with surrounding whitespace could be rejected/accepted inconsistently with the \"after normalization\" wording in the contract.\n4. importer.py:31-37 — SMELL: `import_all` now can raise `ValueError` partway through a batch (via `add`/`_validate`), aborting remaining imports instead of skipping invalid entries, a behavior change from the prior unchecked version.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-10-d1",
+      "found": true
+    },
+    {
+      "defect_id": "rh-10-d2",
+      "found": true
+    }
+  ],
+  "false_findings": 2,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 922,
+  "judge_cost_usd": null
+}

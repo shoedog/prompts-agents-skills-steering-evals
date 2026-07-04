@@ -1,0 +1,24 @@
+{
+  "exp_id": "exp-d7-wrong-vs-smell-sevaware",
+  "arm": "treatment",
+  "task_id": "rh-11",
+  "tier": "mid",
+  "seeded": false,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-11/truth.yaml",
+  "truth_defect_ids": [],
+  "normalized_block": "## FINDINGS\nVERDICT: APPROVE\n1. rate_window.py:49-63 — SMELL: `span_ms()` and `window_ms()` are exact-duplicate implementations (both `return self._span_ms`); likely an intentional compatibility alias per the stated contract, but could be simplified to have one delegate to the other.\n2. rate_window.py:25-47 — SMELL: the cutoff calculation `to_ms(now_seconds) - self._span_ms` is duplicated identically in `count_since`, `prune`, and `in_window`; no behavioral defect, but could be factored into a private helper.\n",
+  "parse_ok": true,
+  "defects": [],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": false,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 14973,
+  "judge_cost_usd": null
+}

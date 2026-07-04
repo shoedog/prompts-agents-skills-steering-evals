@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-d7-wrong-vs-smell",
+  "arm": "baseline",
+  "task_id": "rh-04",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-04/truth.yaml",
+  "truth_defect_ids": [
+    "rh-04-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. leaderboard.py:24 (`add_many`, `self._scores.extend(sorted(values))`) — bulk-insert only sorts the new values among themselves and appends them, so `_scores` is left globally unsorted whenever the leaderboard already has entries, violating the sorted invariant relied on by `rank`, `contains`, `percentile`, `median`, `top`, and subsequent `add` calls.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-04-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 538,
+  "judge_cost_usd": null
+}

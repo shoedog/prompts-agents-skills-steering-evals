@@ -1,0 +1,36 @@
+{
+  "exp_id": "exp-d7-wrong-vs-smell",
+  "arm": "baseline",
+  "task_id": "rh-09",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-09/truth.yaml",
+  "truth_defect_ids": [
+    "rh-09-d1",
+    "rh-09-d2"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. bank.py:19-22 (transfer/_debit/_credit) — Refactor reorders operations so `_debit(src, ...)` mutates and logs the source balance before `_credit(dst, ...)` validates that `dst` exists, breaking the documented atomic \"either both balances change or neither does\" guarantee: a transfer to a nonexistent account now leaves the source account permanently debited while raising KeyError.\n2. bank.py:19-22,44-49 — `history()`/`entry_count()` semantics changed from one `(\"transfer\", src, dst, amount)` log entry per transfer to two separate `(\"debit\", ...)`/`(\"credit\", ...)` entries, silently doubling entry growth and changing tuple shape for any existing consumer of the log format.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-09-d1",
+      "found": true
+    },
+    {
+      "defect_id": "rh-09-d2",
+      "found": false
+    }
+  ],
+  "false_findings": 1,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 15043,
+  "judge_cost_usd": null
+}

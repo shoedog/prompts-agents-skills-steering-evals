@@ -1,0 +1,36 @@
+{
+  "exp_id": "exp-d7-wrong-vs-smell-sevaware",
+  "arm": "baseline",
+  "task_id": "rh-03",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-03/truth.yaml",
+  "truth_defect_ids": [
+    "rh-03-d1",
+    "rh-03-d2"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. transaction.py:34 — `commit()` calls `self._lock.release()` unconditionally instead of only when the outermost level closes, releasing the lock early on nested commits and raising `RuntimeError: release unlocked lock` once commit is called more times than the lock is held.\n2. transaction.py:45-49 — `rollback()` resets `_level` and releases the lock but never clears `self._savepoints`, violating the contract that rollback must discard the transaction's savepoints.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-03-d1",
+      "found": true
+    },
+    {
+      "defect_id": "rh-03-d2",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 15030,
+  "judge_cost_usd": null
+}

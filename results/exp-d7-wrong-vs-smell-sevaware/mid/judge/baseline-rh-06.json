@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-d7-wrong-vs-smell-sevaware",
+  "arm": "baseline",
+  "task_id": "rh-06",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-06/truth.yaml",
+  "truth_defect_ids": [
+    "rh-06-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. settings.py:25 — `defaults()` now returns the live internal dict (`self._defaults`) instead of a copy, breaking the class's read-only-view guarantee.\n2. settings.py:29-30 — `effective()` calls `self.defaults()` and mutates the result in place (`cfg.update(extra)`); because `defaults()` no longer copies, this mutates `self._defaults` itself, violating the documented contract that stored defaults are not changed by `effective()`.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-06-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 1,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 1189,
+  "judge_cost_usd": null
+}

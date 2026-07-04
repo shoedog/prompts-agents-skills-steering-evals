@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-d7-wrong-vs-smell",
+  "arm": "treatment",
+  "task_id": "rh-02",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-02/truth.yaml",
+  "truth_defect_ids": [
+    "rh-02-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. memo.py:42 — WRONG: `invalidate(a, b)` pops the 2-tuple key `(a, b)` from `self._cache`, but all cached entries are stored under 3-tuple keys `(a, b, opts_tuple)`, so the pop never matches and invalidate is a no-op, leaving stale cached values in place (e.g. `memo.get(1,2); memo.invalidate(1,2); memo.contains(1,2)` still returns `True`).\n2. memo.py:30-36 — SMELL: `_hits` counter is added, incremented, and reset in `clear()`, but no accessor method is introduced in this diff, so it appears to be unused/dead instrumentation (not confirmed defective, just unverifiable usefulness from this diff alone).\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-02-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 1,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 589,
+  "judge_cost_usd": null
+}

@@ -28,3 +28,9 @@ Owner-approved backlog (2026-07-03). Items move to "Done" with the commit that c
 - [x] Exp 1 rescored under neutral-findings scope — arms identical 18/20; original baseline edge was judge-scope artifact — 94bcaf3.
 - [x] Judge spot-check — 20/20 agreement (+12/12 clean supplementary), AI stand-in disclosed — 981fb1f.
 - [x] Exp 2 — negative control: true-negative VALIDATED (19/20 both arms, +2.8% logical tokens, +17.3% cost, zero gain, harness_broken armed and correctly silent) — 7ebf80e.
+
+## From exp-d7 FP audit (2026-07-04, opus audit of both arms; forward-only)
+- [ ] review-hard truth-scope: add neutral_findings (FORWARD-ONLY, next run) for audited REAL_UNLISTED items both arms surface: rh-01 ttl_left ms-vs-s, rh-05 recent() docstring contradiction, rh-06 defaults() live-dict ref, rh-09 transfer log double-entry/shape, rh-10 import_all mid-batch abort, rh-14 unbalanced-exit negative depth.
+- [ ] rh-14 TASKSET VALIDITY BUG: the "clean" item contains a REAL defect (naive Lock+depth reentrant guard — 2nd thread skips acquire, mutual exclusion broken); both arms correctly flagged it and were scored FP. Fix forward: reclassify rh-14 as seeded or repair the code. NOTE: exp1H used this item — its rh-14 fails may have been correct reviews.
+- [ ] claude-as-judge isolation: never give a claude judge a cwd containing key/truth files (bench/judging IMPL-05 sonnet verdict voided — judge ran `cat key.json`). Isolated scratch cwd like the codex path.
+- [x] severity-aware judge rubric: SMELL-tagged findings score neither FP nor defect credit; WRONG/untagged unchanged (harness/rubrics/review_judge.md; exp-d7 rejudged as exp-d7-wrong-vs-smell-sevaware).

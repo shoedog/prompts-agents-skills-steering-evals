@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-d7-wrong-vs-smell-sevaware",
+  "arm": "treatment",
+  "task_id": "rh-07",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-07/truth.yaml",
+  "truth_defect_ids": [
+    "rh-07-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. parsing.py:24-26 (strip_marker) — WRONG: `find_range` now returns `None` instead of raising on a missing marker, but `strip_marker` still does `start, end = find_range(text, marker)` unguarded, so `strip_marker(text, marker)` with an absent marker raises `TypeError: cannot unpack non-iterable NoneType object` instead of the previous clear `ValueError` (or graceful handling like its sibling functions now do).\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-07-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 1052,
+  "judge_cost_usd": null
+}

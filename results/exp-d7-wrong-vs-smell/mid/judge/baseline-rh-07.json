@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-d7-wrong-vs-smell",
+  "arm": "baseline",
+  "task_id": "rh-07",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-07/truth.yaml",
+  "truth_defect_ids": [
+    "rh-07-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. parsing.py:25 — `strip_marker` still does `start, end = find_range(text, marker)` without checking for `None`; since `find_range` was changed in this diff to return `None` (instead of raising `ValueError`) when the marker is absent, calling `strip_marker` on text lacking the marker now raises an unhandled `TypeError` (tuple-unpack of `None`) instead of the previous clear `ValueError`.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-07-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 14775,
+  "judge_cost_usd": null
+}

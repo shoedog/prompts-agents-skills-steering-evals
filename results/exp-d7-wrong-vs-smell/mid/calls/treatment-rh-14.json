@@ -1,0 +1,14 @@
+{
+  "exp_id": "exp-d7-wrong-vs-smell",
+  "arm": "treatment",
+  "task_id": "rh-14",
+  "tier": "mid",
+  "model": "claude-sonnet-5",
+  "fresh_input_tokens": 2,
+  "cache_creation_tokens": 13619,
+  "cache_read_tokens": 14859,
+  "output_tokens": 16399,
+  "input_tokens_logical": 28480,
+  "cost_usd": 0.33216270000000003,
+  "duration_ms": 173545
+}

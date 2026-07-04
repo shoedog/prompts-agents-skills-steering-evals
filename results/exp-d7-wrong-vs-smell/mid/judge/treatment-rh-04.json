@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-d7-wrong-vs-smell",
+  "arm": "treatment",
+  "task_id": "rh-04",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-04/truth.yaml",
+  "truth_defect_ids": [
+    "rh-04-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. leaderboard.py:add_many (new method, ~line 21-23) — WRONG: `add_many` appends `sorted(values)` to the end of `_scores` instead of merging with the existing sorted list, breaking the global sort invariant whenever new values aren't all ≥ the current max; this causes `rank`/`contains` (which use `bisect` and require sorted input) to return incorrect results, e.g. after `add(5); add(10); add_many([1,2,3])`, `contains(5)` returns `False` and `rank(4)` returns `5` instead of `3`.\n2. leaderboard.py:median (new method) — SMELL: for even-length lists, returns the upper-middle element (`_scores[len//2]`) rather than an averaged median; matches its own docstring so not a contract break, but the name may mislead callers expecting standard median semantics.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-04-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 1,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 676,
+  "judge_cost_usd": null
+}

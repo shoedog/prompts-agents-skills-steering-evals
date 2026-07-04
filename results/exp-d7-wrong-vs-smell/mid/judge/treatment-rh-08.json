@@ -1,0 +1,36 @@
+{
+  "exp_id": "exp-d7-wrong-vs-smell",
+  "arm": "treatment",
+  "task_id": "rh-08",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-08/truth.yaml",
+  "truth_defect_ids": [
+    "rh-08-d1",
+    "rh-08-d2"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. allocate.py:14 (new `allocate`) — WRONG: removed the remainder-correction step, so shares no longer sum to `total` in general, violating the explicit stated contract; e.g. `allocate(10, [1,1,1])` returns `[3,3,3]` (sums to 9, not 10).\n2. allocate.py:29 (new `allocate_budget`) — WRONG: inherits the same bug via `allocate`, so `allocate_budget(10, {'a':1,'b':1,'c':1})` returns amounts summing to 9, not 10.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-08-d1",
+      "found": true
+    },
+    {
+      "defect_id": "rh-08-d2",
+      "found": false
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 15328,
+  "judge_cost_usd": null
+}

@@ -1,0 +1,36 @@
+{
+  "exp_id": "exp-d7-wrong-vs-smell",
+  "arm": "baseline",
+  "task_id": "rh-10",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-10/truth.yaml",
+  "truth_defect_ids": [
+    "rh-10-d1",
+    "rh-10-d2"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. importer.py:26 — `_validate` checks `not raw` (pre-normalization), so whitespace-only names like `\"   \"` pass validation and are then stored as an empty-string record, violating the non-empty-key contract.\n2. importer.py:28 — length check uses `len(raw)` instead of the normalized length, wrongly rejecting valid names whose raw form exceeds 64 chars only due to whitespace that normalization would strip.\n3. importer.py:39-43 — `retry_import` bypasses `add`/`_seen` entirely and appends straight to `_records`, creating duplicate records and desynchronizing `_seen` from `_records`, directly contradicting its \"without creating duplicate records\" contract.\n4. importer.py:31-37 — `import_all` does not catch the `ValueError` now raised by `add`'s validation, so one invalid name in a batch aborts the whole import instead of being skipped like duplicates are.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-10-d1",
+      "found": true
+    },
+    {
+      "defect_id": "rh-10-d2",
+      "found": true
+    }
+  ],
+  "false_findings": 2,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 15182,
+  "judge_cost_usd": null
+}

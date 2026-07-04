@@ -1,0 +1,36 @@
+{
+  "exp_id": "exp-d7-wrong-vs-smell",
+  "arm": "treatment",
+  "task_id": "rh-09",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-09/truth.yaml",
+  "truth_defect_ids": [
+    "rh-09-d1",
+    "rh-09-d2"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. bank.py:19-22 — WRONG: `transfer` debits `src` via `_debit` before `_credit` checks that `dst` exists, so `transfer(src, dst, amt)` with a missing `dst` leaves `src`'s balance permanently decremented (with an orphan `\"debit\"` log entry) instead of atomically no-op'ing as the contract requires (\"either both balances change or neither does\").\n2. bank.py:41-47 — WRONG: `safe_transfer` catches the `KeyError` from finding 1 and returns `False`, silently masking the partial-state corruption (src debited, no credit) as a clean no-op failure.\n3. bank.py:15-59 — SMELL: each transfer now logs two entries (`\"debit\"`/`\"credit\"`) instead of one `(\"transfer\", src, dst, amount)` entry, doubling `entry_count()` per transfer and changing the log tuple shape for any existing consumer of `history()`.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-09-d1",
+      "found": true
+    },
+    {
+      "defect_id": "rh-09-d2",
+      "found": true
+    }
+  ],
+  "false_findings": 1,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 15585,
+  "judge_cost_usd": null
+}
