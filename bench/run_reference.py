@@ -367,11 +367,17 @@ def count_passed_tests(stdout: str, stderr: str) -> int:
     return total
 
 
-def annotate_evidence_min_tests(result: dict) -> dict:
+def annotate_evidence_min_tests(result: dict, full_stdout: str = None, full_stderr: str = None) -> dict:
+    # Count from the FULL streams when provided — the stored *_tail fields are
+    # truncated to 8000 chars, which undercounts large cargo suites (a 2494-test
+    # slicing run counted as 216 from the tail alone; observed on REF-03).
     expect_min_tests = result.get("expect_min_tests")
     if expect_min_tests is None:
         return result
-    matched_tests = count_passed_tests(result.get("stdout_tail", ""), result.get("stderr_tail", ""))
+    matched_tests = count_passed_tests(
+        full_stdout if full_stdout is not None else result.get("stdout_tail", ""),
+        full_stderr if full_stderr is not None else result.get("stderr_tail", ""),
+    )
     result["matched_tests"] = matched_tests
     result["min_tests_satisfied"] = matched_tests >= expect_min_tests
     if not result["min_tests_satisfied"]:
@@ -411,7 +417,7 @@ def run_evidence(commands: list, ws_dir: Path, timeout_sec: int) -> list:
                 "wall_sec": round(time.time() - t0, 3),
                 "stdout_tail": proc.stdout[-8000:],
                 "stderr_tail": proc.stderr[-8000:],
-            }))
+            }, full_stdout=proc.stdout, full_stderr=proc.stderr))
         except subprocess.TimeoutExpired as e:
             out = e.stdout if isinstance(e.stdout, str) else ""
             err = e.stderr if isinstance(e.stderr, str) else ""
