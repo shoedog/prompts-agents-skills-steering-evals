@@ -98,7 +98,7 @@ def test_agent_frontmatter_stripped_at_composition(tmp_path):
     ttxt = out["treatment"]["prompt"].read_text()
 
     # body substance from composites/review-shape/agent.md is present...
-    assert "Follow this review procedure in order:" in ttxt
+    assert "Review procedure, in order:" in ttxt
     assert "DISCONFIRM" in ttxt
     # ...but none of the deployment metadata survives composition.
     assert "---" not in ttxt
@@ -108,7 +108,7 @@ def test_agent_frontmatter_stripped_at_composition(tmp_path):
     # baseline arm carries the baseline artifact and no stray frontmatter.
     btxt = out["baseline"]["prompt"].read_text()
     assert "Review the code change below." in btxt
-    assert "Follow this review procedure in order:" not in btxt
+    assert "Review procedure, in order:" not in btxt
     assert "---" not in btxt
 
 
