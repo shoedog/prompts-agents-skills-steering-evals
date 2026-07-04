@@ -22,6 +22,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 _EVAL_SHAPES = {"ablation", "adherence", "triggering"}
 _FORMS = {"prompt", "skill", "steering", "agent"}
+_EXECUTOR_PROVIDERS = {"claude", "codex"}
 
 
 class ConfigError(Exception):
@@ -32,6 +33,18 @@ class ConfigError(Exception):
 class ExecutorCfg:
     model: str
     tier: str
+    # Multi-family executor tiers (workstream D): which CLI wrapper/provider
+    # shim drives this executor. Defaults to "claude" so every config written
+    # before this field existed loads with identical behavior.
+    provider: str = "claude"
+    # Reasoning effort passed straight through to `run_codex` for a codex-family
+    # executor. Unused (but harmless) when provider == "claude".
+    effort: str = "medium"
+    # Optional USD-per-million-tokens rate used to derive cost_usd for a
+    # codex-family executor, which only reports a single tokens_used count (no
+    # separate input/output breakdown, hence no per-field pricing). None means
+    # "unpriced" — cost_usd stays null rather than silently reporting 0.0.
+    usd_per_mtok: float | None = None
 
 
 @dataclass
@@ -62,6 +75,9 @@ class ExperimentConfig:
     judge: JudgeCfg
     token_budget: TokenBudget
     negative_control: bool = False
+    # Self-preference guard override (see _validate_same_family_judge below).
+    # Only meaningful when executor.provider == judge.provider == "codex".
+    allow_same_family_judge: bool = False
     root: Path = field(default=REPO_ROOT)
 
     # ---- resolved paths (all absolute) --------------------------------------
@@ -152,9 +168,20 @@ def load(path, root: Path | None = None) -> ExperimentConfig:
     executor_raw = _require(raw, "executor", where)
     if not isinstance(executor_raw, dict):
         raise ConfigError("executor must be a mapping")
+    executor_provider = executor_raw.get("provider", "claude")
+    if executor_provider not in _EXECUTOR_PROVIDERS:
+        raise ConfigError(
+            f"executor.provider must be one of {sorted(_EXECUTOR_PROVIDERS)}, "
+            f"got {executor_provider!r}"
+        )
+    usd_per_mtok_raw = executor_raw.get("usd_per_mtok")
+    usd_per_mtok = float(usd_per_mtok_raw) if usd_per_mtok_raw is not None else None
     executor = ExecutorCfg(
         model=_require(executor_raw, "model", "executor"),
         tier=_require(executor_raw, "tier", "executor"),
+        provider=executor_provider,
+        effort=str(executor_raw.get("effort", "medium")),
+        usd_per_mtok=usd_per_mtok,
     )
 
     judge_raw = _require(raw, "judge", where)
@@ -177,6 +204,9 @@ def load(path, root: Path | None = None) -> ExperimentConfig:
     )
 
     negative_control = bool(raw.get("negative_control", False))
+    allow_same_family_judge = bool(raw.get("allow_same_family_judge", False))
+
+    _validate_same_family_judge(executor, judge, allow_same_family_judge)
 
     cfg = ExperimentConfig(
         id=exp_id,
@@ -190,11 +220,29 @@ def load(path, root: Path | None = None) -> ExperimentConfig:
         judge=judge,
         token_budget=token_budget,
         negative_control=negative_control,
+        allow_same_family_judge=allow_same_family_judge,
         root=root,
     )
 
     _validate_paths(cfg)
     return cfg
+
+
+def _validate_same_family_judge(executor: ExecutorCfg, judge: JudgeCfg, allow: bool):
+    """Self-preference guard: a codex-family judge scoring a codex-family
+    executor can systematically favor its own family's outputs, which would
+    quietly bias exactly the cross-family comparisons multi-family tiers exist
+    to make trustworthy. Refuse same-family (executor.provider == judge.provider
+    == "codex") unless the config explicitly opts in via
+    `allow_same_family_judge: true`."""
+    if executor.provider == "codex" and judge.provider == "codex" and not allow:
+        raise ConfigError(
+            "executor.provider and judge.provider are both 'codex' — a "
+            "same-family judge risks self-preference bias (the judge favoring "
+            "outputs from its own model family), undermining the point of a "
+            "cross-family comparison. Set allow_same_family_judge: true in the "
+            "config to override if this is intentional."
+        )
 
 
 def _validate_paths(cfg: ExperimentConfig):

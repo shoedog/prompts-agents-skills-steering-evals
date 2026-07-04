@@ -42,7 +42,8 @@ from harness.config import ConfigError, ExperimentConfig, load_taskset
 
 ARMS = ("baseline", "treatment")
 
-_PROVIDER_SHIM = Path(__file__).resolve().parent / "providers" / "promptfoo_claude.py"
+_PROVIDER_SHIM_CLAUDE = Path(__file__).resolve().parent / "providers" / "promptfoo_claude.py"
+_PROVIDER_SHIM_CODEX = Path(__file__).resolve().parent / "providers" / "promptfoo_codex.py"
 _JUDGE_ASSERT = Path(__file__).resolve().parent / "asserts" / "judge_assert.py"
 
 # A template slot: an angle-bracket placeholder holding lowercase prose / an
@@ -108,6 +109,16 @@ def _compose_prompt(cfg: ExperimentConfig, arm: str) -> str:
     return body + "\n\n{{task_input}}\n"
 
 
+def _provider_shim_path(cfg: ExperimentConfig) -> Path:
+    """Select the promptfoo provider shim file for this experiment's executor
+    family. Defaults to the claude shim for "claude" (and any unrecognized
+    value — config.load() already rejects those) so the claude path's emitted
+    YAML is byte-identical to before multi-family executor tiers existed."""
+    if cfg.executor.provider == "codex":
+        return _PROVIDER_SHIM_CODEX
+    return _PROVIDER_SHIM_CLAUDE
+
+
 def _yaml_for_arm(cfg: ExperimentConfig, arm: str, results_dir: Path,
                   prompt_path: Path, items: list[dict]) -> dict:
     provider_config = {
@@ -117,6 +128,13 @@ def _yaml_for_arm(cfg: ExperimentConfig, arm: str, results_dir: Path,
         "exp_id": cfg.id,
         "results_dir": str(results_dir),
     }
+    if cfg.executor.provider == "codex":
+        # Threaded ONLY for the codex family so the claude provider config
+        # stays byte-identical to its pre-multi-family-executor shape (see
+        # the claude regression test in test_codex_executor.py).
+        provider_config["effort"] = cfg.executor.effort
+        provider_config["usd_per_mtok"] = cfg.executor.usd_per_mtok
+
     tests = []
     for item in items:
         tests.append(
@@ -142,7 +160,7 @@ def _yaml_for_arm(cfg: ExperimentConfig, arm: str, results_dir: Path,
         "prompts": [{"id": f"file://{prompt_path}", "label": arm}],
         "providers": [
             {
-                "id": f"file://{_PROVIDER_SHIM}",
+                "id": f"file://{_provider_shim_path(cfg)}",
                 "config": provider_config,
             }
         ],
