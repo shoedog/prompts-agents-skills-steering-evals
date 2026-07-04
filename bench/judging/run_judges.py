@@ -79,11 +79,16 @@ def judge_claude(task_dir: pathlib.Path) -> str:
     last_err = None
     for attempt in (1, 2):
         try:
+            # Isolated scratch cwd, NOT task_dir: the agentic judge can read
+            # its cwd, and task_dir contains key.json (observed: the IMPL-05
+            # judge ran `cat key.json`, unblinding itself — verdict voided).
+            scratch = pathlib.Path("/private/tmp/fable-judge-scratch") / f"claude-{task_dir.name}"
+            scratch.mkdir(parents=True, exist_ok=True)
             proc = subprocess.run(
                 ["claude", "-p", prompt, "--model", "claude-sonnet-5",
                  "--output-format", "json", "--dangerously-skip-permissions"],
                 capture_output=True, text=True, timeout=900,
-                cwd=str(task_dir),  # judge cwd isolation: only the brief dir
+                cwd=str(scratch),
             )
             if proc.returncode != 0:
                 raise RuntimeError(f"claude rc {proc.returncode}: {proc.stderr[-300:]}")

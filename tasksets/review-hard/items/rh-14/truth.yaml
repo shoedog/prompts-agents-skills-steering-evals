@@ -1,9 +1,14 @@
 seeded: false
-clean_rationale: enter() acquires the mutex only at the outermost level (`if self._depth == 0`) and exit()
-  releases only when `_depth` returns to 0, so acquire and release are symmetric. Nested enter/exit never
-  over-release, and force_reset() releases only if the mutex is actually held.
+clean_rationale: enter() acquires the mutex unless the calling thread already owns it (`self._owner !=
+  threading.get_ident()`), so a second thread blocks on acquire instead of piggybacking on another
+  thread's depth; exit() releases (and clears the owner) only when `_depth` returns to 0, so acquire
+  and release stay symmetric per owning thread. Nested enter/exit never over-release, and force_reset()
+  clears ownership and releases only if the mutex is actually held.
 tempting_non_defects:
-- exit() guards its release with `if self._depth == 0`, mirroring enter()'s acquire guard, so a nested
+- enter() reads `self._owner` without holding the mutex; this is safe because another thread's ident can
+  never compare equal to the caller's own ident, and a thread only ever sees its own ident there while it
+  is the owner.
+- exit() releases only when `_depth` returns to 0, mirroring enter()'s outermost acquire, so a nested
   exit does not free the mutex early (unlike an unconditional release).
 - force_reset() checks self._mutex.locked() before releasing, so it never releases an unheld mutex.
 - the field rename _lock -> _mutex is mechanical and applied to every reference.

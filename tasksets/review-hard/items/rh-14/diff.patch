@@ -9,6 +9,7 @@
 -        self._lock = threading.Lock()
 +        self._mutex = threading.Lock()
 +        self._depth = 0
++        self._owner = None
  
      def depth(self):
 -        """Nesting depth (0 or 1 in the non-reentrant guard)."""
@@ -20,8 +21,9 @@
 -        """Enter the guarded section."""
 -        self._lock.acquire()
 +        """Enter a (possibly nested) guarded section."""
-+        if self._depth == 0:
++        if self._owner != threading.get_ident():
 +            self._mutex.acquire()
++            self._owner = threading.get_ident()
 +        self._depth += 1
  
 @@ -19,8 +22,10 @@
@@ -36,6 +38,7 @@
 +        """Leave one nesting level."""
 +        self._depth -= 1
 +        if self._depth == 0:
++            self._owner = None
 +            self._mutex.release()
 +        return self._depth
  
@@ -48,6 +51,7 @@
 +    def force_reset(self):
 +        """Abort all nesting levels and release the lock if held."""
 +        self._depth = 0
++        self._owner = None
 +        if self._mutex.locked():
 +            self._mutex.release()
 +

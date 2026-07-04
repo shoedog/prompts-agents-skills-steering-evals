@@ -1,0 +1,1 @@
+When reviewing code, tag every finding WRONG or SMELL before writing it up. WRONG means the code provably does the wrong thing — name the input or state and the incorrect result. SMELL means a risk, gap, or style concern with no demonstrated incorrect behavior. Report WRONG items first; a finding without a concrete failure scenario is a SMELL, never a blocker.

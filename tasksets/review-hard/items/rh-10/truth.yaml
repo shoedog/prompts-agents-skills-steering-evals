@@ -33,3 +33,6 @@ defects:
     add() enforces, so retrying duplicates already-stored records (not idempotent).
   reject_if: a finding that only flags the validation-order bug, or calls retry_import odd, without naming
     that it skips the _seen dedup and duplicates existing records.
+neutral_findings:
+- import_all() does not catch the ValueError raised for an invalid name, so one bad record aborts the remaining batch instead of skipping it; a real robustness gap in the new code, but not the seeded defect.
+- the length validation runs on the raw name rather than the normalized name, over-rejecting whitespace-padded inputs; this re-describes a consequence adjacent to the seeded normalization defect rather than a distinct false alarm.

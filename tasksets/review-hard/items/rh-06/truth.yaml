@@ -20,3 +20,5 @@ defects:
   reject_if: a finding that flags ONLY defaults() returning a reference, or ONLY effective() calling update,
     without connecting the two (a bare 'defaults() returns the internal dict' that does not note effective()
     mutates it, or vice versa, is insufficient).
+neutral_findings:
+- defaults() returns the live internal dict by reference, so callers can mutate internal state despite the read-only-view guarantee; a real encapsulation break in the shown code, but not the seeded defect.

@@ -34,3 +34,5 @@ defects:
     non-atomic state).'
   reject_if: a finding that only flags transfer()'s ordering, or gives a generic 'avoid bare except' note,
     without observing that it returns False while state was already changed.
+neutral_findings:
+- the transfer log now records two entries (debit and credit) per transfer, doubling the entry count and changing the tuple shape prior callers observed; a real observable behavior change, but not the seeded defect.

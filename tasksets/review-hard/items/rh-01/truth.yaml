@@ -17,3 +17,6 @@ defects:
     (seconds) to a millisecond clock, making the two methods use inconsistent units.
   reject_if: a finding that only says 'touch looks wrong' or comments on now_ms generally, without naming
     the missing *1000 / the seconds-vs-milliseconds inconsistency between touch and set.
+neutral_findings:
+- ttl_left() returns a raw millisecond delta (`entry_expiry - now_ms()`) although the module contract says the public API works in seconds, so callers comparing against seconds thresholds get values 1000x too large; a real contract inconsistency in the diff, but not the seeded touch()-vs-set() scaling defect.
+- touch() resets the lifetime of a key that has already logically expired but not yet been purged, reviving it instead of reporting it absent; a real edge-case in the new code, but not the seeded missing-*1000 defect.

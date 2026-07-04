@@ -18,3 +18,5 @@ defects:
     pass by keyword but recent does not.
   reject_if: a finding that only says recent() is wrong or that query()'s signature changed, without naming
     that recent's positional argument now binds to offset instead of limit.
+neutral_findings:
+- recent()'s new docstring says 'most recently added' while the module contract and the newest-last storage order contradict it; a genuine doc/contract inconsistency, but not the seeded defect.
