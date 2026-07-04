@@ -112,3 +112,23 @@ totals are not comparable (source session continued into unrelated work).
   worktrees (strengthens findings, but it is more than diff-reading); codex
   judged read-only from the brief.
 - IMPL-05 sonnet verdict voided (key read); one-judge rows are marked.
+
+## Design-family conclusion-match (n=4, 2026-07-04 late)
+
+| Item | Vindicated answer | Fable verdict-match | Notes |
+|---|---|---|---|
+| DES-07 (organic consult) | mechanism B | pass (by construction — Fable WAS the source) | landed verbatim |
+| DES-06 step7-parallel | GO + byte-parity oracle | **full pass, unanimous** (all 4 fields) | exact landed design |
+| PLAN-01 step5b | NO-GO | **fail, unanimous** | bottleneck right, verdict + sizing wrong |
+| DES-01 typed-receiver | Option B guarded, buy ~+17 | shape SPLIT (sonnet pass / codex partial); sizing + JS/TS scope **fail unanimous** | predicted +2,800 vs measured +17 |
+
+**The recurring failure mode is quantitative buy over-estimation, not mechanism
+analysis**: PLAN-01 estimated 2–6s where the spike measured ~0.3s; DES-01
+predicted thousands of new Exact edges where reality delivered ~+17. In both,
+the original gpt-5.5 xhigh session sized the buy correctly ("real but not
+huge" / NO-GO). Fable's mechanism-level analysis was strong in all four
+(bottleneck/seam identification praised by judges even in the fails).
+Implication for routing: for GO/NO-GO and scope decisions, gpt-5.5 xhigh's
+calibration beat Fable's 2-of-2 times the answers diverged; Fable's design
+strength is mechanism mapping, not impact forecasting. (n is small; the
+design taskset's remaining 4 items can extend this.)
