@@ -26,7 +26,7 @@ FABLE_MODEL = "claude-fable-5"
 TASK_TYPES = [
     "implement", "debug", "review", "plan_design", "research_analysis",
     "refactor", "infra_config", "writing_docs", "data_analysis",
-    "orchestration", "other",
+    "orchestration", "eval_harness", "probe_check", "other",
 ]
 
 
