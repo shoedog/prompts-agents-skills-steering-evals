@@ -30,6 +30,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import yaml
 from deepeval import assert_test
 from deepeval.metrics import BaseMetric
 from deepeval.test_case import LLMTestCase
@@ -179,6 +180,38 @@ def _integrity_failures(results_dir: Path, n_items: int) -> list[str]:
             conf = m.get(conf_key)
             if isinstance(conf, dict) and "base_rate" not in conf:
                 failures.append(f"metrics.json: {conf_key}.base_rate missing (covers 'base_rate')")
+
+    # report.md: CONTENT-level checks, not just presence. A file that exists
+    # but is missing the provisional framing or the estimand would silently
+    # ship a report nobody would recognize as unvalidated.
+    report_path = results_dir / "report.md"
+    if report_path.is_file():
+        report_text = report_path.read_text()
+        if "PROVISIONAL" not in report_text:
+            failures.append("report.md: missing the PROVISIONAL banner")
+        if "Estimand:" not in report_text:
+            failures.append("report.md: missing the estimand line")
+        if "### Deltas" not in report_text:
+            failures.append("report.md: missing a Deltas section")
+
+    # spotcheck.yaml: CONTENT-level check — it must parse to a non-empty
+    # 'items' list, and every sampled item must carry the three keys a human
+    # (or check_spotcheck.py) needs to record + join a spot-check verdict.
+    spotcheck_path = results_dir / "spotcheck.yaml"
+    if spotcheck_path.is_file():
+        try:
+            spot = yaml.safe_load(spotcheck_path.read_text()) or {}
+        except yaml.YAMLError as e:
+            failures.append(f"spotcheck.yaml: unparseable ({e})")
+            spot = {}
+        spot_items = spot.get("items") if isinstance(spot, dict) else None
+        if not isinstance(spot_items, list) or not spot_items:
+            failures.append("spotcheck.yaml: 'items' list missing or empty")
+        else:
+            for it in spot_items:
+                missing = [k for k in ("task_id", "arm", "agree") if not isinstance(it, dict) or k not in it]
+                if missing:
+                    failures.append(f"spotcheck.yaml: item missing key(s) {missing}: {it!r}")
 
     return failures
 

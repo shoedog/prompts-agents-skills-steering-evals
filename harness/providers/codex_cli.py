@@ -23,6 +23,15 @@ from harness.providers.errors import ProviderError
 
 _TOKENS_USED_RE = re.compile(r"tokens used\s*\n\s*([0-9,]+)", re.IGNORECASE)
 
+# `effort` is interpolated, unescaped, straight into a TOML value literal
+# (`model_reasoning_effort="{effort}"` below, passed via `-c`). A value
+# containing a `"` (or a newline) could close that string early and inject
+# additional `-c` config keys into the codex CLI invocation. Rather than
+# denylist just `"`/newline, allowlist to lowercase letters only — every
+# real effort value (low/medium/high, ...) matches this, and it closes the
+# injection vector categorically rather than one escape sequence at a time.
+_EFFORT_RE = re.compile(r"^[a-z]+$")
+
 
 def _stderr_tail(text: str, n: int = 4000) -> str:
     if not text:
@@ -67,6 +76,12 @@ def run_codex(
     Raises ProviderError on timeout or nonzero exit. The error carries the
     tail of stderr.
     """
+    if not _EFFORT_RE.match(effort):
+        raise ProviderError(
+            f"invalid effort value {effort!r}: must match {_EFFORT_RE.pattern} "
+            "(it is interpolated unescaped into a TOML config value)"
+        )
+
     fd, out_path = tempfile.mkstemp(suffix=".codex-output.txt")
     os.close(fd)
 

@@ -87,7 +87,7 @@ moves:
     verdict: exclude
     eval_shape: negative_control
     evidence_tier: swe
-    notes: "The doc's declared single most important negative: the ETH AGENTS.md study (2602.11988) shows narrative/overview context files do not generally improve task success and raise inference cost >20%, deepened by drift (23.0% stale refs) and configuration-smell findings; triage verdict 'exclude-or-minimize', High confidence."
+    notes: "The doc's declared single most important negative: the ETH AGENTS.md study (2602.11988) shows narrative/overview context files do not generally improve task success and raise inference cost >20%, deepened by drift (23.0% stale refs) and configuration-smell findings; triage verdict 'exclude-or-minimize', High confidence. Contrast (same triage table, row 13): the imperative/curated captured-context file ('imperative instructions/conventions/non-inferable tooling') gets an INCLUDE (minimal, curated) verdict at Medium-high confidence -- the narrative/overview form here is that row's excluded twin, same capture-element family (repo context file), opposite verdict, turning on curated-imperative vs narrative-descriptive content."
 
   - id: differential-diagnosis
     name: "Differential / bisection diagnosis"
@@ -190,5 +190,5 @@ moves:
     classification: element
     verdict: must_test
     eval_shape: ablation
-    evidence_tier: general
-    notes: "The weakest-evidenced row in the triage table: 'No located evidence', Very low confidence; kept as its own must-test move because the doc explicitly triages it as a distinct, separately-verdicted element rather than folding it into rejected-alternatives."
+    evidence_tier: human
+    notes: "The weakest-evidenced row in the triage table: 'No located evidence', Very low confidence; kept as its own must-test move because the doc explicitly triages it as a distinct, separately-verdicted element rather than folding it into rejected-alternatives. evidence_tier is 'human' as the conservative fill: the triage table's Domain-tier column is blank ('--') for this row rather than naming a tier, and the doc's own donor list (CDM/ADR-MADR/ACH) treats human-derived debiasing/heuristic literature as the fallback donor class when no SWE or general LLM evidence is located at all."

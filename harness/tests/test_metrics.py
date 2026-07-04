@@ -11,6 +11,8 @@ from harness.metrics import (
     confusion,
     delta,
     flags,
+    judge_token_totals,
+    mcnemar_p,
     pass_rate,
     paired_flips,
     token_totals,
@@ -256,3 +258,90 @@ def test_flags_composite_floored():
 
 def test_flags_judge_errors_passthrough():
     assert flags(0.5, 0.5, 0.0, False, 3)["judge_errors"] == 3
+
+
+# --------------------------------------------------------------------------- #
+# McNemar exact p-value (binomial sign test on discordant-pair counts)
+# --------------------------------------------------------------------------- #
+def test_mcnemar_p_zero_discordant_pairs_is_one():
+    # No flips in either direction at all -- maximal non-significance, not
+    # an undefined/divide-by-zero case.
+    assert mcnemar_p(0, 0) == 1.0
+
+
+def test_mcnemar_p_one_vs_one_is_one():
+    # Hand-computed: n=2, P(X<=1|n=2,p=.5) = (C(2,0)+C(2,1))/4 = 3/4 = 0.75;
+    # p = 2*0.75 = 1.5, capped at 1.0. Matches the report caveat's own
+    # worked example ("McNemar exact p=1.00 on 1 vs 1 discordant pairs").
+    assert mcnemar_p(1, 1) == pytest.approx(1.0)
+
+
+def test_mcnemar_p_symmetric_in_its_arguments():
+    # b vs c and c vs b must give the same two-sided p-value.
+    assert mcnemar_p(2, 8) == pytest.approx(mcnemar_p(8, 2))
+
+
+def test_mcnemar_p_highly_asymmetric_is_significant():
+    # n=16, all 16 discordant pairs favor one side: P(X<=0|16,.5) = 0.5**16.
+    # p = 2 * 0.5**16, tiny -- far below the 0.05 noise-screen threshold.
+    p = mcnemar_p(0, 16)
+    assert p < 0.05
+    assert p == pytest.approx(2 * (0.5 ** 16))
+
+
+def test_mcnemar_p_known_hand_computed_value():
+    # n=10, b=2, c=8: P(X<=2|n=10,p=.5) = (C(10,0)+C(10,1)+C(10,2))/1024
+    #                                    = (1+10+45)/1024 = 56/1024 = 0.0546875
+    # p = 2 * 0.0546875 = 0.109375 (well under 1.0, no capping needed).
+    assert mcnemar_p(2, 8) == pytest.approx(0.109375)
+
+
+def test_mcnemar_p_never_exceeds_one():
+    for b, c in ((1, 1), (2, 2), (3, 3), (0, 0), (5, 4)):
+        assert mcnemar_p(b, c) <= 1.0
+
+
+# --------------------------------------------------------------------------- #
+# Judge-side token/cost totals
+# --------------------------------------------------------------------------- #
+def _judge_tok_row(arm="baseline", judge_tokens=None, judge_cost_usd=None, **kw):
+    return _judge_row(arm=arm, judge_tokens=judge_tokens, judge_cost_usd=judge_cost_usd, **kw)
+
+
+def test_judge_token_totals_sums_available_tokens_and_counts_missing():
+    rows = [
+        _judge_tok_row(judge_tokens=1000),
+        _judge_tok_row(judge_tokens=2000),
+        _judge_tok_row(judge_tokens=None),  # parse-failure / judge_error row
+        _judge_tok_row(arm="treatment", judge_tokens=500),
+    ]
+    jt = judge_token_totals(rows, "baseline")
+    assert jt["judge_tokens_total"] == 3000
+    assert jt["judge_tokens_missing"] == 1
+    assert jt["judge_cost_usd_total"] is None  # no row carried a cost estimate
+
+
+def test_judge_token_totals_cost_total_none_when_absent_not_zero():
+    rows = [_judge_tok_row(judge_tokens=1000, judge_cost_usd=None)]
+    jt = judge_token_totals(rows, "baseline")
+    assert jt["judge_cost_usd_total"] is None
+
+
+def test_judge_token_totals_sums_cost_when_present():
+    rows = [
+        _judge_tok_row(judge_tokens=1_000_000, judge_cost_usd=0.5),
+        _judge_tok_row(judge_tokens=2_000_000, judge_cost_usd=1.0),
+    ]
+    jt = judge_token_totals(rows, "baseline")
+    assert jt["judge_tokens_total"] == 3_000_000
+    assert jt["judge_cost_usd_total"] == pytest.approx(1.5)
+    assert jt["judge_tokens_missing"] == 0
+
+
+def test_judge_token_totals_tier_mix_raises():
+    rows = [
+        _judge_tok_row(tier="weak", judge_tokens=1),
+        _judge_tok_row(tier="strong", judge_tokens=1),
+    ]
+    with pytest.raises(TierMixError):
+        judge_token_totals(rows, "baseline")

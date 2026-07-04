@@ -273,3 +273,38 @@ class TestRunCodex:
             run_codex("hi", cwd=str(scratch))
 
         assert scratch.is_dir()
+
+    # ----------------------------------------------------------------- #
+    # effort TOML-interpolation guard (cleanup-wave item 7): `effort` is
+    # interpolated unescaped into `model_reasoning_effort="{effort}"` and
+    # passed via `-c`. A value containing `"` or a newline could close that
+    # TOML string early and inject extra config keys into the codex CLI
+    # invocation. Guarded by an allowlist ([a-z]+) rather than a denylist of
+    # specific dangerous characters.
+    # ----------------------------------------------------------------- #
+    def test_effort_containing_quote_is_rejected_before_subprocess_run(self):
+        with patch("harness.providers.codex_cli.subprocess.run") as mock_run:
+            with pytest.raises(ProviderError):
+                run_codex("hi", effort='medium" \nextra_key="x')
+        mock_run.assert_not_called()
+
+    def test_effort_containing_newline_is_rejected(self):
+        with patch("harness.providers.codex_cli.subprocess.run") as mock_run:
+            with pytest.raises(ProviderError):
+                run_codex("hi", effort="medium\nrogue=1")
+        mock_run.assert_not_called()
+
+    def test_effort_containing_digits_is_rejected(self):
+        # The allowlist is [a-z]+ only -- not just "no quotes/newlines".
+        with patch("harness.providers.codex_cli.subprocess.run") as mock_run:
+            with pytest.raises(ProviderError):
+                run_codex("hi", effort="medium1")
+        mock_run.assert_not_called()
+
+    def test_effort_lowercase_letters_accepted(self):
+        with patch("harness.providers.codex_cli.subprocess.run") as mock_run:
+            mock_run.side_effect = self._mock_run_writing_output_file(stdout_extra="tokens used\n1\n")
+            run_codex("hi", effort="medium")
+
+        argv = mock_run.call_args.args[0]
+        assert argv[argv.index("-c") + 1] == 'model_reasoning_effort="medium"'

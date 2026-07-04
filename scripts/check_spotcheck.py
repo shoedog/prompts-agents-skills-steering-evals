@@ -8,6 +8,10 @@ far.
 
   - No `agree:` fields filled in yet -> PROVISIONAL (human hasn't reviewed),
     exit 0 (a fresh run is expected to be provisional; this is not a failure).
+  - An `items:` key that is PRESENT but EMPTY (`items: []` — e.g. a taskset
+    with zero judged rows to sample) -> PROVISIONAL, exit 0: there is nothing
+    to spot-check yet, which is not the same failure as a malformed/missing
+    `items` key.
   - Some/all filled -> disagreement rate over the filled subset. >20%
     disagreement -> STOP-and-recalibrate, exit 1. Otherwise print the
     agreement rate, exit 0.
@@ -27,8 +31,14 @@ def main(results_dir):
 
     data = yaml.safe_load(path.read_text()) or {}
     items = data.get("items") if isinstance(data, dict) else None
-    if not isinstance(items, list) or not items:
+    if items is None or not isinstance(items, list):
         sys.exit("FAIL: spotcheck.yaml has no 'items' list")
+    if not items:
+        # Present but empty is a legitimate shape (e.g. a run with zero
+        # judged rows to sample) — not a malformed file. Nothing to
+        # spot-check yet, so this is provisional, not a failure.
+        print("PROVISIONAL: spotcheck.yaml has an empty 'items' list (nothing to spot-check yet)")
+        return
 
     filled = [it for it in items if it.get("agree") is not None]
     if not filled:

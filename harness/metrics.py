@@ -125,6 +125,43 @@ def token_totals(calls, arm):
     return totals
 
 
+def judge_token_totals(rows, arm):
+    """Sum per-item JUDGE-side tokens (and, optionally, a USD cost estimate)
+    for one arm's judge rows.
+
+    `judge_tokens` (threaded onto every judge row by judge.py/judge_assert.py
+    from the codex CLI's best-effort `tokens used` parse) and `judge_cost_usd`
+    (computed only when the judge config carried a `usd_per_mtok` rate) may
+    each be None per row — a row with no live judge call at all (parse
+    failure) or a codex response that didn't surface a parseable token count.
+    None rows are excluded from the sums and counted separately as
+    `judge_tokens_missing`, so a partially-instrumented run cannot silently
+    under-report as a smaller-but-complete one. `judge_cost_usd_total` is
+    None (not 0.0) unless at least one row actually carried a cost estimate,
+    distinguishing "not priced" from "priced at zero"."""
+    _assert_single_tier(rows)
+    arm_rows = [r for r in rows if r.get("arm") == arm]
+    tokens_total = 0
+    missing = 0
+    cost_total = 0.0
+    any_cost = False
+    for r in arm_rows:
+        jt = r.get("judge_tokens")
+        if jt is None:
+            missing += 1
+        else:
+            tokens_total += int(jt)
+        jc = r.get("judge_cost_usd")
+        if jc is not None:
+            any_cost = True
+            cost_total += float(jc)
+    return {
+        "judge_tokens_total": tokens_total,
+        "judge_tokens_missing": missing,
+        "judge_cost_usd_total": cost_total if any_cost else None,
+    }
+
+
 def delta(baseline: dict, treatment: dict) -> dict:
     """Per-key {abs, pct} difference (treatment - baseline) over shared numerics."""
     out = {}
@@ -241,6 +278,33 @@ def paired_flips(rows):
         "only_baseline": only_baseline,
         "only_treatment": only_treatment,
     }
+
+
+def mcnemar_p(only_baseline: int, only_treatment: int) -> float:
+    """Exact two-sided McNemar test p-value on the discordant-pair counts from
+    `paired_flips` (b=only_baseline, c=only_treatment).
+
+    This is the binomial sign test: under the null (no directional effect,
+    each discordant pair is equally likely to flip either way), n=b+c ~
+    Binomial(n, 0.5) counts how many favored one side. p = 2 * the smaller of
+    the two one-sided binomial tail probabilities at b and c, capped at 1.0.
+    Implemented with `math.comb` only — no scipy dependency.
+
+    n=0 (no discordant pairs at all — the two arms never flipped an item in
+    either direction) returns 1.0: zero evidence of a directional difference
+    is the maximally-non-significant case, not an undefined one.
+    """
+    n = only_baseline + only_treatment
+    if n == 0:
+        return 1.0
+    lo, hi = min(only_baseline, only_treatment), max(only_baseline, only_treatment)
+
+    def _tail_le(k: int) -> float:
+        return sum(math.comb(n, i) for i in range(0, k + 1)) * (0.5 ** n)
+
+    p_lo = _tail_le(lo)
+    p_hi = 1.0 - _tail_le(hi - 1)
+    return min(2.0 * min(p_lo, p_hi), 1.0)
 
 
 # --------------------------------------------------------------------------- #

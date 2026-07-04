@@ -11,10 +11,18 @@ never saw a single treatment-arm row. `_sample_items` must instead take up to
 other nondeterministic randomness), interleaved so both arms are always
 represented.
 
-The caveat/delta tests below (results-integrity follow-up to task 8) guard
-three automatic honesty additions to the GENERATED report:
+Cleanup-wave item 3 sharpens this further: WITHIN each arm, the sample is now
+also stratified seeded/clean — up to 7 seeded + 3 clean per arm (7+3=10, the
+existing per-arm cap) — so a run whose seeded ids happen to sort ahead of (or
+behind) its clean ids can't crowd one split out of a small sample either.
+
+The caveat/delta tests below (results-integrity follow-up to task 8, extended
+by cleanup-wave item 1) guard the automatic honesty additions to the
+GENERATED report:
   - recall-ceiling caveat: fires per arm when that arm's defect recall is 1.000.
-  - CI-overlap ("noise") caveat: fires when the two arms' Wilson CIs overlap.
+  - noise caveat: fires when EITHER the two arms' Wilson CIs overlap OR the
+    exact McNemar test on the paired discordant flips is not significant
+    (p > 0.05); wording names whichever screen(s) actually fired.
   - Deltas section: gains output-token and fresh-input-token rows alongside
     the existing logical-token and cost-USD rows.
 All computed from synthetic metrics dicts shaped like the real `summarize()`
@@ -23,7 +31,7 @@ output — no model calls, no metric-value changes.
 import json
 
 from harness.config import ExecutorCfg, ExperimentConfig, JudgeCfg, TokenBudget
-from harness.metrics import load_rows
+from harness.metrics import load_rows, mcnemar_p
 from harness.report import (
     _ci_overlap,
     _collect_caveats,
@@ -34,13 +42,13 @@ from harness.report import (
 )
 
 
-def _judge_row(arm, task_id, parse_ok=True, judge_error=False):
+def _judge_row(arm, task_id, parse_ok=True, judge_error=False, seeded=True):
     return {
         "arm": arm,
         "task_id": task_id,
         "parse_ok": parse_ok,
         "judge_error": judge_error,
-        "seeded": True,
+        "seeded": seeded,
         "verdict_flagged": False,
         "defects": [],
         "false_findings": 0,
@@ -66,26 +74,31 @@ def _load_judges(tmp_path):
     return judges
 
 
-def test_sample_items_splits_10_and_10_from_40_synthetic_records(tmp_path):
-    rows = [_judge_row("baseline", f"t{i:02d}") for i in range(1, 21)] + [
-        _judge_row("treatment", f"t{i:02d}") for i in range(1, 21)
-    ]
+def test_sample_items_stratifies_7_seeded_3_clean_per_arm(tmp_path):
+    rows = []
+    for arm in ("baseline", "treatment"):
+        rows += [_judge_row(arm, f"t{i:02d}", seeded=True) for i in range(1, 15)]   # 14 seeded
+        rows += [_judge_row(arm, f"t{i:02d}", seeded=False) for i in range(15, 21)]  # 6 clean
     _write_judge_dir(tmp_path, rows)
     judges = _load_judges(tmp_path)
 
     sample = _sample_items(judges)
 
     assert len(sample) == 20
-    counts = {}
+    counts, seeded_counts = {}, {}
     for r in sample:
         counts[r["arm"]] = counts.get(r["arm"], 0) + 1
+        if r["seeded"]:
+            seeded_counts[r["arm"]] = seeded_counts.get(r["arm"], 0) + 1
     assert counts == {"baseline": 10, "treatment": 10}
+    assert seeded_counts == {"baseline": 7, "treatment": 7}  # 7 seeded + 3 clean = 10
 
 
 def test_sample_items_is_deterministic_and_alternates_arms(tmp_path):
-    rows = [_judge_row("baseline", f"t{i:02d}") for i in range(1, 21)] + [
-        _judge_row("treatment", f"t{i:02d}") for i in range(1, 21)
-    ]
+    rows = []
+    for arm in ("baseline", "treatment"):
+        rows += [_judge_row(arm, f"t{i:02d}", seeded=True) for i in range(1, 15)]
+        rows += [_judge_row(arm, f"t{i:02d}", seeded=False) for i in range(15, 21)]
     _write_judge_dir(tmp_path, rows)
     judges = _load_judges(tmp_path)
 
@@ -96,19 +109,24 @@ def test_sample_items_is_deterministic_and_alternates_arms(tmp_path):
     arms_in_order = [r["arm"] for r in sample1]
     assert arms_in_order == ["baseline", "treatment"] * 10
 
+    # Per arm: 7 seeded (t01..t07) + 3 clean (t15..t17), combined and
+    # re-sorted by task_id — t07 < t15 lexicographically, so the seeded run
+    # comes first, then the clean run, with no interleaving needed here.
+    expected_ids = [f"t{i:02d}" for i in range(1, 8)] + [f"t{i:02d}" for i in range(15, 18)]
     baseline_task_ids = [r["task_id"] for r in sample1 if r["arm"] == "baseline"]
     treatment_task_ids = [r["task_id"] for r in sample1 if r["arm"] == "treatment"]
-    assert baseline_task_ids == sorted(baseline_task_ids)
-    assert treatment_task_ids == sorted(treatment_task_ids)
-    assert baseline_task_ids == [f"t{i:02d}" for i in range(1, 11)]
-    assert treatment_task_ids == [f"t{i:02d}" for i in range(1, 11)]
+    assert baseline_task_ids == expected_ids
+    assert treatment_task_ids == expected_ids
 
 
-def test_sample_items_5_and_5_from_10_synthetic_records(tmp_path):
-    # Mirrors results/smoke/weak's shape: 10 total records, 5 per arm.
-    rows = [_judge_row("baseline", f"sm-{i:02d}") for i in range(1, 6)] + [
-        _judge_row("treatment", f"sm-{i:02d}") for i in range(1, 6)
-    ]
+def test_sample_items_all_included_when_arm_below_quota_caps(tmp_path):
+    # Mirrors results/smoke/weak's real shape: 5 items per arm (3 seeded + 2
+    # clean per task-6-report), both splits under their 7/3 quota caps, so
+    # every graded row is included.
+    rows = []
+    for arm in ("baseline", "treatment"):
+        rows += [_judge_row(arm, f"sm-{i:02d}", seeded=True) for i in range(1, 4)]
+        rows += [_judge_row(arm, f"sm-{i:02d}", seeded=False) for i in range(4, 6)]
     _write_judge_dir(tmp_path, rows)
     judges = _load_judges(tmp_path)
 
@@ -121,10 +139,12 @@ def test_sample_items_5_and_5_from_10_synthetic_records(tmp_path):
     assert counts == {"baseline": 5, "treatment": 5}
 
 
-def test_sample_items_caps_at_10_per_arm_when_one_arm_has_fewer(tmp_path):
-    rows = [_judge_row("baseline", f"t{i:02d}") for i in range(1, 21)] + [
-        _judge_row("treatment", f"t{i:02d}") for i in range(1, 6)  # only 5
-    ]
+def test_sample_items_caps_per_arm_independently_when_one_arm_has_fewer(tmp_path):
+    rows = []
+    rows += [_judge_row("baseline", f"t{i:02d}", seeded=True) for i in range(1, 15)]
+    rows += [_judge_row("baseline", f"t{i:02d}", seeded=False) for i in range(15, 21)]
+    rows += [_judge_row("treatment", f"t{i:02d}", seeded=True) for i in range(1, 4)]   # only 3
+    rows += [_judge_row("treatment", f"t{i:02d}", seeded=False) for i in range(4, 6)]  # only 2
     _write_judge_dir(tmp_path, rows)
     judges = _load_judges(tmp_path)
 
@@ -135,6 +155,24 @@ def test_sample_items_caps_at_10_per_arm_when_one_arm_has_fewer(tmp_path):
         counts[r["arm"]] = counts.get(r["arm"], 0) + 1
     assert counts == {"baseline": 10, "treatment": 5}
     assert len(sample) == 15
+
+
+def test_sample_items_seeded_quota_not_backfilled_by_clean(tmp_path):
+    # Only 4 seeded (below the 7 cap) + 6 clean (above the 3 cap) in one arm:
+    # the seeded/clean caps are independent — the 3 unused seeded-quota slots
+    # do NOT get backfilled with extra clean rows.
+    rows = [_judge_row("baseline", f"t{i:02d}", seeded=True) for i in range(1, 5)]
+    rows += [_judge_row("baseline", f"t{i:02d}", seeded=False) for i in range(5, 11)]
+    _write_judge_dir(tmp_path, rows)
+    judges = _load_judges(tmp_path)
+
+    sample = _sample_items(judges)
+
+    seeded_n = sum(1 for r in sample if r["seeded"])
+    clean_n = sum(1 for r in sample if not r["seeded"])
+    assert seeded_n == 4
+    assert clean_n == 3
+    assert len(sample) == 7
 
 
 def test_sample_items_excludes_judge_error_and_unparsed_rows(tmp_path):
@@ -208,7 +246,17 @@ def _full_summary(**overrides):
     """A full summarize()-shaped dict (mirrors results/exp1-review-shape/weak/
     metrics.json's real shape) with non-triggering defaults for the pieces not
     under test; callers override just baseline_pass/treatment_pass/
-    baseline_confusion/treatment_confusion/etc. as needed."""
+    baseline_confusion/treatment_confusion/etc. as needed.
+
+    `mcnemar_p` is always derived from the (possibly overridden) `flips`
+    dict, exactly as the real `summarize()` does — so a caller overriding
+    `flips` alone (e.g. to keep a "no caveat" scenario consistent under the
+    new McNemar noise screen) never has to also hand-compute a matching
+    `mcnemar_p` value.
+    """
+    flips = overrides.get("flips") or {
+        "both_pass": 15, "both_fail": 2, "only_baseline": 2, "only_treatment": 1,
+    }
     s = {
         "baseline_pass": _pr(17, 20, 0.10, 0.20),
         "treatment_pass": _pr(16, 20, 0.60, 0.80),
@@ -230,10 +278,17 @@ def _full_summary(**overrides):
         },
         "baseline_confusion": _conf(13, 15),
         "treatment_confusion": _conf(12, 15),
-        "flips": {"both_pass": 15, "both_fail": 2, "only_baseline": 2, "only_treatment": 1},
+        "flips": flips,
+        "mcnemar_p": mcnemar_p(flips["only_baseline"], flips["only_treatment"]),
         "adherence": {
             "review-shape.checklist": 1.0, "review-shape.disconfirm": 1.0,
             "review-shape.verify": 1.0, "review-shape.all_three": 1.0,
+        },
+        "baseline_judge_tokens": {
+            "judge_tokens_total": 12000, "judge_tokens_missing": 0, "judge_cost_usd_total": None,
+        },
+        "treatment_judge_tokens": {
+            "judge_tokens_total": 18500, "judge_tokens_missing": 1, "judge_cost_usd_total": None,
         },
         "flags": {
             "cost_adjusted_verdict": False, "harness_broken": False,
@@ -317,26 +372,54 @@ def test_ci_overlap_true_at_touching_boundary():
 
 
 def test_noise_caveat_fires_with_overlapping_cis_and_reports_n():
+    # only_baseline=2, only_treatment=1 -> McNemar p=1.00 (see
+    # test_mcnemar_p_one_vs_one_is_one in test_metrics.py) -- BOTH screens
+    # fire here, so the wording names both.
     b_pr = _pr(17, 20, 0.10, 0.60)
     t_pr = _pr(16, 20, 0.40, 0.90)
-    caveat = _noise_caveat(b_pr, t_pr)
+    caveat = _noise_caveat(b_pr, t_pr, 2, 1)
     assert caveat == (
         "Arm pass rates are not statistically distinguishable at n=20 "
-        "(overlapping 95% CIs); treat the pass-rate delta as noise, not "
-        "effect."
+        "(overlapping 95% CIs and McNemar exact p=1.00 on 2 vs 1 discordant "
+        "pairs); treat the pass-rate delta as noise, not effect."
     )
 
 
-def test_noise_caveat_silent_when_cis_disjoint():
+def test_noise_caveat_silent_when_cis_disjoint_and_mcnemar_significant():
+    # Disjoint CIs AND a highly asymmetric flip count (0 vs 16 -> p << 0.05):
+    # neither screen fires, so there is no caveat at all.
     b_pr = _pr(2, 20, 0.05, 0.25)
     t_pr = _pr(18, 20, 0.75, 0.95)
-    assert _noise_caveat(b_pr, t_pr) is None
+    assert _noise_caveat(b_pr, t_pr, 0, 16) is None
+
+
+def test_noise_caveat_fires_on_mcnemar_alone_when_cis_disjoint():
+    # Disjoint CIs (screen 1 silent) but a near-balanced flip count (p > 0.05,
+    # screen 2 fires): the caveat still fires, and its wording says the CIs
+    # do NOT overlap -- it never claims agreement it doesn't have.
+    b_pr = _pr(2, 20, 0.05, 0.25)
+    t_pr = _pr(18, 20, 0.75, 0.95)
+    caveat = _noise_caveat(b_pr, t_pr, 3, 3)
+    assert caveat is not None
+    assert "McNemar exact p=" in caveat
+    assert "though the 95% CIs do not overlap" in caveat
+
+
+def test_noise_caveat_fires_on_ci_overlap_alone_when_mcnemar_not_significant():
+    # Overlapping CIs (screen 1 fires) but a hugely asymmetric flip count
+    # (screen 2 would NOT fire alone): wording says so honestly.
+    b_pr = _pr(17, 20, 0.10, 0.60)
+    t_pr = _pr(16, 20, 0.40, 0.90)
+    caveat = _noise_caveat(b_pr, t_pr, 0, 16)
+    assert caveat is not None
+    assert "overlapping 95% CIs" in caveat
+    assert "alone would not flag noise" in caveat
 
 
 def test_noise_caveat_reports_both_ns_when_arms_differ_in_size():
     b_pr = _pr(10, 15, 0.20, 0.80)
     t_pr = _pr(12, 20, 0.30, 0.85)
-    caveat = _noise_caveat(b_pr, t_pr)
+    caveat = _noise_caveat(b_pr, t_pr, 2, 1)
     assert "n=15/20" in caveat
 
 
@@ -362,6 +445,12 @@ def test_collect_caveats_empty_when_neither_condition_holds():
         treatment_pass=_pr(18, 20, 0.75, 0.95),
         baseline_confusion=_conf(13, 15),
         treatment_confusion=_conf(12, 15),
+        # Consistent with the 2/20 vs 18/20 pass rates above: 0 only_baseline,
+        # 16 only_treatment flips -> McNemar p << 0.05, so the noise screen
+        # stays silent too (disjoint CIs alone would already do this, but an
+        # inconsistent default `flips` would otherwise spuriously fire the
+        # McNemar screen and break this "neither fires" scenario).
+        flips={"both_pass": 2, "both_fail": 2, "only_baseline": 0, "only_treatment": 16},
     )
     assert _collect_caveats(s) == []
 
@@ -392,6 +481,7 @@ def test_render_report_md_omits_caveats_section_when_neither_fires():
         treatment_pass=_pr(18, 20, 0.75, 0.95),
         baseline_confusion=_conf(13, 15),
         treatment_confusion=_conf(12, 15),
+        flips={"both_pass": 2, "both_fail": 2, "only_baseline": 0, "only_treatment": 16},
     )
     md = render_report_md(_cfg(), s)
     assert "## Caveats" not in md
@@ -435,3 +525,67 @@ def test_render_report_md_renders_provenance_note_when_given():
 def test_render_report_md_omits_note_line_when_none():
     md = render_report_md(_cfg(), _full_summary())
     assert "> NOTE —" not in md
+
+
+# --------------------------------------------------------------------------- #
+# Judge-side tokens section (cleanup-wave item 2)
+# --------------------------------------------------------------------------- #
+def test_render_report_md_judge_tokens_section_shows_totals_and_missing():
+    s = _full_summary()
+    md = render_report_md(_cfg(), s)
+    section = md.split("## Judge-side tokens")[1].split("###")[0]
+    assert "baseline: judge_tokens=12000 (missing=0)" in section
+    assert "treatment: judge_tokens=18500 (missing=1)" in section
+
+
+def test_render_report_md_judge_tokens_section_shows_cost_when_present():
+    s = _full_summary(
+        baseline_judge_tokens={
+            "judge_tokens_total": 1_000_000, "judge_tokens_missing": 0,
+            "judge_cost_usd_total": 5.0,
+        },
+    )
+    md = render_report_md(_cfg(), s)
+    section = md.split("## Judge-side tokens")[1].split("###")[0]
+    assert "cost_usd≈5.0000" in section
+
+
+def test_render_report_md_mcnemar_p_line_in_flip_table_section():
+    s = _full_summary(flips={"both_pass": 15, "both_fail": 2, "only_baseline": 1, "only_treatment": 1})
+    md = render_report_md(_cfg(), s)
+    flips_section = md.split("## Paired flip table")[1].split("## Treatment-arm adherence")[0]
+    assert "McNemar exact p-value" in flips_section
+    assert "1.000" in flips_section  # mcnemar_p(1, 1) == 1.0
+
+
+# --------------------------------------------------------------------------- #
+# composite_floored section reordering (cleanup-wave item 5): when the flag
+# fires, defect-recall + confusion physically render BEFORE the pass-rate
+# table (the banner already appeared earlier and is unaffected).
+# --------------------------------------------------------------------------- #
+def test_render_report_md_composite_floored_moves_confusion_before_per_arm():
+    s = _full_summary(
+        baseline_pass=_pr(2, 20, 0.0, 0.2),
+        treatment_pass=_pr(1, 20, 0.0, 0.2),
+        flags={
+            "cost_adjusted_verdict": False, "harness_broken": False,
+            "composite_floored": True, "judge_errors": 0,
+        },
+    )
+    md = render_report_md(_cfg(), s)
+    banner_idx = md.index("## ⚠ COMPOSITE FLOORED")
+    confusion_idx = md.index("## Confusion matrix")
+    per_arm_idx = md.index("## Per-arm results")
+    config_idx = md.index("## Configuration")
+    # banner stays where it always was: before Configuration.
+    assert banner_idx < config_idx
+    # confusion (defect recall lives inside it) now precedes the pass-rate table.
+    assert config_idx < confusion_idx < per_arm_idx
+
+
+def test_render_report_md_normal_order_keeps_per_arm_before_confusion():
+    s = _full_summary()  # composite_floored defaults to False
+    md = render_report_md(_cfg(), s)
+    per_arm_idx = md.index("## Per-arm results")
+    confusion_idx = md.index("## Confusion matrix")
+    assert per_arm_idx < confusion_idx

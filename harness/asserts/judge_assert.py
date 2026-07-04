@@ -44,12 +44,14 @@ except Exception:  # pragma: no cover
 _FINDINGS_MARKER = "## FINDINGS"
 # A weak executor wraps/decorates the verdict line: `**VERDICT: REJECT**`,
 # `## VERDICT: APPROVE`, `> VERDICT: REJECT`, leading whitespace, etc. It may
-# ALSO wrap just the word (`VERDICT: **REJECT**`) rather than the whole line.
-# Tolerate a run of markdown decoration / whitespace both before the literal
-# `VERDICT:` token AND between the colon and the word, WITHOUT loosening what
-# the judge sees — the re-render below is still canonical either way.
+# ALSO wrap just the word (`VERDICT: **REJECT**`) — or just the LABEL, with the
+# colon outside the decoration (`**VERDICT**: REJECT`) — rather than the whole
+# line. Tolerate a run of markdown decoration / whitespace before the literal
+# `VERDICT` token, between `VERDICT` and its colon, AND between the colon and
+# the word, WITHOUT loosening what the judge sees — the re-render below is
+# still canonical either way.
 _VERDICT_RE = re.compile(
-    r"^[\s*_#>~`]*VERDICT:\s*[*_~`]*\s*(APPROVE|REJECT)\b",
+    r"^[\s*_#>~`]*VERDICT[*_~`]*:\s*[*_~`]*\s*(APPROVE|REJECT)\b",
     re.IGNORECASE | re.MULTILINE,
 )
 # Findings arrive numbered `1.` / `1)` / `1:` or bulleted `-` / `*` / `+`. Bullets
@@ -130,6 +132,22 @@ def normalize_block(block: str):
     return "\n".join(lines) + "\n", True, verdict_flagged
 
 
+def _judge_cost_usd(judge_tokens, judge_cfg: dict):
+    """USD estimate for `judge_tokens` at `judge_cfg['usd_per_mtok']`, if the
+    judge config carries that (optional) rate.
+
+    None when either judge_tokens itself is unavailable (no live judge call,
+    or the codex CLI output didn't carry a parseable token count) or the rate
+    key is absent — every experiment config to date omits it, so this must
+    tolerate its absence rather than KeyError."""
+    if judge_tokens is None:
+        return None
+    rate = judge_cfg.get("usd_per_mtok")
+    if rate is None:
+        return None
+    return judge_tokens / 1_000_000.0 * float(rate)
+
+
 def _write_record(results_dir: str, arm: str, task_id: str, record: dict):
     judge_dir = os.path.join(results_dir, "judge")
     os.makedirs(judge_dir, exist_ok=True)
@@ -182,6 +200,8 @@ def get_assert(output, context):
             verdict_flagged=False,
             item_pass=False,
             judge_error=False,
+            judge_tokens=None,
+            judge_cost_usd=None,
         )
         _write_record(results_dir, arm, task_id, record)
         return {"pass": False, "score": 0.0, "reason": "unparseable findings block"}
@@ -203,6 +223,8 @@ def get_assert(output, context):
             verdict_flagged=verdict_flagged,
             item_pass=False,
             judge_error=True,
+            judge_tokens=None,
+            judge_cost_usd=None,
         )
         _write_record(results_dir, arm, task_id, record)
         trace_call("judge_error", {"task_id": task_id, "arm": arm, "error": str(e)},
@@ -216,6 +238,15 @@ def get_assert(output, context):
     # the item-pass rule below — a neutral match is neither credited nor counted
     # as a false finding, so it can never block or grant a pass.
     neutral_matched = int(judged.get("neutral_matched", 0) or 0)
+    # judge_tokens: best-effort token count for this judge call (from the
+    # codex CLI's "tokens used" line, threaded through by judge.judge_review;
+    # null if the CLI output didn't carry one). judge_cost_usd is an OPTIONAL
+    # USD estimate, computed only when the judge config carries a
+    # `usd_per_mtok` rate — every experiment config to date omits it, so this
+    # is None for all live runs today and only exercised by tests that supply
+    # the rate directly.
+    judge_tokens = judged.get("judge_tokens")
+    judge_cost_usd = _judge_cost_usd(judge_tokens, judge_cfg)
     # judge.py validates each entry has a string defect_id + bool found before we
     # get here; `.get` is belt-and-suspenders so a slipped-through entry can never
     # KeyError this row into a crash.
@@ -236,6 +267,8 @@ def get_assert(output, context):
         verdict_flagged=verdict_flagged,
         item_pass=item_pass,
         judge_error=False,
+        judge_tokens=judge_tokens,
+        judge_cost_usd=judge_cost_usd,
     )
     _write_record(results_dir, arm, task_id, record)
     trace_call("judge", record, results_dir=results_dir)

@@ -146,7 +146,15 @@ def judge_review(findings_block: str, truth: dict, judge_cfg: dict,
                 timeout=_JUDGE_TIMEOUT,
                 cwd=cwd,
             )
-            return _parse_and_validate(result["output"])
+            data = _parse_and_validate(result["output"])
+            # tokens_used is parsed best-effort by run_codex from the codex
+            # CLI's stderr/stdout (outside the validated JSON body) — thread
+            # it onto the returned dict as judge_tokens (null if the CLI
+            # output didn't carry a parseable "tokens used" line) so callers
+            # can attribute judge-side cost per item, same as the executor's
+            # token accounting.
+            data["judge_tokens"] = result.get("tokens_used")
+            return data
         except (json.JSONDecodeError, ValueError, ProviderError) as e:
             last_err = e
             continue

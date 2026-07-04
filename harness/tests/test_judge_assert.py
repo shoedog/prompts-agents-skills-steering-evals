@@ -7,6 +7,8 @@ import json
 import os
 from unittest.mock import patch
 
+import pytest
+
 from harness.asserts.judge_assert import get_assert, normalize_block
 
 
@@ -114,6 +116,55 @@ def test_normalize_no_verdict_is_parse_failure():
     block = "## FINDINGS\nsome prose but no verdict line at all"
     text, ok, flagged = normalize_block(block)
     assert (text, ok, flagged) == ("", False, False)
+
+
+# --------------------------------------------------------------------------- #
+# Exotic verdict markdown (cleanup-wave item 10): three variants a weak
+# executor might plausibly produce, probed individually.
+# --------------------------------------------------------------------------- #
+def test_normalize_verdict_as_markdown_heading_already_handled():
+    # `## VERDICT: REJECT` as its own heading line. The leading-decoration
+    # character class already includes `#` (and the whitespace after it), so
+    # this was already handled before this cleanup wave — asserted here as a
+    # regression guard, not a new fix.
+    block = "## FINDINGS\n## VERDICT: REJECT\n1. a.py:1 — bug"
+    text, ok, flagged = normalize_block(block)
+    assert ok is True
+    assert flagged is True
+    assert "VERDICT: REJECT" in text.splitlines()
+
+
+def test_normalize_bold_label_colon_outside_verdict():
+    # The LABEL is bolded and the colon sits OUTSIDE the closing `**`:
+    # `**VERDICT**: REJECT` — distinct from the already-covered
+    # `VERDICT: **REJECT**` (bold on the answer word) and
+    # `**VERDICT: REJECT**` (bold on the whole line). Fixed by widening
+    # _VERDICT_RE to tolerate markdown decoration between the word `VERDICT`
+    # and its colon, not just before/after.
+    block = "## FINDINGS\n**VERDICT**: REJECT\n1. a.py:1 — bug"
+    text, ok, flagged = normalize_block(block)
+    assert ok is True
+    assert flagged is True
+    assert "VERDICT: REJECT" in text.splitlines()
+
+
+@pytest.mark.xfail(
+    reason=(
+        "Genuinely ambiguous, not a small regex widening: a markdown table "
+        "with VERDICT and REJECT in SEPARATE cells (`| VERDICT | REJECT |`) "
+        "splits the label from the value across cell boundaries, so there is "
+        "no contiguous 'VERDICT:'-shaped token for _VERDICT_RE to widen "
+        "toward without actually parsing table structure (`|`-delimited "
+        "cells) -- which risks matching unrelated table rows that merely "
+        "mention the words VERDICT/REJECT as data. Left as documented "
+        "unsupported input rather than fixed."
+    ),
+    strict=True,
+)
+def test_normalize_verdict_split_across_markdown_table_cells_is_ambiguous():
+    block = "## FINDINGS\n| Field | Value |\n|---|---|\n| VERDICT | REJECT |\n1. a.py:1 — bug"
+    _, ok, _ = normalize_block(block)
+    assert ok is True
 
 
 # --------------------------------------------------------------------------- #
@@ -266,3 +317,103 @@ def test_get_assert_parse_failure_row_carries_zero_neutral_matched(tmp_path):
     assert mock_run.call_count == 0
     rec = json.loads((results_dir / "judge" / "baseline-t1.json").read_text())
     assert rec["neutral_matched"] == 0
+
+
+# --------------------------------------------------------------------------- #
+# Judge-side token/cost tracking (cleanup-wave item 2): judge_tokens threaded
+# through from run_codex's tokens_used, judge_cost_usd computed only when the
+# judge config carries an (optional) usd_per_mtok rate.
+# --------------------------------------------------------------------------- #
+def _judge_context(tmp_path, judge_cfg_extra=None, seeded=True):
+    truth = tmp_path / "truth.yaml"
+    truth.write_text("defects:\n  - id: d1\n" if seeded else "defects: []\n")
+    rubric = tmp_path / "rubric.md"
+    rubric.write_text("Grade the findings block.")
+    results_dir = tmp_path / "results"
+    results_dir.mkdir()
+    judge_cfg = {
+        "provider": "codex", "model": "gpt-5.5", "effort": "medium",
+        "rubric": str(rubric), "schema": None,
+    }
+    if judge_cfg_extra:
+        judge_cfg.update(judge_cfg_extra)
+    context = {"vars": {
+        "task_id": "t1", "arm": "baseline", "exp_id": "e1", "tier": "weak",
+        "seeded": seeded, "truth_path": str(truth), "results_dir": str(results_dir),
+        "judge_json": json.dumps(judge_cfg),
+    }}
+    return context, results_dir
+
+
+def test_get_assert_stores_judge_tokens_on_the_record(tmp_path):
+    context, results_dir = _judge_context(tmp_path)
+    output = "workspace\n## FINDINGS\nVERDICT: REJECT\n1. real.py:1 — the seeded defect"
+    payload = json.dumps({
+        "parse_ok": True,
+        "defects": [{"defect_id": "d1", "found": True}],
+        "false_findings": 0, "neutral_matched": 0, "verdict_flagged": True,
+    })
+    with patch("harness.judge.run_codex") as mock_run:
+        mock_run.return_value = {"output": payload, "tokens_used": 555}
+        get_assert(output, context)
+    rec = json.loads((results_dir / "judge" / "baseline-t1.json").read_text())
+    assert rec["judge_tokens"] == 555
+    assert rec["judge_cost_usd"] is None  # no usd_per_mtok in this judge config
+
+
+def test_get_assert_judge_tokens_null_when_codex_omits_tokens_used(tmp_path):
+    context, results_dir = _judge_context(tmp_path, seeded=False)
+    output = "workspace\n## FINDINGS\nVERDICT: APPROVE\nNo findings."
+    payload = json.dumps({
+        "parse_ok": True, "defects": [], "false_findings": 0,
+        "neutral_matched": 0, "verdict_flagged": False,
+    })
+    with patch("harness.judge.run_codex") as mock_run:
+        mock_run.return_value = {"output": payload}  # no tokens_used key at all
+        get_assert(output, context)
+    rec = json.loads((results_dir / "judge" / "baseline-t1.json").read_text())
+    assert rec["judge_tokens"] is None
+    assert rec["judge_cost_usd"] is None
+
+
+def test_get_assert_computes_judge_cost_usd_when_usd_per_mtok_present(tmp_path):
+    context, results_dir = _judge_context(tmp_path, judge_cfg_extra={"usd_per_mtok": 6.0})
+    output = "workspace\n## FINDINGS\nVERDICT: REJECT\n1. real.py:1 — the seeded defect"
+    payload = json.dumps({
+        "parse_ok": True,
+        "defects": [{"defect_id": "d1", "found": True}],
+        "false_findings": 0, "neutral_matched": 0, "verdict_flagged": True,
+    })
+    with patch("harness.judge.run_codex") as mock_run:
+        mock_run.return_value = {"output": payload, "tokens_used": 500_000}
+        get_assert(output, context)
+    rec = json.loads((results_dir / "judge" / "baseline-t1.json").read_text())
+    assert rec["judge_tokens"] == 500_000
+    assert rec["judge_cost_usd"] == pytest.approx(3.0)  # 0.5 Mtok * $6/Mtok
+
+
+def test_get_assert_parse_failure_row_carries_null_judge_tokens(tmp_path):
+    context, results_dir = _judge_context(tmp_path)
+    output = "workspace\n## FINDINGS\nnothing parseable here"
+    with patch("harness.judge.run_codex") as mock_run:
+        get_assert(output, context)
+    assert mock_run.call_count == 0
+    rec = json.loads((results_dir / "judge" / "baseline-t1.json").read_text())
+    assert rec["judge_tokens"] is None
+    assert rec["judge_cost_usd"] is None
+
+
+def test_get_assert_judge_error_row_carries_null_judge_tokens(tmp_path):
+    context, results_dir = _judge_context(tmp_path)
+    output = "workspace\n## FINDINGS\nVERDICT: REJECT\n1. real.py:1 — a real defect"
+    malformed = json.dumps({
+        "parse_ok": True, "defects": [{"found": True}],  # missing defect_id -> JudgeError
+        "false_findings": 0, "verdict_flagged": True,
+    })
+    with patch("harness.judge.run_codex") as mock_run:
+        mock_run.return_value = {"output": malformed}
+        get_assert(output, context)
+    rec = json.loads((results_dir / "judge" / "baseline-t1.json").read_text())
+    assert rec["judge_error"] is True
+    assert rec["judge_tokens"] is None
+    assert rec["judge_cost_usd"] is None

@@ -27,7 +27,9 @@ from harness.metrics import (
     confusion,
     delta,
     flags,
+    judge_token_totals,
     load_rows,
+    mcnemar_p,
     pass_rate,
     paired_flips,
     token_totals,
@@ -35,6 +37,13 @@ from harness.metrics import (
 
 _SPOTCHECK_LIMIT = 20
 _SPOTCHECK_PER_ARM = _SPOTCHECK_LIMIT // 2
+# Within each arm, the spot-check sample is stratified seeded/clean (not just
+# taken as the first N by task_id) so a run whose seeded items cluster at one
+# end of the id space can't crowd clean items out of a human's calibration
+# sample entirely. 7 + 3 = 10 = _SPOTCHECK_PER_ARM, so the total cap is
+# unchanged at _SPOTCHECK_LIMIT.
+_SPOTCHECK_SEEDED_QUOTA = 7
+_SPOTCHECK_CLEAN_QUOTA = 3
 
 _ESTIMAND = (
     "Estimand: the effect of the varied review-procedure element on review "
@@ -55,6 +64,9 @@ def summarize(cfg: ExperimentConfig, results_dir) -> dict:
     t_conf = confusion(judges, "treatment")
     flips = paired_flips(judges)
     adh = adherence(judges)
+    b_judge_tok = judge_token_totals(judges, "baseline")
+    t_judge_tok = judge_token_totals(judges, "treatment")
+    mcnemar_p_value = mcnemar_p(flips["only_baseline"], flips["only_treatment"])
 
     judge_errors = b_pr["judge_errors"] + t_pr["judge_errors"]
     parse_failures = sum(
@@ -76,7 +88,10 @@ def summarize(cfg: ExperimentConfig, results_dir) -> dict:
         "baseline_confusion": b_conf,
         "treatment_confusion": t_conf,
         "flips": flips,
+        "mcnemar_p": mcnemar_p_value,
         "adherence": adh,
+        "baseline_judge_tokens": b_judge_tok,
+        "treatment_judge_tokens": t_judge_tok,
         "flags": fl,
         "judge_errors": judge_errors,
         "parse_failures": parse_failures,
@@ -144,15 +159,35 @@ def _ci_overlap(b_pr: dict, t_pr: dict) -> bool:
     return b_lo <= t_hi and t_lo <= b_hi
 
 
-def _noise_caveat(b_pr: dict, t_pr: dict) -> str | None:
-    """Caveat when the arms' pass-rate CIs overlap: treat the delta as noise."""
-    if not _ci_overlap(b_pr, t_pr):
+def _noise_caveat(b_pr: dict, t_pr: dict, only_baseline: int, only_treatment: int) -> str | None:
+    """Caveat when EITHER noise screen fires: the arms' pass-rate CIs overlap,
+    OR the exact McNemar test on the paired discordant flips (only_baseline vs
+    only_treatment) is not significant (p > 0.05). Both screens are reported
+    whenever either fires, and the wording stays honest when they disagree —
+    it never claims agreement it doesn't have.
+    """
+    ci_overlap = _ci_overlap(b_pr, t_pr)
+    p = mcnemar_p(only_baseline, only_treatment)
+    p_flags_noise = p > 0.05
+    if not (ci_overlap or p_flags_noise):
         return None
     b_n, t_n = b_pr["n"], t_pr["n"]
     n_str = str(b_n) if b_n == t_n else f"{b_n}/{t_n}"
+    mcnemar_str = (
+        f"McNemar exact p={p:.2f} on {only_baseline} vs {only_treatment} "
+        "discordant pairs"
+    )
+    if ci_overlap and p_flags_noise:
+        detail = f"overlapping 95% CIs and {mcnemar_str}"
+    elif ci_overlap:
+        detail = (
+            f"overlapping 95% CIs, though {mcnemar_str} alone would not flag noise"
+        )
+    else:
+        detail = f"{mcnemar_str}, though the 95% CIs do not overlap"
     return (
         f"Arm pass rates are not statistically distinguishable at n={n_str} "
-        "(overlapping 95% CIs); treat the pass-rate delta as noise, not effect."
+        f"({detail}); treat the pass-rate delta as noise, not effect."
     )
 
 
@@ -161,7 +196,10 @@ def _collect_caveats(s: dict) -> list[str]:
     out = list(
         _recall_ceiling_caveats(s["baseline_confusion"], s["treatment_confusion"])
     )
-    noise = _noise_caveat(s["baseline_pass"], s["treatment_pass"])
+    noise = _noise_caveat(
+        s["baseline_pass"], s["treatment_pass"],
+        s["flips"]["only_baseline"], s["flips"]["only_treatment"],
+    )
     if noise:
         out.append(noise)
     return out
@@ -213,8 +251,42 @@ def render_report_md(cfg: ExperimentConfig, s: dict, note: str | None = None) ->
         )
         L.append("")
 
-    L.append("## Configuration")
-    L.append("")
+    config_block = _render_configuration_block(cfg)
+    per_arm_block = _render_per_arm_block(s)
+    judge_tokens_block = _render_judge_tokens_block(s)
+    deltas_block = _render_deltas_block(s)
+    confusion_block = _render_confusion_block(s)
+    flips_block = _render_flips_block(s)
+    adherence_block = _render_adherence_block(s)
+    flags_block = _render_flags_block(s)
+    footer_block = ["---", "_Not aggregated across tiers._", ""]
+
+    L += config_block
+    if fl["composite_floored"]:
+        # COMPOSITE FLOORED: the composite pass rate is inconclusive, so the
+        # report physically leads with defect recall + verdict confusion
+        # (the confusion-matrix section carries both) BEFORE the pass-rate
+        # table, not just the banner above — a reader skimming top-to-bottom
+        # sees the trustworthy numbers first. Only the confusion block moves;
+        # per-arm/judge-tokens/deltas stay grouped together either way.
+        L += confusion_block
+        L += per_arm_block
+        L += judge_tokens_block
+        L += deltas_block
+    else:
+        L += per_arm_block
+        L += judge_tokens_block
+        L += deltas_block
+        L += confusion_block
+    L += flips_block
+    L += adherence_block
+    L += flags_block
+    L += footer_block
+    return "\n".join(L)
+
+
+def _render_configuration_block(cfg: ExperimentConfig) -> list[str]:
+    L = ["## Configuration", ""]
     L.append(f"- id: `{cfg.id}`  task_family: `{cfg.task_family}`  eval_shape: `{cfg.eval_shape}`")
     L.append(f"- executor: `{cfg.executor.model}` (tier `{cfg.executor.tier}`)")
     L.append(f"- baseline_prompt: {cfg.baseline_prompt}")
@@ -225,9 +297,11 @@ def render_report_md(cfg: ExperimentConfig, s: dict, note: str | None = None) ->
     L.append(f"- taskset: `{cfg.taskset}`  negative_control: `{cfg.negative_control}`")
     L.append(f"- judge: `{cfg.judge.provider}/{cfg.judge.model}` effort `{cfg.judge.effort}`")
     L.append("")
+    return L
 
-    L.append("## Per-arm results")
-    L.append("")
+
+def _render_per_arm_block(s: dict) -> list[str]:
+    L = ["## Per-arm results", ""]
     L.append("| arm | n | pass | tokens | cost USD |")
     L.append("|---|---|---|---|---|")
     for arm, pr, tok in (
@@ -239,10 +313,28 @@ def render_report_md(cfg: ExperimentConfig, s: dict, note: str | None = None) ->
             f"{tok['cost_usd']:.4f} |"
         )
     L.append("")
+    return L
 
-    td = s["token_delta"]
-    L.append("### Deltas (treatment − baseline), reported separately")
+
+def _render_judge_tokens_block(s: dict) -> list[str]:
+    L = ["## Judge-side tokens", ""]
+    for arm, jt in (
+        ("baseline", s["baseline_judge_tokens"]),
+        ("treatment", s["treatment_judge_tokens"]),
+    ):
+        cost_total = jt.get("judge_cost_usd_total")
+        cost_str = f"  cost_usd≈{cost_total:.4f}" if cost_total is not None else ""
+        L.append(
+            f"- {arm}: judge_tokens={jt['judge_tokens_total']} "
+            f"(missing={jt['judge_tokens_missing']}){cost_str}"
+        )
     L.append("")
+    return L
+
+
+def _render_deltas_block(s: dict) -> list[str]:
+    td = s["token_delta"]
+    L = ["### Deltas (treatment − baseline), reported separately", ""]
     lt = td.get("logical_total", {})
     ot = td.get("output", {})
     fi = td.get("fresh_input", {})
@@ -253,9 +345,11 @@ def render_report_md(cfg: ExperimentConfig, s: dict, note: str | None = None) ->
     L.append(f"- cost USD: {cu.get('abs', 'n/a'):+.4f} ({_fmt_pct(cu.get('pct'))})"
              if isinstance(cu.get("abs"), (int, float)) else "- cost USD: n/a")
     L.append("")
+    return L
 
-    L.append("## Confusion matrix (verdict) + base rate")
-    L.append("")
+
+def _render_confusion_block(s: dict) -> list[str]:
+    L = ["## Confusion matrix (verdict) + base rate", ""]
     L.append("| arm | TP | FP | TN | FN | base rate | defect recall | false findings | neutral matched |")
     L.append("|---|---|---|---|---|---|---|---|---|")
     for arm, c in (("baseline", s["baseline_confusion"]), ("treatment", s["treatment_confusion"])):
@@ -273,53 +367,62 @@ def render_report_md(cfg: ExperimentConfig, s: dict, note: str | None = None) ->
         f"treatment={s['treatment_confusion']['defect_recall']['judge_id_mismatches']}"
     )
     L.append("")
+    return L
 
+
+def _render_flips_block(s: dict) -> list[str]:
     fp = s["flips"]
-    L.append("## Paired flip table (joined on task_id)")
-    L.append("")
+    L = ["## Paired flip table (joined on task_id)", ""]
     L.append(
         f"- both_pass: {fp['both_pass']}  both_fail: {fp['both_fail']}  "
         f"only_baseline: {fp['only_baseline']}  only_treatment: {fp['only_treatment']}"
     )
+    L.append(f"- McNemar exact p-value (two-sided, on the discordant pairs): {s['mcnemar_p']:.3f}")
     L.append("")
+    return L
 
-    L.append("## Treatment-arm adherence (per directive)")
-    L.append("")
+
+def _render_adherence_block(s: dict) -> list[str]:
+    L = ["## Treatment-arm adherence (per directive)", ""]
     for k, v in s["adherence"].items():
         L.append(f"- `{k}`: {v:.3f}")
     L.append("")
+    return L
 
-    L.append("## Flags")
-    L.append("")
+
+def _render_flags_block(s: dict) -> list[str]:
+    fl = s["flags"]
+    L = ["## Flags", ""]
     L.append(f"- cost_adjusted_verdict: {fl['cost_adjusted_verdict']}")
     L.append(f"- harness_broken: {fl['harness_broken']}")
     L.append(f"- composite_floored: {fl['composite_floored']}")
     L.append(f"- judge_errors: {fl['judge_errors']}")
     L.append(f"- parse failures (unparseable findings block): {s['parse_failures']}")
     L.append("")
-
-    L.append("---")
-    L.append("_Not aggregated across tiers._")
-    L.append("")
-    return "\n".join(L)
+    return L
 
 
 def _sample_items(judges):
-    """Up to _SPOTCHECK_LIMIT judged items, stratified evenly across arms.
+    """Up to _SPOTCHECK_LIMIT judged items, stratified across arms AND, within
+    each arm, across seeded/clean.
 
     Naively taking `graded[:_SPOTCHECK_LIMIT]` off a `judge/*.json` glob sorts
     alphabetically by filename, and `"baseline-*"` sorts before
     `"treatment-*"` — with >=_SPOTCHECK_LIMIT baseline items the treatment arm
     is silently excluded from the human-calibration sample entirely (this is
     exactly what happened on the 40-record exp1 run: 20/20 sampled rows were
-    baseline, 0 were treatment).
+    baseline, 0 were treatment). A per-arm cap alone still leaves a second,
+    subtler gap: sorting purely by task_id can crowd one seeded/clean split
+    out of a small sample if that split's ids happen to cluster past the cap.
 
-    Instead: split graded (parse_ok, not judge_error) rows by arm, sort each
-    arm's rows by task_id (deterministic — no randomness, no Date-based
-    seed), take up to _SPOTCHECK_PER_ARM from EACH arm, then interleave them
-    round-robin (baseline, treatment, baseline, treatment, ...) so a human
-    skimming spotcheck.md always sees both arms represented, alternating, in
-    a stable order run to run.
+    So within each arm: split graded (parse_ok, not judge_error) rows into
+    seeded and clean, sort each split by task_id (deterministic — no
+    randomness, no Date-based seed), take up to _SPOTCHECK_SEEDED_QUOTA
+    seeded + _SPOTCHECK_CLEAN_QUOTA clean (7 + 3 = _SPOTCHECK_PER_ARM),
+    combine and re-sort that arm's selection by task_id. Arms are then
+    interleaved round-robin (baseline, treatment, baseline, treatment, ...)
+    exactly as before, so a human skimming spotcheck.md always sees both arms
+    represented, alternating, in a stable order run to run.
     """
     graded = [r for r in judges if r.get("parse_ok") and not r.get("judge_error")]
 
@@ -327,13 +430,22 @@ def _sample_items(judges):
     for r in graded:
         by_arm.setdefault(r.get("arm"), []).append(r)
 
-    for rows in by_arm.values():
-        rows.sort(key=lambda r: r.get("task_id") or "")
-
     # Deterministic arm order (alphabetical: "baseline" before "treatment"),
     # tolerant of a stray None/missing arm without crashing the sort.
     arms = sorted(by_arm.keys(), key=lambda a: (a is None, a))
-    lanes = [by_arm[arm][:_SPOTCHECK_PER_ARM] for arm in arms]
+
+    lanes = []
+    for arm in arms:
+        rows = by_arm[arm]
+        seeded_rows = sorted(
+            (r for r in rows if r.get("seeded")), key=lambda r: r.get("task_id") or ""
+        )
+        clean_rows = sorted(
+            (r for r in rows if not r.get("seeded")), key=lambda r: r.get("task_id") or ""
+        )
+        lane = seeded_rows[:_SPOTCHECK_SEEDED_QUOTA] + clean_rows[:_SPOTCHECK_CLEAN_QUOTA]
+        lane.sort(key=lambda r: r.get("task_id") or "")
+        lanes.append(lane)
 
     out = []
     for i in range(_SPOTCHECK_PER_ARM):

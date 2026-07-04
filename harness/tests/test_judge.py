@@ -106,6 +106,39 @@ def test_render_ground_truth_clean_item_never_renders_neutral_findings():
     assert "should not be shown on a clean item" not in rendered
 
 
+# --------------------------------------------------------------------------- #
+# judge_review threads tokens_used (from run_codex) onto the returned dict.
+# --------------------------------------------------------------------------- #
+def test_judge_review_threads_tokens_used_as_judge_tokens(tmp_path):
+    rubric = tmp_path / "rubric.md"
+    rubric.write_text("Grade the block.")
+    payload = _valid_payload()
+
+    with patch("harness.judge.run_codex") as mock_run:
+        mock_run.return_value = {"output": json.dumps(payload), "tokens_used": 4321}
+        data = judge_review(
+            "## FINDINGS\nVERDICT: REJECT\n1. x",
+            {"defects": [{"id": "d1"}]},
+            {"rubric": str(rubric), "schema": None},
+        )
+    assert data["judge_tokens"] == 4321
+
+
+def test_judge_review_judge_tokens_is_none_when_codex_didnt_report_it(tmp_path):
+    rubric = tmp_path / "rubric.md"
+    rubric.write_text("Grade the block.")
+    payload = _valid_payload()
+
+    with patch("harness.judge.run_codex") as mock_run:
+        mock_run.return_value = {"output": json.dumps(payload)}  # no tokens_used key
+        data = judge_review(
+            "## FINDINGS\nVERDICT: REJECT\n1. x",
+            {"defects": [{"id": "d1"}]},
+            {"rubric": str(rubric), "schema": None},
+        )
+    assert data["judge_tokens"] is None
+
+
 def test_judge_review_malformed_defect_entry_raises_judge_error_after_retry(tmp_path):
     rubric = tmp_path / "rubric.md"
     rubric.write_text("Grade the block.")

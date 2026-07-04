@@ -41,6 +41,7 @@ if _REPO_ROOT not in sys.path:
 from harness import config as config_mod  # noqa: E402
 from harness import report as report_mod  # noqa: E402
 from harness.judge import JudgeError, judge_review, load_truth  # noqa: E402
+from harness.tracing import trace_call  # noqa: E402
 
 _NOTE = (
     "Rescore of exp1-review-shape executor outputs under neutral-findings "
@@ -61,12 +62,27 @@ def _recompute_item_pass(seeded, truth_defect_ids, found_ids,
     return false_findings == 0 and not verdict_flagged
 
 
-def _rejudge_one(src_record: dict, judge_cfg: dict, judge_scratch: str) -> dict:
+def _rejudge_one(src_record: dict, judge_cfg: dict, judge_scratch: str,
+                 output_exp_id: str, out_dir: str | None = None) -> dict:
     """Re-judge one source judge record's normalized_block against current truth.
 
     Carries over the deterministic/executor-derived fields; re-derives the
     graded fields (defects/false_findings/neutral_matched) from a fresh LIVE
     judge call; recomputes item_pass with the unchanged rule.
+
+    The written record is stamped with `output_exp_id` — the NEW rescore's own
+    experiment id — not the source run's `exp_id`. The executor calls are
+    shared verbatim with the source run, but this record lives under the
+    OUTPUT results dir and must identify itself as belonging to that
+    experiment, not the one it was rescored from (a stale source exp_id here
+    would make metrics.json/report.md lie about which run produced this
+    grade).
+
+    A native per-call trace log is appended to `out_dir/trace.jsonl` (via
+    `harness.tracing.trace_call`, same mechanism the live assert uses) for
+    every row that actually reached a live judge call — i.e. everything
+    except a carried-over source parse-failure, which never calls the judge
+    either here or in the original run.
     """
     arm = src_record["arm"]
     task_id = src_record["task_id"]
@@ -79,7 +95,7 @@ def _rejudge_one(src_record: dict, judge_cfg: dict, judge_scratch: str) -> dict:
     truth_defect_ids = sorted({d["id"] for d in (truth.get("defects") or [])})
 
     base = {
-        "exp_id": src_record.get("exp_id"),
+        "exp_id": output_exp_id,
         "arm": arm,
         "task_id": task_id,
         "tier": src_record.get("tier"),
@@ -91,20 +107,24 @@ def _rejudge_one(src_record: dict, judge_cfg: dict, judge_scratch: str) -> dict:
     }
 
     # A source PARSE FAILURE never reached the judge — there is nothing to
-    # re-judge. Carry it over as a parse-failure row (no judge call), exactly
-    # as the live assert would produce it.
+    # re-judge. Carry it over as a parse-failure row (no judge call, no
+    # trace), exactly as the live assert would produce it.
     if not src_record.get("parse_ok"):
         return dict(base, parse_ok=False, defects=[], false_findings=0,
                     neutral_matched=0, verdict_flagged=False, item_pass=False,
-                    judge_error=False)
+                    judge_error=False, judge_tokens=None, judge_cost_usd=None)
 
     try:
         judged = judge_review(normalized, truth, judge_cfg, cwd=judge_scratch)
     except JudgeError as e:
         print(f"  [rejudge] JUDGE ERROR on {arm}-{task_id}: {e}", file=sys.stderr, flush=True)
-        return dict(base, parse_ok=True, defects=[], false_findings=0,
-                    neutral_matched=0, verdict_flagged=verdict_flagged,
-                    item_pass=False, judge_error=True)
+        record = dict(base, parse_ok=True, defects=[], false_findings=0,
+                     neutral_matched=0, verdict_flagged=verdict_flagged,
+                     item_pass=False, judge_error=True, judge_tokens=None,
+                     judge_cost_usd=None)
+        trace_call("rejudge_judge_error", {"task_id": task_id, "arm": arm, "error": str(e)},
+                   results_dir=out_dir)
+        return record
 
     defects = judged.get("defects", []) or []
     false_findings = int(judged.get("false_findings", 0) or 0)
@@ -114,9 +134,12 @@ def _rejudge_one(src_record: dict, judge_cfg: dict, judge_scratch: str) -> dict:
         seeded, truth_defect_ids, found_ids, false_findings, verdict_flagged
     )
 
-    return dict(base, parse_ok=True, defects=defects, false_findings=false_findings,
-                neutral_matched=neutral_matched, verdict_flagged=verdict_flagged,
-                item_pass=item_pass, judge_error=False)
+    record = dict(base, parse_ok=True, defects=defects, false_findings=false_findings,
+                 neutral_matched=neutral_matched, verdict_flagged=verdict_flagged,
+                 item_pass=item_pass, judge_error=False,
+                 judge_tokens=judged.get("judge_tokens"), judge_cost_usd=None)
+    trace_call("rejudge_judge", record, results_dir=out_dir)
+    return record
 
 
 def _clear_derived(dirpath: str):
@@ -180,7 +203,8 @@ def main(argv=None) -> int:
             src_record = json.load(f)
         name = os.path.basename(p)
         print(f"[rejudge] ({i}/{total}) judging {name} ...", flush=True)
-        new_record = _rejudge_one(src_record, judge_cfg, judge_scratch)
+        new_record = _rejudge_one(src_record, judge_cfg, judge_scratch,
+                                  args.output_exp_id, out_dir=out_dir)
         if new_record.get("judge_error"):
             judge_errors += 1
         with open(os.path.join(out_dir, "judge", name), "w") as f:
