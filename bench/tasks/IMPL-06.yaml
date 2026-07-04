@@ -1,0 +1,137 @@
+# bench task spec — IMPL-06 (a2a-slice7a-t8-rich-snapshot-merge)
+# Generated from mining/out/nominations.md + mining/out/pretask_tags.md
+# (Task M4 follow-up). task_prompt is the VERBATIM first real user
+# message from the source codex session transcript (trimmed of the
+# codex-CLI system/AGENTS.md harness wrapper messages that precede it),
+# preferred over the nomination doc's paraphrase per the task brief.
+#
+# See bench/run_reference.py --help for the reference-run framing.
+id: IMPL-06
+nomination: a2a-slice7a-t8-rich-snapshot-merge
+source_repo: /Users/wesleyjinks/code/a2a-bridge
+pre_tag: bench/IMPL-06-pre
+pre_sha: 2f31ba141835c1d8669a318db4a828fa6b8f882b
+source_session: /Users/wesleyjinks/.codex/sessions/2026/06/20/rollout-2026-06-20T13-27-20-019ee680-7b0d-7dc3-933c-ba14cf00b273.jsonl
+est_duration_min: 35
+task_prompt: |
+  You are an expert Rust engineer working as the IMPLEMENTER on `a2a-bridge` (an ACP↔A2A bridge + workflow
+  orchestrator). Your session cwd IS the a2a-bridge repo, on feature branch `feat/slice-7a-rich-acp`. You EDIT the
+  working tree and run `cargo`. The specific ONE task is below the marker; do EXACTLY it, no more.
+
+  ## Operating rules
+  - **Scope discipline:** implement ONLY what the task specifies. Do NOT touch files outside the task's stated set.
+    Honor INERT / byte-identical / back-compat requirements (UPDATE-MINIMAL: NO new `Update` variant; the ACP handler
+    stays NON-BLOCKING — no `.await`/store-write on the event loop; the S6 node-frame byte-identity for no-rich runs;
+    W3b resume reads typed checkpoints only).
+  - **The plan is GROUND TRUTH and APPROVED (dual plan-reviewed → fix-then-implement, all fixes folded).** Read
+    `docs/superpowers/plans/2026-06-20-slice-7a-rich-acp.md` — its **`## v2 … (BINDING; PFIX-A..K)` section SUPERSEDES
+    any contradicting task body text. READ THE PFIX SECTION FIRST.** The binding spec is
+    `docs/superpowers/specs/2026-06-20-slice-7a-rich-acp.md` (FIX-1..13). VERIFY each signature/method against the
+    REAL code before using it (the PFIX list corrects several SDK shapes + the test sketches).
+  - **Key real APIs (PFIX-confirmed):** the rich-sink factory is `make(&NodeId)` (NO op param — it CLOSES OVER op,
+    built in `spawn_detached_workflow`). `ToolCallUpdate` fields are NESTED: `u.fields.{kind,status,title,content,
+    locations}`. The SDK types (`SessionUpdate`/`Plan`/`ToolCall`/`ToolKind`/`ToolCallStatus`/`ToolCallContent`/
+    `ContentBlock`/…) are `#[non_exhaustive]` → match arms need `_ =>` wildcards; TEST fixtures BUILD SDK values via
+    constructors (`Plan::new`, `ToolCall::new(id,title)`+builders, `ContentChunk::new`, `TextContent::new`) — mirror
+    `acp_backend.rs:2994-3022`. SDK enums have NO `Display` → hand-write `match → &'static str` (+ `_ => "other"`).
+    `AgentMessageChunk(ContentChunk)` → `chunk.content` is a `ContentBlock`. `DetachedRichSink.queue` is
+    `std::sync::Mutex<VecDeque<_>>` (NOT tokio — `record` is sync). `record_event_sequenced` is a DEFAULTED trait
+    method returning `Err(StoreFailure)` (SQLite+Memory override; the 2 custom impls `LegacyFallbackStore`
+    `server.rs:8653` + `tests/workflow_producer.rs:2373` keep the default). `PlanEntry`/`ContentSummary` derive
+    `Clone, Debug, PartialEq, Eq, Serialize, Deserialize`.
+  - **TDD:** write the failing test(s) named in the task FIRST, run them to fail, then implement to green. Tests
+    assert REAL behavior.
+  - **Conventions:** match surrounding code style; `tokio::sync::Mutex` for ASYNC-held locks but `std::sync::Mutex`
+    where a sync method locks; derive what neighbours derive; keep files focused. Read the cited code BEFORE coding.
+  - **DO NOT COMMIT. DO NOT run any `git` command that mutates state.** Leave changes UNCOMMITTED — the controller
+    verifies + commits. `git status`/`git diff` (read-only) are fine.
+
+  ## Process
+  1. Read the cited plan task + the PFIX section + the spec sections + the existing code you'll touch.
+  2. Implement TDD. Then run, in order (report exact commands + counts):
+     - the specific `cargo test -p <crate> …` target(s), THEN `cargo test --workspace --no-run`
+     - `cargo fmt --all` then `cargo fmt --all --check`
+     - `cargo clippy -p <crate> --all-targets -- -D warnings` (no new warnings in files you touched)
+     - NOTE the `_dyld_start` PTY flake: if a test BINARY hangs at startup, report it (the controller re-runs in a
+       clean env). Use a `timeout` to distinguish a real deadlock.
+  3. Self-review: completeness vs the task; back-compat (UPDATE-MINIMAL / non-blocking handler / S6 byte-identity /
+     W3b); ALL call sites of any changed signature/enum updated (`cargo test --workspace --no-run` MUST pass).
+
+  ## Report (plain text — DO NOT commit)
+  - **STATUS:** DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
+  - What you implemented; the test list + results; files changed. Self-review findings + concerns.
+
+  THE TASK:
+
+  # Slice 7a — TASK 8 (S7a.2): The merged seq-ordered snapshot projection + both reattach sites + goldens
+
+  Implement **Task 8** from `docs/superpowers/plans/2026-06-20-slice-7a-rich-acp.md` in
+  `crates/bridge-a2a-inbound/src/server.rs`. The final S7a task — wire the rich transcript into the reattach snapshot.
+
+  ## Binding (PFIX-H — SUPERSEDE the v1 sketch)
+  - The snapshot must come from ONE consistent read returning `{ snap: TaskProgressSnapshot, events: Vec<OrchEvent> }`
+    — `fold_or_typed_snapshot` (`server.rs:1102`) today returns ONLY `snap` and DISCARDS `journal_fold_inputs().events`.
+    Change it (or add a sibling) to return BOTH.
+  - Add `rich_snapshot_frames(snap: &TaskProgressSnapshot, events: &[OrchEvent], cursor: Option<i64>) ->
+    Vec<WorkflowProgressFrame>` = the EXISTING node frames `snapshot_frames(snap, None)` MERGED seq-sorted with the
+    folded rich frames, then cursor-filtered ONCE.
+  - Replace `snapshot_frames(&snap, cursor)` at BOTH reattach call sites (`server.rs:1054` terminal/subscribe + `:1194`
+    working_sse) with `rich_snapshot_frames(&snap, &events, cursor)`; PRESERVE the `SnapshotComplete` sentinel seq
+    (re-derived from the MERGED last frame) + the working-SSE `dedup_floor`/`cut_seq` (`:1205`).
+  - **NODE byte-identity:** for a no-rich task, `events` has no rich kinds → rich frames empty → the merged list ==
+    the node frames → the S6 golden (`golden_two_node_run_wire_tuples`) STILL passes.
+
+  ## The rich fold (over `events`, seq order)
+  - **Plan:** keep ONLY the LATEST `Plan` event → one `FrameKind::Plan` frame at that event's seq.
+  - **ToolCall / ToolCallUpdate (by `tool_call_id`):** walk in seq order; maintain `id -> (merged state, last_seq,
+    had_base: bool)`. `ToolCall` → set/replace the base (had_base=true). `ToolCallUpdate` → PATCH the base's present
+    fields (sparse; `Some` replaces, incl. `Some(empty)`), update last_seq. At the end, per id: if `had_base`, emit
+    ONE `FrameKind::ToolCall` (merged current state) at `last_seq`; else (orphan update) emit a `FrameKind::ToolCall
+    Update` at its seq.
+  - (Mode/config/commands are deferred — not in `events`.) Use `reattach::frame_from_orch` where it fits, or build the
+    folded `ToolCall` frame directly from the merged state.
+
+  ## Steps
+  1. Read `server.rs` `fold_or_typed_snapshot` (`:1102`), `snapshot_frames` (`:1277`), the two reattach sites
+     (`:1049-1095` terminal + `:1160-1210` working_sse incl. the `SnapshotComplete` sentinel `:1057/1195` + dedup
+     `:1205`); `journal_fold_inputs`; the S6 golden test (`:8975`).
+  2. TDD — failing tests FIRST: (a) the S6 `golden_two_node_run_wire_tuples` STILL passes (no-rich); (b) a new rich
+     golden:
+  ```rust
+  #[tokio::test]
+  async fn rich_snapshot_folds_toolcall_interleaved() {
+      // journal: node_started(1), tool_call(2,t1,in_progress), tool_call_update(3,t1->completed), node_finished(4)
+      // expect (seq, tag) ordered: (3,"tool_call" folded current=completed), (4,"node_finished") [start collapsed]
+      let frames = rich_snapshot_frames(&snap, &events, None);
+      assert_eq!(tags(&frames), vec![(3, "tool_call"), (4, "node_finished")]);
+  }
+  ```
+  3. Implement `rich_snapshot_frames` (the merge + the fold) + change `fold_or_typed_snapshot`→`{snap, events}` (a
+     small struct or tuple) + swap both call sites + re-derive the sentinel from the merged last frame. (Reuse
+     `frame_from_orch` for the folded ToolCall if the merged state maps cleanly to an `OrchEventKind::ToolCall`.)
+  4. Run → PASS (the S6 golden + the new rich golden + the existing reattach/Last-Event-ID/working-sse tests).
+     `cargo test -p bridge-a2a-inbound`; `cargo test --workspace --no-run`; fmt; `cargo clippy -p bridge-a2a-inbound
+     --all-targets -- -D warnings`. Remove the Task-7 scoped `dead_code` allow if `frame_from_orch` is now used.
+  5. Self-review: no-rich → identical node frames (S6 golden)? the ToolCall fold by id (latest, orphan-tolerant)?
+     Plan latest-only? both sites swapped? sentinel re-derived? cursor applied once on the merged list?
+
+  Report STATUS + test names + results + files changed. DO NOT commit.
+success_evidence:
+- cmd: cargo test -p bridge-a2a-inbound golden_two_node_run_wire_tuples
+  desc: the S6 golden — MUST still pass byte-identical for a no-rich task (the hard back-compat constraint)
+  expect_min_tests: 1
+- cmd: cargo test -p bridge-a2a-inbound rich_snapshot_folds_toolcall_interleaved
+  desc: the new rich-fold test named in the task prompt
+  expect_min_tests: 1
+- cmd: cargo test -p bridge-a2a-inbound
+  desc: full bridge-a2a-inbound crate suite (217 unit + 47 integration per the reference session)
+- cmd: cargo test --workspace --no-run
+  desc: workspace-wide compile check
+- cmd: cargo fmt --all --check
+  desc: formatting gate
+- cmd: cargo clippy -p bridge-a2a-inbound --all-targets -- -D warnings
+  desc: clippy gate scoped to the touched crate
+landed_commit: c0a3c2dc
+judging_approach: tests+diff; S6-golden byte-identical oracle.
+reference_outcome: DONE; new interleaved-fold test green; S6 golden still passing; 217 unit + 47 integration;
+  server.rs only (+271/-17).

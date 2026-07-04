@@ -1,0 +1,92 @@
+# bench task spec — IMPL-03 (a2a-e3-t4-sqlite-batch-store)
+# Generated from mining/out/nominations.md + mining/out/pretask_tags.md
+# (Task M4 follow-up). task_prompt is the VERBATIM first real user
+# message from the source codex session transcript (trimmed of the
+# codex-CLI system/AGENTS.md harness wrapper messages that precede it),
+# preferred over the nomination doc's paraphrase per the task brief.
+#
+# See bench/run_reference.py --help for the reference-run framing.
+id: IMPL-03
+nomination: a2a-e3-t4-sqlite-batch-store
+source_repo: /Users/wesleyjinks/code/a2a-bridge
+pre_tag: bench/IMPL-03-pre
+pre_sha: 3a0c270e18a47feecc62a7db8116a419863ec960
+source_session: /Users/wesleyjinks/.codex/sessions/2026/06/26/rollout-2026-06-26T21-44-25-019f072d-bb50-71d2-ab1a-07e51429d2dc.jsonl
+est_duration_min: 15
+task_prompt: |
+  You are IMPLEMENTING one task of the "E3 — Parallel Batch Dispatch" feature for the a2a-bridge (a Rust A2A↔ACP bridge
+  + multi-agent workflow orchestrator). You have write access (danger-full-access). Work TDD.
+
+  BINDING DOCS (read the relevant task + the corrections):
+  - PLAN: `docs/superpowers/plans/2026-06-26-e3-batch.md` — the `## v3` (PR2-FIX-1..15) + `## v2` (PR-FIX-1..17)
+    sections SUPERSEDE the v1 task snippets where they conflict. ALWAYS apply the v2/v3 corrections for your task.
+  - SPEC: `docs/superpowers/specs/2026-06-26-e3-batch.md` (`## v3` RR-FIX + `## v2` SR-FIX are binding).
+
+  RULES:
+  - Implement ONLY the task named in the input below. Write the code AND the tests from the plan (adapted per the
+    v2/v3 corrections). Match the surrounding code's style.
+  - **VERIFICATION CAP (hard):** after writing, run AT MOST ONE targeted test command (≤120s) to sanity-check your
+    task — e.g. `cargo test -p <crate> <filter>`. Do NOT run `cargo build --workspace`, `--all-targets`, clippy, or
+    fmt — the CONTROLLER runs the real gates in a clean host env (your sandbox stalls `cargo` at rustc startup). If a
+    test command runs >120s, KILL it and report "written, runtime-unverified".
+  - **DO NOT commit. DO NOT run any git-mutating command (`git add`/`commit`/`stash`/etc.).** The controller commits.
+  - Do NOT touch files outside your task. Do NOT modify the pre-existing untracked `examples/*.toml` / `prompts/*.md`
+    or the modified `examples/a2a-bridge.slicing-analysis.toml`.
+  - REPORT at the end: the exact files you wrote/modified, a one-line summary of each, and the single test result
+    (PASS / FAIL / runtime-unverified). Be concise. Then STOP.
+
+  ## YOUR TASK: Task 4 — `SqliteStore` migration + batch methods (bridge-store)
+
+  Implement **Task 4** from `docs/superpowers/plans/2026-06-26-e3-batch.md` (the "## Task 4" section), applying these
+  BINDING v3 corrections:
+
+  - **PR-FIX-4:** `SqliteStore::open(path)` and `SqliteStore::open_in_memory()` are **SYNCHRONOUS** (crates/bridge-store/
+    src/sqlite.rs:25/41) — call them WITHOUT `.await`, and the name is `open_in_memory()`. The store METHODS are async
+    (`#[tokio::test]`), but `open*` is sync. `bridge-store` has **no `tempfile` dev-dep** — add `tempfile` to
+    `[dev-dependencies]` in `crates/bridge-store/Cargo.toml` (OR write the temp db under `std::env::temp_dir()` with a
+    unique name; prefer adding `tempfile`).
+  - **PR2-FIX-3:** also implement **`fail_batch_if_status(id, expect, error, ts)`** (CAS to `failed` writing
+    `batch.error`), matching the trait method T3 added.
+
+  Implement the real `SqliteStore` impls of ALL 9 batch methods (override the T3 trait defaults):
+  `create_batch`, `get_batch`, `list_batches`, `active_batches` (WHERE status IN ('working','canceling')),
+  `batch_children` (WHERE batch_id=?), `claim_batch_child`, `cancel_batch_if_working`, `settle_batch_if_status`,
+  `fail_batch_if_status`.
+
+  **Migration** (idempotent, in the same place as `migrate_tasks_columns`, PRAGMA `table_info`-guarded like the existing
+  column adds):
+  - `CREATE TABLE IF NOT EXISTS batch (id TEXT PRIMARY KEY, workflow TEXT NOT NULL, concurrency INTEGER NOT NULL, total
+    INTEGER NOT NULL, status TEXT NOT NULL, items_json TEXT NOT NULL, error TEXT, created_ms INTEGER NOT NULL,
+    updated_ms INTEGER NOT NULL);`
+  - additive nullable cols on `tasks` (guarded): `ALTER TABLE tasks ADD COLUMN batch_id TEXT;` and `ADD COLUMN item_id
+    TEXT;` — and READ/WRITE them in the existing task row mapper + `create`/insert + `get`/`list` SELECTs so
+    `batch_id`/`item_id` round-trip.
+  - `CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_batch_item ON tasks(batch_id, item_id) WHERE batch_id IS NOT NULL;`
+
+  **`claim_batch_child`** — in ONE transaction, fully synchronous inside the `Mutex<Connection>` lock (NO `.await` held
+  across the lock): `BEGIN IMMEDIATE; SELECT id,status FROM tasks WHERE batch_id=?1 AND item_id=?2;` → if a row exists,
+  COMMIT and return `ExistingTerminal` if status!='working' else `ExistingWorking`; else INSERT the full child row
+  (status='working', batch_id, item_id, workflow_spec_json, …), COMMIT, return `Created`. Map `BatchStatus`⇄TEXT with the
+  same lowercase scheme as `TaskRecordStatus`. The CAS methods = `UPDATE batch SET status=?,updated_ms=? WHERE id=? AND
+  status=?expect` → `changes()>0`; `fail_batch_if_status` also sets `error=?`.
+
+  Tests (plan Task-4 Step 1, corrected): `sqlite_migration_idempotent_and_batch_roundtrip` (open → drop → RE-open same
+  path: migration idempotent; create_batch + get_batch round-trip) and `sqlite_claim_is_atomic_single_runner` (two
+  claims of the same item → (Created, ExistingWorking); 1 child row). Use SYNC `open`/`open_in_memory`.
+
+  VERIFICATION CAP: run ONLY `cargo test -p bridge-store sqlite_claim 2>&1 | tail -20` (≤120s; kill + report
+  runtime-unverified if it stalls). Report files + result. Do NOT build the workspace, do NOT commit.
+success_evidence:
+- cmd: cargo test -p bridge-store sqlite_migration_idempotent_and_batch_roundtrip
+  desc: 'named test 1/2: migration is idempotent (open/drop/re-open) + create_batch/get_batch round-trip'
+- cmd: cargo test -p bridge-store sqlite_claim_is_atomic_single_runner
+  desc: 'named test 2/2 (the atomicity oracle): two claims of the same batch item -> exactly one Created
+    + one ExistingWorking, one child row'
+- cmd: cargo build --workspace
+  desc: workspace still compiles (all 9 batch trait methods implemented on SqliteStore; no missed call
+    site)
+landed_commit: b41ced5e
+judging_approach: tests+diff; atomicity test is the oracle.
+reference_outcome: PASS; sqlite_claim_is_atomic_single_runner green in-session after 53s compile (original
+  gpt-5.5 session, capped to one targeted test by its own VERIFICATION CAP instruction — see success_evidence
+  above for the fuller post-hoc gate this harness runs).

@@ -1,0 +1,34 @@
+# bench task spec — SMOKE-00 (synthetic end-to-end pipeline smoke probe)
+#
+# NOT one of the mining/out/nominations.md nominations. This is a trivial,
+# negligible-cost task used ONCE to validate that bench/run_reference.py's
+# full pipeline (clone -> checkout tag -> remove origin -> headless
+# `claude -p --model claude-fable-5` -> diff/evidence capture -> transcript
+# locate+copy -> summary.json) actually works end-to-end, including the
+# usage/cost fields and the transcript copy, before spending real time/money
+# on the top-6 shortlist wave.
+#
+# source_repo is bench-smoke-fixture, a tiny disposable repo created solely
+# for this purpose (see its README.md) — NOT one of the owner's real
+# project repos.
+id: SMOKE-00
+nomination: synthetic-smoke-probe
+source_repo: /Users/wesleyjinks/code/bench-smoke-fixture
+pre_tag: bench/SMOKE-00-pre
+source_session: "n/a — synthetic probe, not sourced from the mining corpus"
+est_duration_min: 1
+task_prompt: |
+  Reply with exactly: OK, then stop. Do not modify any files.
+success_evidence:
+  - cmd: git status --short
+    desc: >-
+      expect EMPTY output — the task explicitly forbids file modifications,
+      so a clean working tree is the pass condition (this is the whole
+      oracle for this synthetic task; there is no code/test artifact).
+landed_commit: null
+judging_approach: >-
+  trivial pass/fail: result text == "OK" (from run.json's cli_result.result)
+  AND success_evidence's `git status --short` is empty (no stray edits).
+reference_outcome: >-
+  n/a — this task has no prior reference session; it exists only to
+  validate the harness's own plumbing.
