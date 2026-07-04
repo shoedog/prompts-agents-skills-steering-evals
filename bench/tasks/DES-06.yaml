@@ -1,0 +1,94 @@
+# bench task spec - DES-06 (prism-step7-statement-parallelization-design)
+# Design-family Fable reference (owner-approved 2026-07-04). task_prompt is
+# the VERBATIM task envelope from the source codex session.
+# plan_design conclusion-match, vindicated GO (contrast with PLAN-01 NO-GO — punishes blind caution). Vindicated: implemented as designed (fd81e49/ec84e21/3cb0182). Full marks = GO + ordered par_iter collect/serial apply + the cache-BYTE-parity (not semantic equality) proof-harness point.
+id: DES-06
+nomination: prism-step7-statement-parallelization-design
+source_repo: /Users/wesleyjinks/code/slicing
+pre_tag: bench/DES-06-pre
+pre_sha: 0f98dea
+est_duration_min: 20
+task_prompt: |
+  You are a Rust performance + static-analysis architect doing an INDEPENDENT design + architecture pass for
+  `prism`. session-cwd = the prism repo (branch `step5b-assemble-profile`, off main — S1.5 + the Step-5b memo are
+  merged). READ-ONLY: read/grep/`git`. Do NOT edit/build/test. Produce a design, not code.
+
+  ## The opportunity (measured)
+  After S1.5 (call-args index) and the Step-5b memo, a per-step profile of `assemble_graph` shows the residual
+  serial cost is concentrated in **ONE step — Step 7 (statement nodes for CFG, `collect_function_statements`,
+  `src/cpg/build.rs:706`)**: hugo **5.71s = 80%** of the 7.18s assemble, tokio **2.76s = 73%** of 3.80s; every
+  other step is now small. A throwaway `par_iter`-over-files spike (collect statements in parallel → serial
+  node-create) measured **hugo 14.7→10.7s (−4.0s), tokio 6.4→4.2s (−2.2s)**, user/wall 1.53→2.22 → clear GO.
+
+  ## The owner's directive: BE MINDFUL AND GUARD AGAINST RISK
+  This is a node-CREATING step, so unlike the edge-only Step 5b, the **load-bearing risk is node-insertion-order
+  parity**: petgraph `NodeIndex` is assigned in insertion order, and `cpg_cache.rs` serializes nodes/edges in
+  that order — so a single reordered node ⇒ different `NodeIndex` ⇒ different cache bytes ⇒ wrong incremental
+  builds / Tier-A flips, AND every downstream index keyed by `NodeIndex` (`stmt_index`, `location_index`, Step 8
+  CFG edges) shifts. **The design's central job is to PROVE the parallel build produces a byte-identical graph.**
+
+  ## Deliver
+
+  ### A. ANALYSIS — confirm the target + the parallel/serial split
+  Read `collect_function_statements` (`:706`) + its callees (`parsed.statement_spans_in_function` `src/ast.rs:3112`,
+  `Self::classify_stmt_kind` `:750`). Confirm: the per-file work (tree walk + `statement_spans_in_function` +
+  `classify_stmt_kind`) is READ-ONLY and per-file independent; only `graph.add_node` + `stmt_index.insert` +
+  `location_index.entry().push()` mutate shared state. Confirm the profile attribution (Step 7 dominant). Is the
+  expensive part the walk/classify (parallelizable) or `add_node` (serial, cheap)?
+
+  ### B. DESIGN — parallel collect → serial node-create
+  `par_iter` over `files` (a `BTreeMap` — order-preserving) → per file, walk + dedup + classify → a `Vec` of
+  statement records (line, kind, start_byte, end_byte) in walk order; then a SERIAL pass creates the nodes +
+  `stmt_index` + `location_index` in `files`-order × walk-order. Specify the map output type, the dedup handling,
+  and the serial apply.
+
+  ### C. ARCHITECTURE / RISK — the byte-identical proof (the core, per the owner)
+  - **Node order.** Does `files`-BTreeMap-order × per-file-walk-order reproduce the EXACT current serial node
+    order? The current dedup is `if stmt_index.contains_key(&(file,line)) { continue }` — a GLOBAL incremental
+    check. Is a per-file dedup equivalent (the key includes `file`, so per-file ⊆ global — but verify no
+    cross-file (file,line) interaction, and that "first occurrence in walk order wins" is preserved exactly)?
+  - **`location_index` interaction.** Step 7 does `location_index.entry((file,line)).or_default().push(idx)` into
+    an index that ALREADY holds nodes from earlier steps (var nodes, etc.). The APPEND ORDER of the statement
+    nodes matters. What consumes `location_index` (grep), and is its post-Step-7 contents/order preserved
+    byte-for-byte by the parallel-then-serial approach?
+  - **`stmt_index` → Step 8.** Step 8 (`build_cfg_edges` + `stmt_index.get`) depends on `stmt_index` being
+    identical. Confirm.
+  - **The proof harness.** Specify a **serial-reference node-order oracle** (the S1.5 frozen-oracle pattern):
+    capture the pre-refactor sequence of created `Statement` nodes (+ `stmt_index`/`location_index` state) and
+    assert the parallel build reproduces it exactly; PLUS extend `tests/infra/parallel_equality_test.rs`
+    (thread-count determinism + cache-blob byte parity). Read `cpg_cache.rs` to confirm node-order is
+    byte-significant and name the exact serialized fields.
+  - **Determinism + Send/Sync.** rayon `collect` order-preserving; `ParsedFile` `Send+Sync` (existing `par_iter`
+    proves it); `statement_spans_in_function`/`classify_stmt_kind` read-only (any interior mutability /
+    `OnceLock` / caching that could race or non-determine?). The map captures no `&mut`.
+  - **FAILURE MODES — enumerate.** List every way the parallel output could diverge from serial (dedup order,
+    location_index append order, walk order, classify non-determinism, float/hash, …) and the guard for each.
+
+  ### D. VERDICT
+  GO / NO-GO + the risk-mitigation plan + EXACTLY what must be proven byte-identical before this can ship, and
+  whether the ~4s reward justifies the parity-test cost (the owner's instinct: yes, but pressure-test it).
+
+  ## Read for ground truth (cite file:line)
+  `src/cpg/build.rs` (`collect_function_statements` :706, Step 7 :565, Step 8 :581, `assemble_graph` :290),
+  `src/ast.rs` (`statement_spans_in_function` :3112), `src/cpg/build.rs` (`classify_stmt_kind` :750), `cpg_cache.rs`
+  (node/edge serialization), `tests/infra/parallel_equality_test.rs`, `src/cpg/types.rs` (`CpgNode::Statement`,
+  `StmtKind`). rayon is a dep; C1/C2 (the S1 perf parallel-extract→serial-assemble pattern) is the precedent.
+
+  ## Output (plain text, no fence)
+  - **ANALYSIS:** target confirmation + parallel/serial split.
+  - **DESIGN:** parallel-collect → serial-create (types, dedup, apply order).
+  - **ARCHITECTURE / RISK:** the byte-identical proof — node order, location_index, stmt_index, the oracle,
+    determinism, Send/Sync, the enumerated failure modes + guards.
+  - **VERDICT:** GO/NO-GO + risk-mitigation + what must be proven. Be decisive.
+
+  ADDITIONAL CONTEXT (may be empty): Branch step5b-assemble-profile (off main: S1.5 call-args index + the Step-5b per-callee param memo are merged).
+  Per-step assemble_graph profile (env-gated Instant timers, reverted), cold nav --no-cache call-stats:
+    HUGO assemble 7.18s: Step7 stmtNodes 5.71s (80%), Step8 cfgEdges 0.59s, Step5b interpDFG(memo) 0.41s, Steps2-3 varNodes 0.31s, rest <0.15s. Step9 ~0 (no type_db).
+    TOKIO assemble 3.80s: Step7 2.76s (73%), Step5/5b ~0.4s each, Step8 0.17s, rest small.
+  Throwaway par_iter-over-files spike (parallel collect statements -> serial node-create, per-file line dedup):
+    hugo 14.7->10.7s (-4.0s, ratio 1.53->2.22), tokio 6.4->4.2s (-2.2s). The spike happened to preserve node order
+    (files BTreeMap order x walk order) and produced a working build, but it had NO parity proof — that is the
+    production design's job. cpg_cache.rs serializes node/edge insertion order (cache-byte significant).
+success_evidence:
+  - cmd: 'git diff --quiet'
+    desc: 'READ-ONLY design task - workspace must be unmodified. Real oracle = post-hoc conclusion-match vs vindicated commits (see header).'

@@ -1,0 +1,89 @@
+# TREATMENT variant (exp-d1): verify-before-done artifact prepended to the
+# verbatim envelope of bench/tasks/IMPL-05.yaml. Generated - do not hand-edit.
+id: IMPL-05
+nomination: a2a-e7-t10-commit-message-precedence-d1
+source_repo: /Users/wesleyjinks/code/a2a-bridge
+pre_tag: bench/IMPL-05-pre
+pre_sha: 22e61ea93e9ddd67e1ae5c66b304c3784d9047e4
+task_prompt: |
+  Before declaring the task done:
+
+  1. Run the full test suite, not just the tests the task names; report the totals you saw.
+  2. For every behavior you added or fixed, write or extend a test that would FAIL on the code as it was before your change — include at least one negative or edge case per new code path.
+  3. State explicitly what you verified (commands and results) and what you did NOT verify.
+  4. If the full suite surfaces a failure outside your task's scope, stop and report it — do not re-baseline or silently fix it.
+
+  ---
+
+  You are IMPLEMENTING one task of the "E7 — Typed Task-Spec Contract" feature for the a2a-bridge (a Rust A2A↔ACP
+  bridge + multi-agent workflow orchestrator). You have write access (danger-full-access). Work TDD.
+
+  BINDING DOCS (read the relevant task + the corrections):
+  - PLAN: `docs/superpowers/plans/2026-06-27-e7-typed-task-spec.md` — the `## v2` section (PR-FIX-1..10) SUPERSEDES the
+    v1 task text where they conflict. ALWAYS apply the v2 corrections for your task.
+  - SPEC: `docs/superpowers/specs/2026-06-27-e7-typed-task-spec.md` (`## v2`/`## v3`/`## v4` folds are binding).
+
+  RULES:
+  - Implement ONLY the task named in the input below. Write the code AND the tests from the plan (adapted per v2).
+  - **VERIFICATION CAP (hard):** after writing, run AT MOST ONE targeted test command (≤120s) to sanity-check your
+    task — e.g. `cargo test -p <crate> <filter>`. Do NOT run `cargo build --workspace`, `--all-targets`, clippy, or
+    fmt — the CONTROLLER runs the real gates in a clean host env (your sandbox stalls `cargo` at rustc startup). If a
+    test command runs >120s, KILL it and report "written, runtime-unverified".
+  - **DO NOT commit. DO NOT run any git-mutating command.** The controller commits.
+  - Do NOT touch files outside your task. Do NOT modify the pre-existing untracked `examples/*.toml` / `prompts/*.md`
+    or the modified `examples/a2a-bridge.slicing-analysis.toml`.
+  - REPORT at the end: the exact files you wrote/modified, a one-line summary of each, and the single test result
+    (PASS / FAIL / runtime-unverified). Be concise. Then STOP.
+
+  ## YOUR TASK: Task 10 — implement `commit_message` precedence (typed > file > title > derived)
+
+  Implement **Task 10** from `docs/superpowers/plans/2026-06-27-e7-typed-task-spec.md`, applying **RR2-FIX-5** (comment-strip
+  + fall back to title) + **PR-FIX-9** (the 4-arg signature RIPPLES: merge.rs + the existing tests + the `.1`/warning
+  re-spec; tweak.rs is NOT a caller). In `bin/a2a-bridge/src/implement.rs` (`commit_message`, ~:121) + the call sites.
+
+  ### New signature
+  `pub fn commit_message(typed: Option<String>, file: Option<String>, title: &str, task: &str) -> (String, CommitSource)`
+  where `pub enum CommitSource { Typed, File, Title, Derived }` (replaces the current `bool` — re-spec, PR-FIX-9).
+  - For each candidate string (`typed`, then `file`): **strip HTML comments + trim + NUL-strip + bound to 64 KiB**
+    (reuse/mirror `read_commit_msg_file`'s bounding, ~:136). A candidate that is empty/comment-only AFTER stripping is
+    treated as ABSENT.
+  - Precedence: a non-empty stripped `typed` → `CommitSource::Typed`; else non-empty stripped `file` →
+    `CommitSource::File`; else a non-empty `title` → `CommitSource::Title`; else the existing task-derived default →
+    `CommitSource::Derived`.
+
+  ### Call sites (PR-FIX-9 — ALL three)
+  - `bin/a2a-bridge/src/main.rs` (~:2133, currently `commit_message(read_commit_msg_file(&clone), &task)`): pass the
+    parsed spec's `Commit Message` section as `typed` (`spec.section("Commit Message").map(|s| s.content.clone())`), the
+    file channel as `file` (`read_commit_msg_file(&clone)`), the parsed `title` (`spec.title.as_deref().unwrap_or("")`),
+    and `&task` (the body). The ONE resolved `message` threads to `host_commit` (~:2166) AND the checkpoint
+    `original_message` (~:2189) — NO new persisted field.
+  - `bin/a2a-bridge/src/merge.rs` (~:465, currently `commit_message(ck.original_message.clone(), &ck.task_brief)`):
+    the merge path has the PERSISTED `original_message` (already-resolved) → pass it as `typed` (highest precedence),
+    `file = None`, `title = &ck.task_brief`, `task = &ck.task_brief`. (tweak.rs passes `original_message` into `decide`
+    — it does NOT call `commit_message`; leave it.)
+  - **Re-spec the `.1`/warning** (main.rs:~2134-2135): the "no `.git/A2A_COMMIT_MSG` — using task-derived message"
+    warning must fire ONLY when `source == CommitSource::Derived` — a `Typed`/`File`/`Title` source must NOT mis-warn
+    "task-derived".
+
+  ### Tests
+  - `bin/a2a-bridge/src/implement.rs` `commit_precedence_and_comment_only_falls_back_to_title`:
+    - `commit_message(Some("feat: x".into()), None, "Add foo", "task body").0 == "feat: x"` (Typed wins).
+    - `commit_message(Some("<!-- OPTIONAL -->".into()), None, "Add foo endpoint", "task body").0 == "Add foo endpoint"`
+      (comment-only typed → absent → Title).
+    - `commit_message(None, None, "Add foo endpoint", "task body").0 == "Add foo endpoint"` (no typed/file → Title).
+    - `commit_message(None, Some("from file".into()), "T", "task").0 == "from file"` (File over Title).
+  - **Update the EXISTING `commit_message` tests** at implement.rs ~:698/:702/:708/:710 (currently 2-arg) to the new
+    4-arg signature + the `CommitSource` return (PR-FIX-9). Keep their intent (file content wins / blank → fallback /
+    bounding).
+
+  VERIFICATION CAP: run ONLY `cargo test -p a2a-bridge commit_precedence 2>&1 | tail -20` (≤120s; a2a-bridge is large —
+  kill + report "written, runtime-unverified" if it stalls). Report files + result. Do NOT build the whole workspace, do
+  NOT commit.
+success_evidence:
+  - cmd: 'cargo test -p a2a-bridge commit_precedence_and_comment_only_falls_back_to_title'
+    desc: 'the new named test for the 4-arg precedence signature'
+    expect_min_tests: 1
+  - cmd: 'cargo build --workspace'
+    desc: "THE DISCRIMINATOR: tweak.rs:260 builds a (String, CommitSource) tuple consumed by implement::decide and does not itself call commit_message, but its literal must be updated from the old (String, bool) shape to (String, CommitSource) once CommitSource replaces bool — the original gpt-5.5 session's 3-file scope (implement.rs/main.rs/merge.rs) missed this and the controller had to patch it separately. A candidate that misses tweak.rs fails this compile check; one that finds all 4 sites passes it."
+  - cmd: 'cargo test -p a2a-bridge'
+    desc: 'full a2a-bridge bin-crate suite green (existing commit_message tests at implement.rs updated to the new 4-arg signature, not just the new test passing)'

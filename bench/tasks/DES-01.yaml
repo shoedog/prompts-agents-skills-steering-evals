@@ -1,0 +1,52 @@
+# bench task spec - DES-01 (prism-slice2-typed-receiver-architect-memo)
+# Design-family Fable reference (owner-approved 2026-07-04). task_prompt is
+# the VERBATIM task envelope from the source codex session.
+# plan_design conclusion-match. Vindicated: Option B guarded recovery adopted verbatim (a069da0/075d686); low-buy prediction CONFIRMED (ce3f5ab BUY NEGLIGIBLE ~+17); JS/TS scope REFUTED by impl (22deb40 Python-only); slice later SHELVED. Full marks = Option-B-shaped guarded fallthrough + realistic low-buy sizing + Express/JS ~0 recognition.
+id: DES-01
+nomination: prism-slice2-typed-receiver-architect-memo
+source_repo: /Users/wesleyjinks/code/slicing
+pre_tag: bench/DES-01-pre
+pre_sha: 184208a2
+est_duration_min: 25
+task_prompt: |
+  # Analyze + architect (xhigh, read-only): prism slice 2 — Python/JS typed-receiver recovery
+
+  You are a senior static-analysis architect (codex gpt-5.5, xhigh). **Read-only.** Produce an ANALYSIS +
+  ARCHITECTURE memo (markdown) for the next Python/JS precision+recall slice in `prism` (tree-sitter CPG /
+  code-nav, exposed to LLM agents). Cite `file:line`. Session cwd = the prism repo
+  (`/Users/wesleyjinks/code/slicing`, on `main` — includes the just-merged self-receiver same-class slice and
+  its `method_class_span`/`method_owner_class_node`). Design only; no code.
+
+  ## The slice
+  Resolve `x.method()` in **Python and JS/TS** where the receiver `x`'s static type is syntactically
+  recoverable — typed params (`def f(x: Foo)`, TS `f(x: Foo)`, fields), constructor locals (`x = Foo()`,
+  `x = new Foo()`), and TS type annotations — by feeding the recovered owner type into the existing R6
+  owner-dispatch (`owner_lookup`). This is the Python/JS analogue of what already exists for Rust/Go.
+
+  ## Verify-first (do this, report numbers)
+  1. **Size the denominator.** Of the unresolved/`dropped_external_receiver`/`free`-demoted calls in fastapi,
+     pydantic, express, how many are `x.method()` with a *recoverable* receiver type (typed param /
+     constructor local / TS annotation)? Use `prism nav call-stats` + source greps. The buy hinges on this —
+     if small, say so.
+  2. **Confirm the seam works for Python/JS.** The Rust/Go receiver typing flows through `ReceiverClassifier`
+     (`src/resolution.rs:262`), R6 step 1 (`src/resolution.rs:1066-1121` → `owner_lookup(recv_ty, name)`),
+     `RustReceiverTyper` (`src/resolution_receiver.rs:31-108`), build-time materialization
+     (`src/call_graph.rs:~595-640`), and the AST scan `receiver_type_in_fn` (`src/ast.rs:393-447`, gated
+     `Rust|Go`) + `recover_simple_ident` (`src/resolution.rs:318`, gated `Rust|Go`, skips `self|this|cls`).
+     Confirm what opening these gates for Python/JS would entail and whether `owner_lookup` (now class-aware
+     via the merged slice) is the right sink.
+
+  ## Deliver
+  - **Verification** (the denominator + seam facts, with evidence).
+  - **Architecture options** (≥2): e.g. (A) a `PythonReceiverTyper`/`JsReceiverTyper` beside
+    `RustReceiverTyper` extending the existing P6-lite scan to Python type-hints/constructor-locals + TS type
+    nodes, routed through R6; (B) something lighter/narrower. Trade-offs, soundness (owner-key collisions —
+    does it need the same `(file, class-span)` identity the merged slice added?), blast radius, risk.
+  - **Recommendation + thin-slice plan** (what to change, discriminating tests, acceptance = which call-stats
+    buckets rise, canary flat, Rust/Go byte-identical), + what to defer (cross-module type resolution / the
+    scope-graph = slice 4).
+  - **Risks / unknowns.**
+  Be opinionated; cheapest sound design that yields a real measured buy.
+success_evidence:
+  - cmd: 'git diff --quiet'
+    desc: 'READ-ONLY design task - workspace must be unmodified. Real oracle = post-hoc conclusion-match vs vindicated commits (see header).'
