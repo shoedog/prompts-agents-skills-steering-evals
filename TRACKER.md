@@ -3,29 +3,23 @@
 Owner-approved backlog (2026-07-03). Items move to "Done" with the commit that closes them.
 
 ## Harness improvements (codex final-review triage)
-- [ ] Judge-side dollar tracking — codex judge tokens/USD not folded into cost; $10 budget gate enforces executor cost only.
-- [ ] McNemar-based noise trigger — replace/augment the conservative CI-overlap caveat with a McNemar test on the paired flips table.
-- [ ] moves.yaml metadata polish — fold row-13 imperative-twin contrast into context-narrative-overview notes; sensitivity-notes evidence_tier general→human (conservative fill); revisit differential-diagnosis test_cheap hedge.
-- [ ] codex_cli TOML escaping guard for effort values (fixed vocab today).
-- [ ] report.py: when composite_floored fires, physically lead with defect-recall/confusion (currently banner-only).
-- [ ] check_spotcheck.py: empty-but-present items list should read PROVISIONAL, not FAIL.
-- [ ] ci/test_smoke.py: content-level (not existence-only) checks on report.md/spotcheck.yaml.
-- [ ] judge_assert: probe exotic verdict markdown (tables, heading-verdicts) beyond current variants.
+- [ ] Judge cost rate wiring: usd_per_mtok plumbing exists (judge tolerant-read + executor config field) but no experiment YAML sets a rate; verify config.py accepts judge.usd_per_mtok and set real rates.
+- [ ] executor/judge effort enum validation in config.py (surfaces only at call time today).
+- [ ] rejudge.py judge_cost_usd stays None (no rate source) — unify with rate wiring above.
 - [ ] Generalize adherence directive keys — currently hard-keyed to review-shape.* labels; reads 0.000 for other treatments (cosmetic today, blocking for adherence-battery experiments).
-- [ ] Stratify spotcheck sampling by seeded/clean as well as arm — the rs-01..10 deterministic sample contained zero clean items (compensated manually this round).
-- [ ] rejudge.py: stamp rescored judge records with the output exp_id (currently carry source exp_id) and emit a per-call trace file natively.
 
 ## Scope extension (owner-added 2026-07-03)
-- [ ] Multi-family executor tiers via codex CLI / a2a-bridge — available: gpt-5.5 (effort dial minimal→xhigh), gpt-4o-mini, local qwen2.5-coder:7b + qwen3-coder:480b. Needs: harness/providers/promptfoo_codex.py executor shim, `executor.provider` field in config.py (BLOCKED on workstream C landing — config.py collision), tier naming per model+effort, token/cost handling (tokens-only models use judge-style usd_per_mtok). Unlocks: expertise-reversal signature (element helps weak / hurts strong), cross-family generality. RULE: when an OpenAI model is the executor, use a non-OpenAI judge (self-preference guard).
-- [ ] Custom agents as a 4th deployment form — initial scope covered prompts/skills/steering only. Two experiment surfaces: (a) `agent.md` form per element artifact (`.claude/agents/*.md` body = system-prompt home for the same ≤150-token snippet; codex analog = AGENTS.md section) → same ablation harness, new form enum value in config `varied_element_form`; (b) agent DESCRIPTION as a delegation-triggering surface → triggering classifier eval (30–50 queries, half should trigger; `triggering_metrics` in harness/metrics.py already computes P/R-with-base-rate). Needs: form added to artifact library + lint, config enum, and a triggering query set. Note: eval_framework Tier 2 profile 5 (Agents/Agent Loops) covers the loop-level evals — out of scope here; this item is only the artifact-deployment + triggering angle.
 
 ## Experiments not running next (queued after exp2)
 - [ ] Exp 3 — failure-signature list on debugging tasks (test_cheap). Blocker: needs a 20-item reproducible-failing-test task set (same manifest/truth pattern); curation ≈ Task-5 effort.
 - [ ] Exp 4 — rejected-alternatives-with-boundary-conditions on design tasks (must_test; genuine evidence gap). Blocker: design task set + binary design-quality judge rubric; ≈ 2× exp 3 effort.
-- [ ] Harder review items — 10–15 items with 60–120-line multi-hunk diffs to pull baseline recall off ceiling; prerequisite for a meaningful exp 1 re-run.
 - [ ] Exp 1 re-run on the harder set (after ceiling is fixed).
 
 ## Done
+- [x] Cleanup wave: McNemar trigger, judge token tracking, stratified spotcheck, empty-items PROVISIONAL, floored reorder, ci content gates, TOML guard (+fullmatch), rejudge exp_id+trace, moves.yaml polish, verdict-markdown probes — fa8fc89/c83bc64/5a079e8.
+- [x] Custom agents 4th deployment form (agent.md ×15, lint, config enum, frontmatter stripping) — f094e4f/9a0f5cb.
+- [x] Multi-family executor tiers: codex executor provider + same-family-judge guard + tokens-only cost; gpt-5.5 live-verified, gpt-4o-mini NOT entitled on this login, qwen untested — 9b1f033.
+- [x] Harder review items: tasksets/review-hard (15 items, cross-hunk, execution-verified 29/29) — d49c319/5fd2c70.
 - [x] Exp 1 — review shape vs plain review (inconclusive at ceiling; +30% USD cost finding) — d14a2b3, caveats b741014.
 - [x] Exp 1 rescored under neutral-findings scope — arms identical 18/20; original baseline edge was judge-scope artifact — 94bcaf3.
 - [x] Judge spot-check — 20/20 agreement (+12/12 clean supplementary), AI stand-in disclosed — 981fb1f.
