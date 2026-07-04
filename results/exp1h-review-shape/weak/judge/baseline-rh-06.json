@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp1h-review-shape",
+  "arm": "baseline",
+  "task_id": "rh-06",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-06/truth.yaml",
+  "truth_defect_ids": [
+    "rh-06-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. `defaults()` return statement — returns internal dict reference instead of a copy, breaking read-only encapsulation contract and enabling callers to modify internal state\n2. `effective()` method — now mutates `self._defaults` because `self.defaults()` returns a reference that `update()` modifies, violating the contract \"(defaults unchanged)\"\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-06-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 1,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 15027,
+  "judge_cost_usd": null
+}

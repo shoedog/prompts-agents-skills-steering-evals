@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp1h-review-shape",
+  "arm": "baseline",
+  "task_id": "rh-07",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-07/truth.yaml",
+  "truth_defect_ids": [
+    "rh-07-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. parsing.py:25 — `strip_marker()` calls `find_range()` without checking for `None` return, will crash with `TypeError` when marker is absent instead of raising `ValueError`.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-07-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 14911,
+  "judge_cost_usd": null
+}

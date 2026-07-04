@@ -1,0 +1,24 @@
+{
+  "exp_id": "exp1h-review-shape",
+  "arm": "baseline",
+  "task_id": "rh-13",
+  "tier": "weak",
+  "seeded": false,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-13/truth.yaml",
+  "truth_defect_ids": [],
+  "normalized_block": "## FINDINGS\nVERDICT: APPROVE\nNo findings.\n",
+  "parse_ok": true,
+  "defects": [],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": false,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 7213,
+  "judge_cost_usd": null
+}

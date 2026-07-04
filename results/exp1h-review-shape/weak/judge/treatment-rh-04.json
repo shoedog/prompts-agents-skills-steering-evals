@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp1h-review-shape",
+  "arm": "treatment",
+  "task_id": "rh-04",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": true,
+    "disconfirm": true,
+    "verify": true
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-04/truth.yaml",
+  "truth_defect_ids": [
+    "rh-04-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. leaderboard.py:24 — `add_many()` does not maintain global sorted order; `extend(sorted(values))` appends sorted values to the end without interleaving with existing scores, violating the contract and breaking subsequent binary-search operations.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-04-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 15030,
+  "judge_cost_usd": null
+}

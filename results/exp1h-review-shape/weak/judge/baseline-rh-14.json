@@ -1,0 +1,24 @@
+{
+  "exp_id": "exp1h-review-shape",
+  "arm": "baseline",
+  "task_id": "rh-14",
+  "tier": "weak",
+  "seeded": false,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-14/truth.yaml",
+  "truth_defect_ids": [],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. guard.py:14-18 — enter() doesn't serialize multiple threads; if Thread A holds the mutex and Thread B calls enter(), Thread B sees _depth > 0 and skips acquiring the mutex, proceeding unprotected into the critical section\n2. guard.py:25-28 — exit() return value changed from True to self._depth (integer), breaking code that relies on a truthy boolean return value\n3. guard.py:43-45 — force_reset() releases a mutex without verifying the current thread owns it, which is dangerous if called from a different thread than the one holding the lock\n",
+  "parse_ok": true,
+  "defects": [],
+  "false_findings": 3,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 1283,
+  "judge_cost_usd": null
+}

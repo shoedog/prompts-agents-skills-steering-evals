@@ -1,0 +1,36 @@
+{
+  "exp_id": "exp1h-review-shape",
+  "arm": "baseline",
+  "task_id": "rh-09",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-09/truth.yaml",
+  "truth_defect_ids": [
+    "rh-09-d1",
+    "rh-09-d2"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. bank.py:20-21 — transfer() violates atomicity: _debit(src) modifies state before _credit(dst) validates dst exists; if dst is invalid, src is already debited without a corresponding credit, partially committing the transaction\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-09-d1",
+      "found": true
+    },
+    {
+      "defect_id": "rh-09-d2",
+      "found": false
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 15103,
+  "judge_cost_usd": null
+}

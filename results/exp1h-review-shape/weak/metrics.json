@@ -1,0 +1,127 @@
+{
+  "baseline_pass": {
+    "k": 8,
+    "n": 15,
+    "rate": 0.5333333333333333,
+    "wilson_ci": [
+      0.30116980025498397,
+      0.7519046463426261
+    ],
+    "judge_errors": 0
+  },
+  "treatment_pass": {
+    "k": 8,
+    "n": 15,
+    "rate": 0.5333333333333333,
+    "wilson_ci": [
+      0.30116980025498397,
+      0.7519046463426261
+    ],
+    "judge_errors": 0
+  },
+  "baseline_tokens": {
+    "fresh_input": 150,
+    "cache_creation": 134455,
+    "cache_read": 165015,
+    "output": 107249,
+    "logical_total": 299620,
+    "cost_usd": 0.8218065000000002
+  },
+  "treatment_tokens": {
+    "fresh_input": 150,
+    "cache_creation": 136900,
+    "cache_read": 165015,
+    "output": 116877,
+    "logical_total": 302065,
+    "cost_usd": 0.8748365000000001
+  },
+  "token_delta": {
+    "fresh_input": {
+      "abs": 0,
+      "pct": 0.0
+    },
+    "cache_creation": {
+      "abs": 2445,
+      "pct": 1.8184522702763006
+    },
+    "cache_read": {
+      "abs": 0,
+      "pct": 0.0
+    },
+    "output": {
+      "abs": 9628,
+      "pct": 8.977239881024532
+    },
+    "logical_total": {
+      "abs": 2445,
+      "pct": 0.8160336426139777
+    },
+    "cost_usd": {
+      "abs": 0.05302999999999991,
+      "pct": 6.4528572115211915
+    }
+  },
+  "baseline_confusion": {
+    "tp": 10,
+    "fp": 2,
+    "tn": 3,
+    "fn": 0,
+    "n": 15,
+    "base_rate": 0.6666666666666666,
+    "defect_recall": {
+      "found": 11,
+      "total": 14,
+      "rate": 0.7857142857142857,
+      "judge_id_mismatches": 0
+    },
+    "false_findings_total": 8,
+    "neutral_matched_total": 0
+  },
+  "treatment_confusion": {
+    "tp": 10,
+    "fp": 1,
+    "tn": 4,
+    "fn": 0,
+    "n": 15,
+    "base_rate": 0.6666666666666666,
+    "defect_recall": {
+      "found": 11,
+      "total": 14,
+      "rate": 0.7857142857142857,
+      "judge_id_mismatches": 0
+    },
+    "false_findings_total": 5,
+    "neutral_matched_total": 0
+  },
+  "flips": {
+    "both_pass": 7,
+    "both_fail": 6,
+    "only_baseline": 1,
+    "only_treatment": 1
+  },
+  "mcnemar_p": 1.0,
+  "adherence": {
+    "review-shape.checklist": 1.0,
+    "review-shape.disconfirm": 1.0,
+    "review-shape.verify": 1.0,
+    "review-shape.all_three": 1.0
+  },
+  "baseline_judge_tokens": {
+    "judge_tokens_total": 190695,
+    "judge_tokens_missing": 0,
+    "judge_cost_usd_total": null
+  },
+  "treatment_judge_tokens": {
+    "judge_tokens_total": 183573,
+    "judge_tokens_missing": 0,
+    "judge_cost_usd_total": null
+  },
+  "flags": {
+    "cost_adjusted_verdict": false,
+    "harness_broken": false,
+    "composite_floored": false,
+    "judge_errors": 0
+  },
+  "judge_errors": 0,
+  "parse_failures": 0
+}

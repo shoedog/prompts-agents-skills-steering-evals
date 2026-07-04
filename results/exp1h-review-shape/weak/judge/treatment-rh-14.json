@@ -1,0 +1,24 @@
+{
+  "exp_id": "exp1h-review-shape",
+  "arm": "treatment",
+  "task_id": "rh-14",
+  "tier": "weak",
+  "seeded": false,
+  "adherence_labels": {
+    "checklist": true,
+    "disconfirm": true,
+    "verify": true
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-14/truth.yaml",
+  "truth_defect_ids": [],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. guard.py:26 — exit() decrements _depth without checking if it is > 0 first; unmatched exit() calls make _depth negative, corrupting the guard state and breaking subsequent enter/exit pairs.\n",
+  "parse_ok": true,
+  "defects": [],
+  "false_findings": 1,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 1160,
+  "judge_cost_usd": null
+}

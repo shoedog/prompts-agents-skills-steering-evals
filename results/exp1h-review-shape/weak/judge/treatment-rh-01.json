@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp1h-review-shape",
+  "arm": "treatment",
+  "task_id": "rh-01",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": true,
+    "disconfirm": true,
+    "verify": true
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-01/truth.yaml",
+  "truth_defect_ids": [
+    "rh-01-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. ttl_cache.py:45 — `touch` method fails to convert `ttl_seconds` to milliseconds when computing expiry; should be `entry[1] = now_ms() + ttl_seconds * 1000`, consistent with `set` on line 20.\n2. ttl_cache.py:38 — `ttl_left` returns milliseconds instead of seconds, violating the contract principle that the public API uses seconds for TTLs and breaking compatibility with code expecting seconds.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-01-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 1,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 15008,
+  "judge_cost_usd": null
+}

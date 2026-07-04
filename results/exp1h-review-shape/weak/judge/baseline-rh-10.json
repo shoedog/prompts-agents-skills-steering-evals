@@ -1,0 +1,36 @@
+{
+  "exp_id": "exp1h-review-shape",
+  "arm": "baseline",
+  "task_id": "rh-10",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-10/truth.yaml",
+  "truth_defect_ids": [
+    "rh-10-d1",
+    "rh-10-d2"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. importer.py:25 — _validate checks `not raw` before normalization, failing to reject whitespace-only strings that become empty after normalization\n2. importer.py:40 — retry_import appends directly to _records without checking _seen, allowing duplicate records and violating the uniqueness invariant\n3. importer.py:40 — retry_import does not validate names, bypassing the empty/length checks\n4. importer.py:44 — retry_import returns total _records length instead of count of newly added records\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-10-d1",
+      "found": true
+    },
+    {
+      "defect_id": "rh-10-d2",
+      "found": true
+    }
+  ],
+  "false_findings": 2,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 1381,
+  "judge_cost_usd": null
+}

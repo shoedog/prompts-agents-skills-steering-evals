@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp1h-review-shape",
+  "arm": "baseline",
+  "task_id": "rh-01",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-01/truth.yaml",
+  "truth_defect_ids": [
+    "rh-01-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. ttl_cache.py:46 — `touch()` method fails to convert `ttl_seconds` from seconds to milliseconds, causing expiry times to be set ~1000x too soon\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-01-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 15308,
+  "judge_cost_usd": null
+}

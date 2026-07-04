@@ -1,0 +1,14 @@
+{
+  "exp_id": "exp1h-review-shape",
+  "arm": "baseline",
+  "task_id": "rh-14",
+  "tier": "weak",
+  "model": "claude-haiku-4-5-20251001",
+  "fresh_input_tokens": 10,
+  "cache_creation_tokens": 8852,
+  "cache_read_tokens": 11001,
+  "output_tokens": 9706,
+  "input_tokens_logical": 19863,
+  "cost_usd": 0.0673441,
+  "duration_ms": 101325
+}

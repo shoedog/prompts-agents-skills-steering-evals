@@ -1,0 +1,36 @@
+{
+  "exp_id": "exp1h-review-shape",
+  "arm": "treatment",
+  "task_id": "rh-10",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": true,
+    "disconfirm": true,
+    "verify": true
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-10/truth.yaml",
+  "truth_defect_ids": [
+    "rh-10-d1",
+    "rh-10-d2"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. importer.py:11 — Empty string validation checks raw input instead of normalized form, allowing whitespace-only strings like `\"   \"` to be stored as empty keys, violating the contract \"empty (after normalization) is rejected\"\n2. importer.py:12 — Length validation checks raw string length instead of normalized length, overly restricting inputs like `\"name\" + padding` that would be valid after trimming\n3. importer.py:39–44 — `retry_import` directly appends to `_records` without updating `_seen` or checking for duplicates, creating inconsistent state and violating the contract \"without creating duplicate records\" (example: retrying `['alice']` when 'alice' already stored results in `_records=['alice', 'alice']`)\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-10-d1",
+      "found": true
+    },
+    {
+      "defect_id": "rh-10-d2",
+      "found": true
+    }
+  ],
+  "false_findings": 1,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 15656,
+  "judge_cost_usd": null
+}

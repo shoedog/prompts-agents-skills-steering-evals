@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp1h-review-shape",
+  "arm": "treatment",
+  "task_id": "rh-02",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": true,
+    "disconfirm": true,
+    "verify": true
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-02/truth.yaml",
+  "truth_defect_ids": [
+    "rh-02-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. memo.py:32–34 — `invalidate(a, b)` pops the 2-tuple `(a, b)` but cache keys are now 3-tuples `(a, b, opts_tuple)`, so it will never find or delete anything\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-02-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 14943,
+  "judge_cost_usd": null
+}

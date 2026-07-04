@@ -1,0 +1,36 @@
+{
+  "exp_id": "exp1h-review-shape",
+  "arm": "baseline",
+  "task_id": "rh-03",
+  "tier": "weak",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/review-hard/items/rh-03/truth.yaml",
+  "truth_defect_ids": [
+    "rh-03-d1",
+    "rh-03-d2"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. transaction.py:34 — `commit()` unconditionally releases the lock on every call, breaking the re-entrancy guarantee; should only release when `self._level == 0`\n2. transaction.py:48-49 — `rollback()` uses `self._lock.locked()` to check if the lock is held, but `locked()` returns True if any thread holds the lock, not necessarily the current thread; should check `self._level > 0` instead to safely determine if this transaction holds the lock\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "rh-03-d1",
+      "found": true
+    },
+    {
+      "defect_id": "rh-03-d2",
+      "found": false
+    }
+  ],
+  "false_findings": 1,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 15252,
+  "judge_cost_usd": null
+}
