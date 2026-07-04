@@ -1,0 +1,160 @@
+# bench task spec — IMPL-01 (a2a-slice7b-t5-watchdog-select-arm)
+# Generated from mining/out/nominations.md + mining/out/pretask_tags.md
+# (Task M4 follow-up). task_prompt is the VERBATIM first real user
+# message from the source codex session transcript (trimmed of the
+# codex-CLI system/AGENTS.md harness wrapper messages that precede it),
+# preferred over the nomination doc's paraphrase per the task brief.
+#
+# See bench/run_reference.py --help for the reference-run framing.
+id: IMPL-01
+nomination: a2a-slice7b-t5-watchdog-select-arm
+source_repo: /Users/wesleyjinks/code/a2a-bridge
+pre_tag: bench/IMPL-01-pre
+pre_sha: 7b697db3fc4415c2e9ae2fcf89743f824505ef42
+source_session: /Users/wesleyjinks/.codex/sessions/2026/06/20/rollout-2026-06-20T19-31-50-019ee7ce-3334-7281-b2a5-f66c7affe8cd.jsonl
+est_duration_min: 25
+task_prompt: |
+  You are an expert Rust engineer working as the IMPLEMENTER on `a2a-bridge` (an ACP↔A2A bridge + workflow
+  orchestrator). Your session cwd IS the a2a-bridge repo, on feature branch `feat/slice-7b-watchdog`. You EDIT the
+  working tree and run `cargo`. The specific ONE task is below the marker; do EXACTLY it, no more.
+
+  ## Operating rules
+  - **Scope discipline:** implement ONLY what the task specifies. Honor back-compat: with NO `[agents.watchdog]`
+    config the behavior is BYTE-IDENTICAL to today (no watchdog task spawned, `watch=None`); the warm/dispatcher path
+    is untouched; the SDK handler stays NON-BLOCKING (a short `StdMutex`, no `.await` under the lock).
+  - **The plan is GROUND TRUTH and APPROVED (dual plan-reviewed → fix-then-implement, all fixes folded).** Read
+    `docs/superpowers/plans/2026-06-20-slice-7b-watchdog.md` — its **`## v2 … (BINDING; PFIX-A..M)` section SUPERSEDES
+    any contradicting task body text. READ THE PFIX SECTION FIRST.** The binding spec is
+    `docs/superpowers/specs/2026-06-20-slice-7b-watchdog.md` (FIX-1..12). VERIFY each signature against the REAL code.
+  - **Key real APIs (PFIX-confirmed — do NOT re-derive):** `WatchdogConfig` lives in `crates/bridge-core/src/domain.rs`
+    (next to `SandboxConfig`), NOT bridge-acp; `AcpConfig.watchdog: Option<bridge_core::domain::WatchdogConfig>`.
+    `AgentEntry` has NO Default → adding a field breaks ~31 `AgentEntry { … }` literals (grep them all, add
+    `watchdog: None`). The error→state method is `disposition() -> A2aDisposition` (NOT `to_state`); `AgentTimedOut`
+    lands on the `_ => SetState(Failed)` default. The ONE exhaustive `BridgeError` match to update is `table_key`
+    (`resilient.rs:154`) + the exhaustiveness Vec (`:183`). The `RequestPermissionRequest` handler does NOT capture
+    the update registry — add `let updates_perm = Arc::clone(&updates);`. The watchdog `select!` arm DISCARDS the
+    inner cancel outcome (always `Err(())` + `timed_out_local=true`). The disabled path (`watchdog=None`) spawns NO
+    task + the select arm uses a `Pending` future. `tokio::time::sleep_until` needs `tokio::time::Instant::from_std`
+    (TurnWatch.turn_start is `std::time::Instant`). `ContainerRwConfig` has a test literal at `lib.rs:810`.
+  - **TDD:** write the failing test(s) FIRST, run them to fail, then implement to green. Tests assert REAL behavior.
+  - **Conventions:** match surrounding style; `std::sync::Mutex` where a sync method locks, `tokio::sync::Mutex` for
+    async-held; derive what neighbours derive; read the cited code BEFORE coding.
+  - **DO NOT COMMIT. DO NOT run any `git` command that mutates state.** Leave changes UNCOMMITTED — the controller
+    verifies + commits. `git status`/`git diff` (read-only) are fine.
+
+  ## Process
+  1. Read the cited plan task + the PFIX section + the spec sections + the existing code you'll touch.
+  2. Implement TDD. Then run (report exact commands + counts):
+     - the task's `cargo test -p <crate> …` target(s), THEN `cargo test --workspace --no-run` (MUST pass — the
+       AgentEntry/AcpConfig/ContainerRwConfig literal ripple means a missed site is a compile error).
+     - `cargo fmt --all` then `cargo fmt --all --check`; `cargo clippy -p <crate> --all-targets -- -D warnings`.
+     - NOTE the `_dyld_start` PTY flake: if a test BINARY hangs at startup, report it (the controller re-runs). Use a
+       `timeout` to distinguish a real deadlock.
+  3. Self-review: completeness vs the task; back-compat (no-config byte-identity); ALL literal/match call sites updated
+     (`cargo test --workspace --no-run` green).
+
+  ## Report (plain text — DO NOT commit)
+  - **STATUS:** DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
+  - What you implemented; the test list + results; files changed. Self-review findings + concerns.
+
+  THE TASK:
+
+  # Slice 7b — TASK 5: The watchdog task + the driver `select!` arm + the `AgentTimedOut` terminal (the KEYSTONE)
+
+  Implement **Task 5** from `docs/superpowers/plans/2026-06-20-slice-7b-watchdog.md` in
+  `crates/bridge-acp/src/acp_backend.rs`. The DRIVER owns the terminal; the watchdog only SIGNALS. Builds on Task 4
+  (the watch + tap).
+
+  ## Binding (FIX-1/5/8/9 + PFIX-F/G/H/L)
+  - **PFIX-F — the watchdog arm DISCARDS the inner cancel outcome.** The existing `done_sender.closed()` arm
+    (`:1974`) PROPAGATES its inner `prompt_fut` result (`Ok(resp)→Done`). The watchdog arm runs the SAME cancel-notify
+    + inner grace `select!` (for liveness/escalation) but UNCONDITIONALLY `timed_out_local = true; Err(())` — EVEN if
+    the agent honors cancel and returns `Done{cancelled}` within grace (KEYSTONE: honored-cancel-after-timeout =
+    `AgentTimedOut`, not a user cancel). Do NOT reuse the `closed()` arm's result-propagation.
+  - **PFIX-G — the disabled path (`watchdog=None`) spawns NO task + the select arm is `Pending`.** Don't make the arm
+    unconditional. The select arm awaits a future that's `Pending` when disabled:
+    `_ = async { match &watchdog_fired { Some(n) => n.notified().await, None => std::future::pending::<()>().await } }
+    => { … }`. When `None`: no watchdog task spawned, the arm never fires → byte-identical.
+  - **PFIX-H — `tokio::time::sleep_until` takes `tokio::time::Instant`.** `TurnWatch.turn_start` is `std::time::
+    Instant`; convert the computed std deadline via `tokio::time::Instant::from_std(std_deadline)`.
+  - **PFIX-L — `la_instant = turn_start + Duration::from_millis(la.saturating_sub(1))`** (undo the `+1` sentinel).
+    **FIX-5:** use `saturating_sub`/saturating for the idle math (the handler can advance `la` mid-check).
+
+  ## Steps
+  1. Read the driver setup + `select!` (`acp_backend.rs:1944-2032`): the `turn_kill` install, the outer `select!`
+     (`:1971`, arms: `prompt_fut` / `kill.notified()` / `done_sender.closed()`), the `done_sender.closed()` arm's
+     bounded cancel (CancelNotification + inner `select!{ prompt_fut | kill | sleep(grace)→escalate_terminate }`), the
+     terminal `match outcome` (`:2010`), the all-exit cleanup `map.remove` (`:2002`). The Task-4 `Arc<TurnWatch>`
+     (`watch`) in scope.
+  2. TDD — failing tests FIRST (use the fake-ACP harness `gate_prompt`/scripted updates):
+  ```rust
+  #[tokio::test]
+  async fn watchdog_cancels_a_hung_turn_as_timed_out() {
+      // fake backend ACCEPTS the prompt then NEVER responds + emits nothing;
+      // AcpConfig.watchdog = { idle: 10s, hard_wall_clock: 50ms }; drive prompt;
+      // the stream's terminal item is Err(BridgeError::AgentTimedOut) within ~wall-clock.
+  }
+  #[tokio::test]
+  async fn watchdog_does_not_trip_active_or_unmodeled_turn() {
+      // (a) a backend emitting a Text chunk every 20ms then Done (idle=100ms) -> completes, no timeout.
+      // (b) FIX-11: a backend emitting ONLY UNMODELED updates (e.g. AgentThoughtChunk) every 20ms then Done,
+      //     idle=100ms < total < wall=10s -> completes (the unmodeled events still bump activity).
+  }
+  #[tokio::test]
+  async fn no_watchdog_config_is_byte_identical() {
+      // watchdog=None -> no task spawned; a hung turn behaves as today (no AgentTimedOut).
+  }
+  ```
+     Run → FAIL.
+  3. Implement (only when `self.config.watchdog.is_some()`):
+     - In `prompt_inner`: `let watchdog_fired = self.config.watchdog.as_ref().map(|_| Arc::new(tokio::sync::Notify::
+       new())); let (done_tx, done_rx) = tokio::sync::oneshot::channel::<()>();` (build `done_tx` only when enabled,
+       else skip the task).
+     - **Spawn the `'static` watchdog task** (only when enabled) capturing `Arc<TurnWatch>` (the Task-4 watch),
+       `watchdog_fired.clone()`, the two `Duration`s (from `self.config.watchdog`), `done_rx`, `turn_start`: loop —
+       compute the next std deadline `wall = turn_start + hard_wall_clock; idle = if la!=0 { la_instant +
+       idle_timeout } else { wall }; deadline = min(wall, idle)`; `tokio::select! { _ = tokio::time::sleep_until(
+       tokio::time::Instant::from_std(deadline)) => {}, _ = &mut done_rx => return }`; on wake: reload `la`; if
+       `turn_start.elapsed() >= hard_wall_clock` OR (`la != 0` && `Instant::now().saturating_duration_since(la
+       _instant) >= idle_timeout`) → `notify.notify_one(); return;` else loop. (`done_rx` is `&mut`-pinned across the
+       loop.)
+     - **The driver outer `select!` (`:1971`) gains an arm** (PFIX-G `Pending` when disabled): `_ = async { match
+       &watchdog_fired { Some(n) => n.notified().await, None => std::future::pending::<()>().await } } => { <hoist the
+       done_sender.closed() arm's bounded-cancel body: send CancelNotification(agent_id); inner select!{ &mut
+       prompt_fut | kill.notified() | sleep(grace)→escalate_terminate }>; timed_out_local = true; Err(()) }`
+       (DISCARD the inner result — always `Err(())`). Declare `let mut timed_out_local = false;` before the select.
+     - **Teardown:** at the all-exit cleanup (`:2002`, after `map.remove`), `drop(done_tx);` (→ the watchdog's
+       `done_rx` resolves → it exits) — guard for the `None`/no-task case.
+     - **Terminal (`:2010`):** `Err(()) => if timed_out_local { TurnEvent::Failed(BridgeError::AgentTimedOut) } else {
+       <existing AgentCrashed> }`. `Ok(resp) => <existing Done>` (a natural completion is NEVER AgentTimedOut — the
+       outer select picked `prompt_fut`, not the watchdog arm).
+  4. Run → PASS (the 3 new tests + ALL existing acp turn/cancel tests — the no-config path identical). `cargo test -p
+     bridge-acp`; `cargo test --workspace --no-run`; fmt; `cargo clippy -p bridge-acp --all-targets -- -D warnings`.
+     (dyld/compile-stall flake → report; controller re-runs.)
+  5. Self-review: the watchdog arm ALWAYS yields `Err(())`+`timed_out_local` (no `Ok` leak, PFIX-F)? disabled path
+     `Pending` + no task (PFIX-G)? `tokio::time::Instant::from_std` (PFIX-H)? `la_instant` round-trip + saturating
+     (PFIX-L)? teardown `drop(done_tx)` on every exit (no leak)? a natural `Ok(resp)` never relabeled? no `&mut
+     prompt_fut` borrow conflict?
+
+  Report STATUS + test names + results + files changed. DO NOT commit.
+success_evidence:
+- cmd: cargo test -p bridge-acp watchdog_cancels_a_hung_turn_as_timed_out
+  desc: named test 1/3
+- cmd: cargo test -p bridge-acp watchdog_does_not_trip_active_or_unmodeled_turn
+  desc: named test 2/3
+- cmd: cargo test -p bridge-acp no_watchdog_config_is_byte_identical
+  desc: named test 3/3 — the disabled-path byte-identical golden oracle
+- cmd: cargo test -p bridge-acp
+  desc: full bridge-acp crate suite (all existing turn/cancel tests must stay green alongside the 3 new
+    ones)
+- cmd: cargo test --workspace --no-run
+  desc: workspace-wide compile check — the AgentEntry/AcpConfig/ContainerRwConfig literal ripple (~31
+    struct literals) means a missed site is a compile error here
+- cmd: cargo fmt --all --check
+  desc: formatting gate
+- cmd: cargo clippy -p bridge-acp --all-targets -- -D warnings
+  desc: clippy gate scoped to the touched crate, per the task prompt
+landed_commit: daf94b23
+judging_approach: tests+diff; disabled-path byte-identical golden oracle. Async/concurrency discriminator.
+reference_outcome: DONE_WITH_CONCERNS; 3 named tests green; 108 unit + 7 corpus + 7 golden crate tests;
+  workspace --no-run, fmt, clippy -D warnings all pass; diff acp_backend.rs +208/-1.

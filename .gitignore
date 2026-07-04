@@ -8,3 +8,4 @@ results/**/sandbox/
 .superpowers/
 *.egg-info/
 mining/out/
+bench/out/

@@ -1,0 +1,87 @@
+# bench task spec — IMPL-08 (prism-scope-graph-task5-integration)
+# Generated from mining/out/nominations.md + mining/out/pretask_tags.md
+# (Task M4 follow-up). task_prompt is the VERBATIM first real user
+# message from the source codex session transcript (trimmed of the
+# codex-CLI system/AGENTS.md harness wrapper messages that precede it),
+# preferred over the nomination doc's paraphrase per the task brief.
+#
+# See bench/run_reference.py --help for the reference-run framing.
+id: IMPL-08
+nomination: prism-scope-graph-task5-integration
+source_repo: /Users/wesleyjinks/code/slicing
+pre_tag: bench/IMPL-08-pre2
+pre_sha: 6148aeeac6b939dd191bd716630eee7be3ed4fda
+pre_sha_note: 'Two candidate pre-task SHAs are tagged for this nomination: bench/IMPL-08-pre (0b94dab4,
+  the literal codex session-start SHA, but DANGLING/unreachable from any branch) and bench/IMPL-08-pre2
+  (6148aeea, the on-branch Task-4 completion commit 1 min earlier). `git diff --stat 6148aeea 0b94dab4`
+  is EMPTY — the two are content-identical (the ''duplicate-object'' pattern noted in nominations.md:
+  same tree, different commit metadata/parent chain). This yaml pins the reachable, on-branch SHA (-pre2)
+  for a cleaner `git clone --local` + checkout, since the resulting workspace tree is byte-identical either
+  way.'
+source_session: /Users/wesleyjinks/.codex/sessions/2026/06/21/rollout-2026-06-21T10-38-24-019eeb0c-2f2f-7aa2-9ce8-fe27c3cfc896.jsonl
+est_duration_min: 30
+task_prompt: |
+  # Implement (EDIT-ONLY) — prism scope-graph recovery — TASK 5 ONLY (integration)
+
+  ## EXECUTE EXACTLY ONE TASK: Task 5 — the resolve_call_site_full integration.
+  **Tasks 1, 2, 3, 4, 6 are ALREADY IMPLEMENTED AND COMMITTED — do NOT touch them; their
+  passing tests are expected.** **Tasks 7 and 8 are LATER — do NOT do them.** Only Task 5.
+
+  ## Environment
+  Repo `/Users/wesleyjinks/code/slicing`, branch `scope-graph-precision-recovery`. Plan:
+  `docs/superpowers/plans/2026-06-21-scope-graph-precision-recovery.md` — use ONLY its
+  **Task 5** section for exact code/paths/tests. The `ScopeResolution` predicate +
+  `graph_target_ids` + the `graph_target_resolution` 1->Exact/>1->demoted change already
+  exist (Task 4, committed) — wire them in; do not redefine them.
+
+  Sandbox is `workspace-write`: you CAN edit + run `cargo`, but CANNOT use git. Run NO git
+  commands; leave edits UNCOMMITTED (the host commits).
+
+  ## Do Task 5's TDD steps EXCEPT the commit (write tests, RED, implement, GREEN, fmt, regress):
+  Implement in `src/resolution.rs`: the Rust scope branch of `resolve_call_site_full`
+  (~lines 690-702) with the **free-fn guard** (`rust_graph_qualified_target_is_free_fn`:
+  the `::` path resolves to a non-empty id-set all NOT in `method_owners` -> accept the
+  shipped graph free-fn resolution, skip the prune) + the **owner-prune** (fetch the bare
+  `(owner,method)` pool, run `prune` with `ScopeResolution`: 1->Exact, >1->demoted) +
+  **fail-open** routed ONLY to `owner_lookup_in_modules` (the #120 demote floor) and
+  stopping (never the stem block); plus the `rust_scope_prune_owner` method and the
+  `owner_method_key` free helper — exactly as the plan's Task 5 specifies.
+
+  Tests in `tests/integration/resolution_test.rs` (exact from the plan): the headline
+  two-crate `CliTest::with_file` recovery (-> single Exact), the inherent+trait pruned
+  demote, the ①C block-local-glob/macro keep-all, the ②B re-export/pending-alias-over-
+  colliding-pool keep-all, the mixed-edition keep-all, the fail-open (NameOnly not dropped),
+  the free-fn-misroute guard (`crate::m::f()` cross-module -> module free fn, not the method
+  pool), and RE-CONFIRM the three drop invariants still pass
+  (`resolution_test.rs:1528/1596/1641` region).
+
+  Use the helpers `build`/`build_without_scope_graph`/`build_rust_complete`/`site_in`/
+  `resolve_call_site` as the plan specifies per fixture. If any RED does not match the
+  plan, STOP and report. macOS: `--test integration` runs normally. Do NOT touch `eval/`.
+
+  ## Report: exact files modified, per-fixture RED→GREEN evidence, the three-drop-invariant
+  re-confirmation, fmt/build/`cargo test --test integration`/`--lib` results, any deviation.
+success_evidence:
+- cmd: cargo test --test integration scope_graph_
+  desc: 'all 8 new fixtures by shared name prefix: two_crate_owner_collision_recovers_to_single_exact,
+    inherent_plus_trait_owner_demotes_not_drops, unresolved_owner_path_keeps_full_pool_not_drop, block_local_glob_shadow_keeps_all,
+    macro_wildcard_shadow_keeps_all, pending_import_alias_over_colliding_pool_keeps_all, non_uniform_edition_keeps_all,
+    free_fn_path_not_misrouted_to_colliding_method_pool'
+- cmd: cargo test --test integration
+  desc: full integration suite (132 passed/1 ignored per the reference session) — re-confirms the three
+    pre-existing drop invariants near resolution_test.rs:1528/1596/1641 are undisturbed
+- cmd: cargo test --lib
+  desc: full lib suite (332 per the reference session)
+- cmd: cargo fmt --all --check
+  desc: formatting gate
+- cmd: cargo build --release
+  desc: release build clean, per the task's AGENTS.md-mandated Tier-A accuracy harness prerequisite
+landed_commit: 63c52c56
+landed_commit_note: 5b3a042a (also cited in nominations.md near this session) is a LATER, UNRELATED Task-7
+  commit (call-stats counter) from the same day — not part of this Task-5 nomination's reference diff.
+  Only 63c52c56 is the Task-5 landing commit graded against here.
+judging_approach: tests+diff (grade the worktree diff, not commits — git is blocked in-sandbox); RED->GREEN
+  fixture list is the oracle.
+reference_outcome: per-fixture RED->GREEN for all 8 fixtures; integration resolution_test 132 passed/1
+  ignored; --test integration 214; --lib 332; fmt + release build clean. Host committed 63c52c56 minutes
+  later.
