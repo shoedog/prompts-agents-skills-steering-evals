@@ -42,9 +42,12 @@ answerable forever.
    impact-sizing over-optimistic 10-100x, 2-of-2) ≫ **Sonnet 5 (8/32,
    collapsed, plus the only read-only violation observed)**. Effort dial
    gave gpt-5.5 nothing on these items.
-6. **Debug**: Fable materially better + tests stronger (DBG-03, unanimous),
-   consistent with the IMPL-12 latent-bug probe. Deepest remaining Fable
-   premium alongside mechanism analysis.
+6. **Debug** (exp-3, full grid 2026-07-05): Fable's edge SURVIVES the whole
+   steering stack — no arm (sonnet/opus/gpt-5.5, ± D2, all with the live
+   hook) beat Fable on any debug pair; a capability gap, not a process gap.
+   D2 predict-then-probe is still worth deploying: unanimously better
+   (12/12) on the hardest debug task within-model, cost-neutral. Best
+   substitute config: Opus 4.8 + D2 + hook.
 
 ## The routing playbook (post-July-7)
 
@@ -53,7 +56,7 @@ answerable forever.
 | Implement/refactor | Sonnet 5 | verify-gate hook (live) — beats unaided-Fable reference at 85% cost |
 | Code review | Sonnet 5 / any | D7 WRONG/SMELL steering (live, both CLIs) |
 | Architecture / GO-NO-GO / specs | gpt-5.5 **high** (xhigh not needed); Opus 4.8 as Claude-side alternative | instrumentation gate on ANY impact forecast — no model was calibrated |
-| Debug / root-cause | strongest available; pre-July-7 organic Fable; after: Opus 4.8 or gpt-5.5 + hook | verify-gate hook covers the regression-test half of the gap |
+| Debug / root-cause | pre-July-7: Fable. After: Opus 4.8 + D2 + hook (gpt-5.5 + D2 close behind) — expect a real deficit on deep multi-cause bugs | D2 predict-then-probe artifact + verify-gate hook |
 | Never | Sonnet 5 for design memos | — |
 
 ## Caveats that travel with all of this
@@ -72,9 +75,8 @@ including the original's own config — missed the vindicated direction).
 3. **Owner spotchecks** (pending): 3 split judging rows (IMPL-03/05,
    REF-03) + exp1h spotcheck file — calibrates the judges that produced
    everything above.
-4. **Debug-gap experiment** (the one remaining unclosed premium): mine
-   debug tasksets (TRACKER exp 3), test whether hook+predict-then-probe
-   (D2) closes Fable's debug edge on Sonnet/Opus.
+4. ~~Debug-gap experiment~~ DONE (docs/exp-3-debug-gap.md): gap survives;
+   D2 deployed to debug dispatches; Opus+D2+hook is the substitute config.
 5. **Variance pass**: re-run 2-3 design items x3 replicas on gpt-5.5 high to
    size run-to-run variance before trusting any single-replay verdict.
 6. **Second-wave references** (optional, API-priced after July 7): IMPL-09
