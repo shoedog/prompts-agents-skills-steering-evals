@@ -1,0 +1,63 @@
+# bench task spec - DBG-02 (prism-slice2-diff-review-blockers-fix)
+# Debug-gap experiment (exp 3, 2026-07-04). task_prompt is the VERBATIM
+# envelope from the source codex session (debug core only).
+# Judging: root-cause match vs 0ddfe98a (materialized-receiver suppresses R3/R3b even when type poisoned; scope-aware recovery) + both reproduced false-Exact cases flip.
+id: DBG-02
+nomination: prism-slice2-diff-review-blockers-fix
+source_repo: /Users/wesleyjinks/code/slicing
+pre_tag: bench/DBG-02-pre
+pre_sha: b0055d1d
+est_duration_min: 45
+task_prompt: |
+  # Fix: prism slice 2 — diff-review BLOCKERs (materialized-receiver suppresses R3/R3b) + scope-aware recovery
+
+  Senior Rust engineer. Session cwd = `/tmp/prism-slice2` (branch `slice2-typed-receivers`). workspace-write.
+  The slice is implemented + committed (`075d686`/`f6ce3df`/`b0055d1`); the final diff-review found 2 BLOCKERs
+  + 1 MAJOR. Fix via strict TDD (failing test first). Read the spec/plan for context.
+
+  ## BLOCKER 1+2 (unified): a MATERIALIZED receiver binding must suppress R3/R3b even when the type is poisoned
+  Today the R3/R3b pre-emption is gated on `site.receiver_type.is_some()`. But when the import/wildcard guard
+  **skips recovery** for a typed receiver (poisoned external type), `receiver_type` is `None`, so R3b can
+  bind the receiver var name as an owner, and R3 can bind an import-shadowing param — both **false Exacts**.
+  Reproduced (both pre-existing on main, but slice 2 must FIX them since it now knows the binding exists):
+  - Python: `from ext import Foo` + `class x:` + `def run(x: Foo): x.m()` → today Exact `qualifier_owner` to
+    `class x.m` (WRONG — x is a Foo).
+  - TS: `import api from "./api"` + `class Foo{m(){}}` + `function run(api: Foo){ api.m() }` → today Exact
+    `import_qualified` to `./api` (WRONG — api is the param).
+
+  **Fix:** the classifier must signal "**a local receiver binding was found for `q`**" (typed param /
+  constructor local / annotated local) as a state DISTINCT from "`receiver_type` resolved". For Python/JS/TS,
+  when a binding is materialized — **even if the type is poisoned/unresolved (import/wildcard) — suppress R3
+  and R3b** (the receiver is provably a value, not an owner/module). Then: type resolved+unpoisoned → R6
+  `owner_lookup`; poisoned/unresolved → fall through to R6 **residue** (NameOnly/drop), NOT R3/R3b. Mirror the
+  Rust `rust_recv_materialized` shape (which suppresses on materialize, hit or miss). **Gate strictly to
+  Python/JS/TS — Rust/Go byte-identical.**
+
+  ## MAJOR: scope-aware recovery
+  `walk_receiver_bindings` recovery is line-based and not scope-aware: a same-line-after-call assignment, or a
+  Python/JS **nested class-body** assignment, can be mis-recovered as a local. Repro:
+  `def run():\n    class C:\n        x = Foo()\n    x.m()` → `C.x` (a class attr) wrongly recovers `x: Foo`.
+  **Fix:** use the call START BYTE (not just line) for "binding before call", and **skip nested class-body
+  scopes** when scanning for the receiver's binding (class bodies are their own binding scope in Python/JS).
+
+  ## TDD
+  Add failing tests FIRST for all three repros (assert: Python `x.m()` is NOT Exact `qualifier_owner` to
+  `class x` — it drops/NameOnly via residue; TS `api.m()` is NOT `import_qualified`; nested-class `x=Foo()`
+  does NOT recover). Plus a positive control: a NON-poisoned local typed param still resolves Exact
+  `TypedParam` (no regression). Then implement; confirm green. Rust/Go non-regression tests must stay green.
+
+  ## Rules
+  - Git: explicit `git add`, never `-a`, never `eval/`; trailer
+    `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`. Likely can't write `.git` —
+    implement+verify, orchestrator commits.
+  - Finish: `cargo fmt`; `cargo fmt --check` + `cargo test` + `cargo test --features mcp` green.
+
+  ## Report
+  The classifier signal you added (materialized vs resolved); the R3/R3b suppression gate; the scope-fix;
+  red-before/green-after for the 3 repros; Rust/Go unchanged; cargo counts; deviations.
+success_evidence:
+  - cmd: 'cargo fmt --check'
+    desc: 'fmt gate'
+  - cmd: 'cargo test'
+    desc: 'full suite green incl. the new regression tests'
+    expect_min_tests: 2000

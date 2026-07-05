@@ -1,0 +1,46 @@
+# TREATMENT variant (exp-3): predict-then-probe prepended to bench/tasks/INFRA-01.yaml. Generated.
+id: INFRA-01
+nomination: automation-api-server-ci-awk-fix-d2
+source_repo: /Users/wesleyjinks/code/automation-api-server
+pre_tag: bench/INFRA-01-pre
+pre_sha: 25a8b777950e1ddafa0a9dd4d259b78805c2cbf9
+task_prompt: |
+  Before each diagnostic probe (test run, log read, bisect step), write down what you expect to see if your current hypothesis is true and what result would falsify it. Run the probe, then state which you got.
+
+  Never fix on the first plausible cause: name at least one alternative cause that would produce the same symptom, and the observation that separates them, before editing anything.
+
+  Keep a short running log of hypothesis, probe, result. When you settle on the root cause, the log must show the evidence that ruled the alternatives out.
+
+  ---
+
+  after the last commit, the build-db pipeline job is failing: $ echo "Using Test Database:"
+  Using Test Database:
+  $ echo $CI_REGISTRY$CI_REGISTRY_PATH_DEVDB
+  artifactory.spectrumflow.net/docker/platypus/dev-db
+  $ chmod +x ./scripts/test-db/select_db_host.sh
+  $ SELECTED_HOST=$(./scripts/test-db/select_db_host.sh "$DB_HOSTS")
+  awk: fatal: cannot use gawk builtin `load' as variable name
+
+  Uploading artifacts for failed job
+  00:01
+  Uploading artifacts...    it was trying to address this code review feedback: **critical (resource_leak):** setupTestTransaction removes both this.currentTest.transaction = await pg.beginTransaction() and this.currentTest.db = this.currentTest.transaction (confirmed by diffing baseline automation-api-server/test/hooks.js lines 355-360 against the MR branch). Two test files -- casesDb.test.js (16 call sites) and daaAttributeReportingDb.test.js (2 call sites) -- read this.test.db via getFixture(this.test, ...), which resolves pool = test.db || test.transaction. With both now undefined, all fixture DB writes go through the default pool outside any transaction, and the afterEach rollback guard at line 370 (if (this.currentTest.transaction)) never fires. Every fixture record created by these 18 call sites is permanently written to the DB and never cleaned up.
+
+  **Where:** `test/hooks.js:350`
+
+  **Why:** The baseline setupTestTransaction (read from automation-api-server/test/hooks.js:355-360) sets this.currentTest.db = this.currentTest.transaction inside a try/catch. The MR branch removes both lines, leaving only this.currentTest._fixtures = {}. commonFixtures.js:225 reads const transaction = test.db || test.transaction -- both are now undefined. createCasesWithDependencies at line 47 does const pool = transaction || undefined, passing pool: undefined to every generateDbFixture call, which falls back to the default connection pool. The afterEach rollback at hooks.js:370 checks if (this.currentTest.transaction) -- always false now -- so no rollback ever runs. The MR description's claim that "no test file ever used this.currentTest.transaction" is incorrect: casesDb.test.js and daaAttributeReportingDb.test.js consume this.test.db, which was the transaction alias.
+
+  **To verify:** Add console.log('db:', this.test.db) inside any test in casesDb.test.js -- it prints undefined in the MR branch. Then query the DB for cases, status, deviceTypes, planSections, testPlans records after the test run; they will exist and will not be present after a baseline run. Alternatively, run the suite twice against the same DB without resetting it -- the second run will find pre-existing fixture data from the first run.
+
+  ```suggestion:-0+0
+  Either (a) restore this.currentTest.db = pg.pool (or a dedicated per-test pool reference) in setupTestTransaction so getFixture has a connection to use -- this avoids the beginTransaction overhead while preserving the test.db contract -- or (b) add explicit afterEach cleanup in casesDb.test.js and daaAttributeReportingDb.test.js that deletes the fixture records by ID, since the transaction rollback path is now gone. The afterEach rollback guard at line 370 can then be removed as dead code.
+  ```
+
+  <details>
+  <summary>Corroborated by 2 independent analyses</summary>
+
+  - **behavioral_diff**: grep -rn "this\.test\.db\b" found 18 usages in two test files. commonFixtures.js:219 reads const transaction = test.db || test.transaction -- both are now undefined -- so pool passed to all fixture DB...
+  - **execution_trace**: Baseline hooks.js (read from automation-api-server/test/hooks.js) explicitly sets this.currentTest.db = this.currentTest.transaction in setupTestTransaction. The MR branch removes both lines....
+  </details>
+success_evidence:
+  - cmd: 'bash -n scripts/test-db/select_db_host.sh'
+    desc: "shell syntax gate - WEAK oracle. Real judging is post-hoc diff vs 09e26f00 (gawk 'load' builtin collision -> rename; test/hooks.js untouched = scope discipline)"
