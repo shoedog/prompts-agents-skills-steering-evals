@@ -14,9 +14,17 @@ auto-added to .git/info/exclude; loop guard = 2 blocks per session
 (/tmp/verify-gate-<session_id>.count); "no test suite" is an accepted total
 for repos without tests.
 
-Codex/OpenAI models: no native Stop-hook equivalent — they get the
-instruction tier via ~/.codex/AGENTS.md (weak form, measured 4/6 adherence)
-or STRUCTURAL enforcement when dispatched through a2a-bridge's implement
-flow (its verify node runs the build/test gates).
+Codex/OpenAI models: ENFORCEMENT TIER DEPLOYED (2026-07-04, corrected — codex
+DOES have Stop hooks with block/continuation semantics). Port:
+~/.codex/hooks/verify_gate_codex.sh + ~/.codex/hooks.json (repo copies here).
+Differences from the claude version: stop_hook_active replaces the counter
+loop-guard (one enforcement round per turn); cwd is the session dir; success
+must be exit 0 with NO stdout (plain text is invalid for codex Stop).
+Smoke-verified end-to-end: gpt-5.5 blocked once, then wrote a
+fail-on-pre-change regression test + well-formed VERIFICATION.md.
+TRUST: non-managed hooks must be trusted once via /hooks in interactive
+codex (hash-pinned; re-trust after editing the script). Headless runs need
+--dangerously-bypass-hook-trust until trusted. The a2a-bridge verify node
+remains a second, structural enforcement layer.
 
 Rollback: delete the verify_gate group from ~/.claude/settings.json.

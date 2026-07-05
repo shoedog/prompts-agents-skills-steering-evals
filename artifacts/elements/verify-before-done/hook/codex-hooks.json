@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.codex/hooks/verify_gate_codex.sh",
+            "timeout": 30,
+            "statusMessage": "Verification gate"
+          }
+        ]
+      }
+    ]
+  }
+}
