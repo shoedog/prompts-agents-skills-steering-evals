@@ -1,0 +1,54 @@
+# bench task spec - DES-02 (prism-slice1b-inherited-self-MRO-architect-memo)
+# Design-taskset item (cross-executor arms, 2026-07-04). task_prompt is the
+# VERBATIM envelope from the source codex session. Oracle = post-hoc
+# conclusion-match vs vindicated commits (mining/out/nominations-design.md).
+id: DES-02
+nomination: prism-slice1b-inherited-self-MRO-architect-memo
+source_repo: /Users/wesleyjinks/code/slicing
+pre_tag: bench/DES-02-pre
+pre_sha: 184208a2
+est_duration_min: 20
+task_prompt: |
+  # Analyze + architect (xhigh, read-only): prism slice 1b — Python/JS inherited self-method resolution (MRO)
+
+  You are a senior static-analysis architect (codex gpt-5.5, xhigh). **Read-only.** Produce an ANALYSIS +
+  ARCHITECTURE memo (markdown). Cite `file:line`. Session cwd = the prism repo
+  (`/Users/wesleyjinks/code/slicing`, on `main` — includes the merged slice 1a: `method_class_span`,
+  `self_owner_lookup_same_class`, `method_owner_class_node`). Design only; no code.
+
+  ## The slice
+  1a resolved `self.method()` when the **caller's own class defines** the method. **1b** adds the
+  **inherited** case: `self.method()` / `this.method()` where the method is defined on a **base class** —
+  resolve it by walking the class hierarchy (MRO). Today this is the `python/inherited_override` Tier-A
+  **expected_gap** (1a leaves it unresolved by design).
+
+  ## Verify-first (do this, report numbers)
+  1. **Size it.** How many `self`/`this` calls currently drop (`unresolved_unknown_name`) because the method
+     is inherited, in fastapi/pydantic/excalidraw? (Sample: classes with bases that call `self.X()` where X
+     is on a base.) Framework code inherits heavily (Starlette/BaseModel) but much is EXTERNAL (base not
+     in-repo) — distinguish **in-repo base** (1b-resolvable) from external (SCIP territory, NOT 1b). The buy
+     is only the in-repo-base subset; quantify it (the 1a spec guessed "~10 fastapi" — verify).
+  2. **Confirm the hierarchy is extractable + how to plumb it.** Class-base extraction exists in the
+     enrichment layer: `src/type_providers/python.rs:extract_bases`/`collect_methods_with_bases`,
+     `src/type_db.rs:class_hierarchy` (`:186`), TS `extract_ts_bases`. But it is NOT in `CallGraph`. Confirm
+     what it takes to make a `(class) -> [base classes]` map available at resolution time (a new CallGraph
+     field populated at build, like `method_class_span`), and how the MRO walk hooks into the self arm /
+     `owner_lookup` when same-class lookup misses.
+
+  ## Deliver
+  - **Verification** (the in-repo-inherited size + the hierarchy-plumbing facts, with evidence).
+  - **Architecture options** (≥2): (A) plumb a class-hierarchy map into `CallGraph`, and in the self arm,
+    when `self_owner_lookup_same_class` returns None, walk the caller-class's bases (same-file/same-module
+    base first; respect the `(file, class-span)` identity 1a established) and retry `owner_lookup` per base;
+    (B) narrower/alternative. Soundness (ambiguous multiple-inheritance → demote/NameOnly, not a wrong
+    Exact; don't bind to an external base's same-named in-repo namesake), MRO order (Python C3 vs simple
+    DFS — is full C3 needed or is DFS sufficient for resolution?), blast radius, risk.
+  - **Recommendation + thin-slice plan** (changes, discriminating tests incl. the `inherited_override`
+    Tier-A case flipping ok, acceptance = the inherited-self buy + canary flat + Rust/Go byte-identical), +
+    what to defer (external bases = SCIP; deep multiple-inheritance edge cases).
+  - **Risks / unknowns.**
+  Be opinionated; cheapest sound design. If the in-repo-inherited buy is small (likely, given framework bases
+  are external), SAY SO and recommend scope accordingly (it may be a small slice or fold into 2/3 priority).
+success_evidence:
+  - cmd: 'git diff --quiet'
+    desc: 'READ-ONLY design task - workspace must be unmodified.'

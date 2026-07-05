@@ -1,0 +1,79 @@
+# bench task spec - DES-05 (prism-decorated-double-capture-architect-memo)
+# Design-taskset item (cross-executor arms, 2026-07-04). task_prompt is the
+# VERBATIM envelope from the source codex session. Oracle = post-hoc
+# conclusion-match vs vindicated commits (mining/out/nominations-design.md).
+id: DES-05
+nomination: prism-decorated-double-capture-architect-memo
+source_repo: /Users/wesleyjinks/code/slicing
+pre_tag: bench/DES-05-pre
+pre_sha: 7e9ad6fd
+est_duration_min: 20
+task_prompt: |
+  # Analyze + architect (xhigh, read-only): prism decorated-method double-capture (next Python/JS precision slice)
+
+  You are a senior static-analysis architect (codex gpt-5.5, xhigh). **Read-only.** Produce an
+  ANALYSIS + ARCHITECTURE memo (markdown) for the next precision slice in `prism` (a tree-sitter CPG /
+  code-navigation tool, 11 languages, exposed to LLM coding agents). Be concrete; cite `file:line`. Session
+  cwd is the prism repo (`/Users/wesleyjinks/code/slicing`). Do NOT write code or edits — design only.
+
+  ## The problem (verify it first, then architect the fix)
+  prism appears to capture every **decorated** method as **TWO** `FunctionId`s — the outer
+  `decorated_definition` (wrapper) node AND the inner `function_definition` node — both with the same name
+  and same owner class. Consequence: **every call to a decorated method** (`self.validate()`,
+  `obj.prop()`, `Cls.helper()`, free calls) resolves to ≥2 same-name candidates and **demotes to NameOnly**
+  (or worse), because the resolver can't pick between the two captures of the *same* method.
+
+  Observed while sizing a sibling slice: on pydantic, ~418 of ~2,066 class methods (~20%) are decorated
+  (`@property` / `@*validator` / `@staticmethod` / `@classmethod` / …); a `@staticmethod` self-call resolved
+  NameOnly with two candidates (the `decorated_definition` at lines 2-4 and the inner `function_definition`
+  at 3-4). This likely degrades a large fraction of Python (and JS/TS decorator) method-call resolution
+  across the whole dynamic stack — plausibly a **bigger precision lever than the same-class narrowing slice
+  just shipped**.
+
+  ## Context docs
+  - `docs/superpowers/specs/2026-06-22-python-js-self-receiver-samefile-narrowing.md` — the sibling slice;
+    read its **§9 "Discovered follow-on — decorated-method double-capture"** (the seed for this memo) and
+    §1/§3 for how the owner index + self arm work.
+  - The committed sibling change is on branch `self-receiver-samefile-narrowing` (don't depend on it; this is
+    a separate slice).
+
+  ## Where to look (verify the mechanism)
+  - Function extraction: `ParsedFile::all_functions` and the Calls/Functions tree-sitter queries
+    (`src/queries.rs` — note the decorated capture; `Language::function_name`,
+    `Language::method_owner` in `src/languages/mod.rs` which already normalizes `decorated_definition`).
+  - The index built from functions: `CallGraph::build*` in `src/call_graph.rs` (the `functions`, `methods`,
+    `method_owners` maps; how a method becomes a `FunctionId`).
+  - Consumers of the (possibly doubled) `FunctionId`s — map the BLAST RADIUS: the resolver
+    (`src/resolution.rs` owner_lookup / the R6 + self arms / `exact`/`demoted`), navigation
+    (`src/navigation/` — `inventory.rs`, callers/callees/ego), the CPG, witnesses, and anything that counts
+    or de-dups functions.
+
+  ## Deliver (the memo)
+  1. **Verification:** confirm (or refute) the double-capture with `file:line` evidence — which node kinds
+     are captured, in which languages (Python decorators for sure; check JS/TS decorators, and whether
+     `function_name`/`method_owner` already collapse them anywhere). Is it 2 `FunctionId`s with distinct
+     spans but same `(name, owner)`?
+  2. **Impact sizing (qualitative + where measurable):** which resolution paths degrade (self_receiver,
+     qualifier_owner/R3b, R6, free) and roughly how much (use the ~20%-of-methods figure; note that it hits
+     ALL call shapes, not just self). Distinguish precision (NameOnly that should be Exact) from any recall
+     effect.
+  3. **Blast radius:** the complete list of consumers that would be affected by changing the capture (so a
+     fix doesn't silently break navigation counts, witnesses, caller/callee, dedup, etc.).
+  4. **Architecture options** (≥2, with trade-offs, soundness, blast radius, risk):
+     - **A — fix at extraction:** capture ONE `FunctionId` per decorated method (e.g., prefer the inner
+       `function_definition`, or the `decorated_definition` with a canonical span/name). What breaks? Which
+       consumers rely on the wrapper node (e.g., decorator-name access, line ranges)?
+     - **B — fix at resolution/index:** collapse wrapper+inner that are the same logical method (span
+       containment / same `(file, name, owner)`) into one candidate before Exact/NameOnly classification.
+       Less invasive but a band-aid? Does it generalize to non-self call shapes?
+     - any **C** you see.
+  5. **Recommendation + slice outline:** the approach you'd take, why, and a thin-slice plan (what to change,
+     how to test it discriminatingly, the acceptance signal — e.g., pydantic kind_exact rise + canary flat +
+     Rust/Go byte-identical), plus what to explicitly defer.
+  6. **Risks / unknowns / where you're uncertain.**
+
+  Be opinionated. Prefer the cheapest sound design that yields a real precision buy without regressing
+  navigation or recall.
+success_evidence:
+  - cmd: 'git diff --quiet'
+    desc: 'READ-ONLY design task - workspace must be unmodified.'

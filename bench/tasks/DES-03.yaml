@@ -1,0 +1,51 @@
+# bench task spec - DES-03 (prism-slice3-import-qualified-narrowing-architect-memo)
+# Design-taskset item (cross-executor arms, 2026-07-04). task_prompt is the
+# VERBATIM envelope from the source codex session. Oracle = post-hoc
+# conclusion-match vs vindicated commits (mining/out/nominations-design.md).
+id: DES-03
+nomination: prism-slice3-import-qualified-narrowing-architect-memo
+source_repo: /Users/wesleyjinks/code/slicing
+pre_tag: bench/DES-03-pre
+pre_sha: 184208a2
+est_duration_min: 20
+task_prompt: |
+  # Analyze + architect (xhigh, read-only): prism slice 3 — Python/JS import & same-module scoping (free_multi)
+
+  You are a senior static-analysis architect (codex gpt-5.5, xhigh). **Read-only.** Produce an ANALYSIS +
+  ARCHITECTURE memo (markdown). Cite `file:line`. Session cwd = the prism repo
+  (`/Users/wesleyjinks/code/slicing`, on `main`). Design only; no code.
+
+  ## The slice
+  Lift the dominant Python precision lever: **`free_multi`** — a bare-name call `foo()` that matches MULTIPLE
+  same-named free functions across files demotes to NameOnly. Measured: **pydantic ~25,293** `free_multi`
+  NameOnly. The fix: prefer the **same-module / same-file** candidate (the call's own module's `foo` wins)
+  before the repo-wide multi-match, parallel to Go's same-package R4.5. Plus JS: resolve relative-import
+  paths to narrow the candidate directory.
+
+  ## Verify-first (do this, report numbers)
+  1. **Confirm the free_multi mechanism + size the fixable subset.** In pydantic/fastapi/express, of the
+     `free_multi` NameOnly sites, how many have a candidate in the **caller's own file/module** (→
+     same-module preference makes Exact) vs genuinely ambiguous cross-module vs external? Sample to estimate
+     the real buy (the 25k is an upper bound).
+  2. **Locate the resolver rungs.** Go same-package preference at `src/resolution.rs:1226-1248`; the repo-wide
+     free-multi fallback `src/resolution.rs:~1270-1318` (`FreeMulti` demote); the imports map
+     (`CallGraph.imports`, `ParsedFile::extract_imports`); any existing file→module/dir mapping. Confirm
+     whether Python free calls currently reach a same-module narrowing at all.
+
+  ## Deliver
+  - **Verification** (the free_multi split + rung facts, with evidence).
+  - **Architecture options** (≥2): (A) same-module preference for free calls (the caller's file/dir candidate
+    wins; demote only when truly cross-module-ambiguous); (B) import-qualified narrowing
+    (`from x import foo` → resolve to x's module) for the qualified subset; how they compose. Trade-offs,
+    soundness (must not mint a wrong Exact when the same-module candidate is coincidental), recall, blast
+    radius, risk.
+  - **Recommendation + thin-slice plan** (changes, discriminating tests, acceptance = pydantic free_multi
+    NameOnly→Exact delta + canary `multi_target_exact_sites` flat + Rust/Go byte-identical), + what to defer
+    (full cross-module authoritative resolution = scope-graph slice 4).
+  - **Risks / unknowns.**
+  Be opinionated; cheapest sound design that yields a real measured buy. Note: this is the SAME `free_multi`
+  the deferred-work doc flagged as the dominant Python lever; it is corpus-dependent (huge pydantic, small
+  fastapi) — quantify per corpus.
+success_evidence:
+  - cmd: 'git diff --quiet'
+    desc: 'READ-ONLY design task - workspace must be unmodified.'
