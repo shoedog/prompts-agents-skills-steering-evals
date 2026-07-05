@@ -278,7 +278,7 @@ def _kill_process_group(proc: subprocess.Popen) -> None:
             pass
 
 
-def run_fable(task_prompt: str, model: str, ws_dir: Path, timeout_sec: int) -> dict:
+def run_fable(task_prompt: str, model: str, ws_dir: Path, timeout_sec: int, effort: str = None) -> dict:
     """Run one headless Fable turn in `ws_dir`. NO --max-turns cap — the
     real task may need an arbitrary number of tool-use turns; only a wall
     clock timeout bounds it. Returns a dict with `harness` (invocation
@@ -291,6 +291,8 @@ def run_fable(task_prompt: str, model: str, ws_dir: Path, timeout_sec: int) -> d
         "--output-format", "json",
         "--dangerously-skip-permissions",
     ]
+    if effort:
+        argv += ["--effort", effort]
     started_at = utcnow_iso()
     t0 = time.time()
     proc = subprocess.Popen(
@@ -962,6 +964,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--tasks-dir", type=Path, default=DEFAULT_TASKS_DIR,
         help=f"directory of <ID>.yaml task specs (default: {DEFAULT_TASKS_DIR}).",
+    )
+    p.add_argument(
+        "--effort", default=None,
+        help="explicit claude --effort level (low|medium|high|xhigh|max). Omitted "
+             "= the CLI's per-model default (owner's sonnet-5 default: high).",
     )
     p.add_argument(
         "--executor", choices=["claude", "codex"], default="claude",
