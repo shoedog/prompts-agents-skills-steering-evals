@@ -4,6 +4,9 @@
 # Blocks session end until VERIFICATION.md exists at the repo root with the
 # required shape — but only when there is real code work to verify.
 
+# Bench escape hatch: experiments needing an unsteered environment set this.
+[ -n "$BENCH_CLEAN_ENV" ] && exit 0
+
 ROOT="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 cd "$ROOT" 2>/dev/null || exit 0
 

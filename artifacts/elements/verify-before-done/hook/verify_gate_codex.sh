@@ -4,6 +4,9 @@
 # exit 0 + no output = allow; JSON {"decision":"block","reason":...} =
 # continuation prompt. stop_hook_active guards against repeat blocks.
 
+# Bench escape hatch: experiments needing an unsteered environment set this.
+[ -n "$BENCH_CLEAN_ENV" ] && exit 0
+
 ROOT="$(pwd)"
 INPUT=$(cat)
 ACTIVE=$(printf '%s' "$INPUT" | python3 -c "import sys,json;print(json.load(sys.stdin).get('stop_hook_active',False))" 2>/dev/null || echo False)
