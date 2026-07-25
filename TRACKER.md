@@ -13,12 +13,22 @@ Owner-approved backlog (2026-07-03). Items move to "Done" with the commit that c
 
 ## Scope extension (owner-added 2026-07-03)
 
+## Failure-mode mitigation waves (owner-directed 2026-07-25; evidence: ~/Documents/agent-failure-modes-2026-07-25.md, baselines: mining/out/failure_baseline.md)
+- [x] Wave 1 residue (2026-07-25): configs verified prompt_file-only (zero inline prompts — template edits cover all 10 stockTrading tomls); review-implement.md got the round-1-completeness bullets; design-executability/structure deliberately excluded (design-production templates, the completeness rule is a reviewer rule).
+- [x] Wave 2 — brief-lint validator built (validators/brief_lint.py, self-testing) + mounted warn-only at PreToolUse[Task|Agent] in stockTrading and ssot-agents project settings. Remaining: [ ] bridge submit-path mount (Rust).
+- [x] Wave 2 — cite-check validator built (validators/cite_check.py, self-testing; resolves file:line + nearby quotes). Remaining: [ ] mount at verify-gate/pre-commit; consider prism-slicing as long-term home.
+- [x] Wave 2 — verification-schema-check built (validators/verification_schema_check.py, self-testing). Smoke: all three repos' current VERIFICATION.md fail S2 (unlinked test totals) + S3 (no provenance tiers) — the forensics' weakest-relay-link finding, confirmed mechanically. Remaining: [ ] wire into claude/codex stop hooks warn-only — OWNER DECISION, the gate is exp-2-validated as-is.
+- [ ] Wave 2 — bridge: null-final task_complete = failed round (auto-respawn fresh, twin-death alert, crash-reason records); PONG preflight per model×CLI + sol→5.5→5.4 fallback ladder; pass-2 draft sanitization (strip narration).
+- [ ] Wave 3 — exp-validate steering moves: cite-or-label, rewrite-from-source-not-memory, pushback-re-runs-the-witness, handoff-claim quarantine; candidate: velocity governor (probe-chain < N min ⇒ mandatory confirms-if/falsifies-if/cannot-see header).
+- [ ] Recurrence-after-admission as standing severity metric (detector already computes it; wire into weekly review).
+
 ## Experiments not running next (queued after exp2)
 - [ ] Exp 3 — failure-signature list on debugging tasks (test_cheap). Blocker: needs a 20-item reproducible-failing-test task set (same manifest/truth pattern); curation ≈ Task-5 effort.
 - [ ] Exp 4 — rejected-alternatives-with-boundary-conditions on design tasks (must_test; genuine evidence gap). Blocker: design task set + binary design-quality judge rubric; ≈ 2× exp 3 effort.
 - [ ] Exp 1 re-run on the harder set (after ceiling is fixed).
 
 ## Done
+- [x] Wave 0 — failure-signature detector + triage queue (mining/scripts/detect_failure_signatures.py; 7 known-incident validations, self-failing on regression; daily 07:00 cron installed and semantically verified; baselines + strong-signal queue in mining/out/) — 87a744c. Wave 1 template/config edits landed uncommitted in a2a-bridge (10× prism-silent, 6× round-1-completeness, 3× severity gate, prompts/dispatch-brief-contract.md), stockTrading (CLAUDE.md hooks doc-drift fix), ssot-agents (AGENTS.md + CLAUDE.md scaffold) — owner review pending.
 - [x] Exp 1H — review shape vs plain on review-hard: DEAD HEAT off ceiling (8/15 both arms, identical 11/14 defect sets, McNemar p=1.0, +6.5% USD; treatment false findings 5 vs 8) — 3f2ad05. Combined with exp1-rescored: no detectable review-shape gain on Haiku; consistent noise-suppression glimmer.
 - [x] Cleanup wave: McNemar trigger, judge token tracking, stratified spotcheck, empty-items PROVISIONAL, floored reorder, ci content gates, TOML guard (+fullmatch), rejudge exp_id+trace, moves.yaml polish, verdict-markdown probes — fa8fc89/c83bc64/5a079e8.
 - [x] Custom agents 4th deployment form (agent.md ×15, lint, config enum, frontmatter stripping) — f094e4f/9a0f5cb.
