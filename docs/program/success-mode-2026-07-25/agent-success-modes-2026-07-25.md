@@ -276,3 +276,11 @@ tail (verification artifacts promoted from scratchpad into repo), slice F findin
 (ledger+handoff durable custody).
 Candidate steering line: "At each checkpoint, commit or snapshot anything you'd mourn —
 untracked + single-copy means one accident from gone."
+
+#### S11 TRIAL RESULT (fable reasoner pass, 2026-07-26 — full eval: success-mining/s11-trial-eval-2026-07-26.md)
+14 citations sampled: ZERO fabricated; 64% verbatim-at-line; defects all mechanical (3
+spliced-fragment "quotes", 1 line drift, 1 sibling-file transposition). Acceptance 17/17
+findings from EVIDENCE blocks alone; novelty ~12/17. VERDICT: strategy works; formalize
+with (1) one-quote-one-span rule, (2) mechanical citation checker gating reports
+(candidate mining/scripts/check_citations.py), (3) per-file quote verification. exp-s3
+still owed for the causal counterfactual.
