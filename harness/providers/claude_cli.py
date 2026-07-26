@@ -26,13 +26,19 @@ DISALLOWED_TOOLS = "Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch,Glob,Grep,Re
 # Executor children must NOT inherit the operator's user-global settings: the
 # SessionStart hook there (moshi-hooks/superpowers) injects framework context
 # that overrides terse instructions — observed destroying 3/7 fixed-token
-# probes in the ssot dogfood corpus (2026-07-25, slice-D FAILURE-1). An empty
-# settings file severs the whole settings-borne class (hooks, plugins), not
-# just the one hook. Skill is disallowed above as belt for the same incident.
+# probes in the ssot dogfood corpus (2026-07-25, slice-D FAILURE-1). Skill is
+# disallowed above as belt for the same incident.
+#
+# CAVEAT (falsified 2026-07-26, exp-w3a run 2 transcripts): `--settings` ADDS a
+# settings source; it does not replace the user-global one — PostToolUse hooks
+# from ~/.claude/settings.json were observed firing inside executor children.
+# The real severs are (a) CLAUDE_INSTRUMENT_CHILD=1 in the child env, which the
+# operator's guarded SessionStart hook keys on, and (b) `--tools ""` below,
+# which removes the built-in tool surface entirely.
 ISOLATED_SETTINGS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "isolated_settings.json")
 
 
-def _stderr_tail(text: str, n: int = 4000) -> str:
+def _stderr_tail(text: "str | None", n: int = 4000) -> str:
     if not text:
         return ""
     return text[-n:]
@@ -65,18 +71,30 @@ def run_claude(prompt: str, model: str, cwd: str, timeout: int = 300) -> dict:
         DISALLOWED_TOOLS,
         "--settings",
         ISOLATED_SETTINGS,
+        # No tools AT ALL: with --max-turns 1, ANY tool interaction (even a
+        # denied one, even ToolSearch loading a deferred tool) ends the run as
+        # max_turns_reached with no result -> CLI exit 1 with empty stderr.
+        # Observed killing 2/28 executor calls in exp-w3a run 2 (2026-07-26):
+        # sonnet-5 stochastically reached for ToolSearch/DesignSync on review
+        # prompts. "" removes the whole built-in tool surface, so turn 1 always
+        # ends in text. The disallowed list above stays as belt.
+        "--tools",
+        "",
     ]
 
     # stdin=DEVNULL: without it the CLI waits 3s probing an inherited pipe
     # (promptfoo runs us with one) and logs a stderr warning. One retry on
     # nonzero exit: transient rc-1 blips under load cost a whole arm's
     # integrity otherwise (observed: rh-07/rh-14, exp-d7 treatment arm).
+    # CLAUDE_INSTRUMENT_CHILD keys the guard on the operator's SessionStart
+    # hook — the one hook event --settings does NOT sever (see CAVEAT above).
+    child_env = {**os.environ, "CLAUDE_INSTRUMENT_CHILD": "1"}
     proc = None
     for attempt in (1, 2):
         try:
             proc = subprocess.run(
                 argv, cwd=cwd, capture_output=True, text=True, timeout=timeout,
-                stdin=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL, env=child_env,
             )
         except subprocess.TimeoutExpired as e:
             raise ProviderError(
@@ -93,8 +111,12 @@ def run_claude(prompt: str, model: str, cwd: str, timeout: int = 300) -> dict:
             time.sleep(3)
 
     if proc.returncode != 0:
+        # The CLI reports many failures (e.g. error_max_turns) as a JSON result
+        # object on STDOUT with an empty stderr — carry a stdout tail in the
+        # message or the error is a bare exit code (exp-w3a run 2, 2026-07-26).
         raise ProviderError(
-            f"claude CLI exited with code {proc.returncode} (after retry)",
+            f"claude CLI exited with code {proc.returncode} (after retry);"
+            f" stdout tail: {_stderr_tail(proc.stdout, 1500)!r}",
             stderr_tail=_stderr_tail(proc.stderr),
         )
 
@@ -102,7 +124,8 @@ def run_claude(prompt: str, model: str, cwd: str, timeout: int = 300) -> dict:
         data = json.loads(proc.stdout)
     except json.JSONDecodeError as e:
         raise ProviderError(
-            f"claude CLI stdout was not valid JSON: {e}",
+            f"claude CLI stdout was not valid JSON: {e};"
+            f" stdout tail: {_stderr_tail(proc.stdout, 1500)!r}",
             stderr_tail=_stderr_tail(proc.stderr),
         ) from e
 
@@ -114,7 +137,8 @@ def run_claude(prompt: str, model: str, cwd: str, timeout: int = 300) -> dict:
 
     if data.get("is_error"):
         raise ProviderError(
-            "claude CLI reported is_error=true",
+            "claude CLI reported is_error=true;"
+            f" result tail: {_stderr_tail(str(data.get('result', '')), 1500)!r}",
             stderr_tail=_stderr_tail(proc.stderr),
         )
 

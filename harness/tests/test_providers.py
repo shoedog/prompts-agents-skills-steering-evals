@@ -84,6 +84,35 @@ class TestRunClaude:
         disallowed = argv[argv.index("--disallowedTools") + 1]
         assert "Skill" in disallowed.split(",")
 
+    def test_executor_child_has_no_tool_surface_and_instrument_env(self):
+        # exp-w3a run 2 (2026-07-26): with --max-turns 1, ANY tool interaction
+        # (ToolSearch loading a deferred tool was the observed gateway) ends
+        # the run as max_turns_reached -> exit 1, killing the item's arm
+        # integrity. --tools "" removes the whole built-in tool surface.
+        # CLAUDE_INSTRUMENT_CHILD=1 keys the operator's guarded SessionStart
+        # hook: --settings adds a source, it does NOT sever user-global hooks
+        # (PostToolUse hooks were observed firing inside executor children).
+        with patch("harness.providers.claude_cli.subprocess.run") as mock_run:
+            mock_run.return_value = _completed(stdout=json.dumps(CANNED_CLAUDE_JSON))
+            run_claude("hi", "claude-haiku-4-5-20251001", cwd="/tmp")
+
+        argv = mock_run.call_args.args[0]
+        assert "--tools" in argv
+        assert argv[argv.index("--tools") + 1] == ""
+        env = mock_run.call_args.kwargs["env"]
+        assert env["CLAUDE_INSTRUMENT_CHILD"] == "1"
+
+    def test_nonzero_exit_error_carries_stdout_tail(self):
+        # The CLI reports error_max_turns (and friends) as JSON on STDOUT with
+        # an EMPTY stderr; without a stdout tail the provider error is a bare
+        # exit code and the failure class is undiagnosable from promptfoo output.
+        payload = json.dumps({"type": "result", "subtype": "error_max_turns"})
+        with patch("harness.providers.claude_cli.subprocess.run") as mock_run:
+            mock_run.return_value = _completed(stdout=payload, stderr="", returncode=1)
+            with pytest.raises(ProviderError) as exc_info:
+                run_claude("hi", "claude-haiku-4-5-20251001", cwd="/tmp")
+        assert "error_max_turns" in str(exc_info.value)
+
     def test_timeout_raises_provider_error(self):
         with patch("harness.providers.claude_cli.subprocess.run") as mock_run:
             mock_run.side_effect = subprocess.TimeoutExpired(cmd=["claude"], timeout=300)
