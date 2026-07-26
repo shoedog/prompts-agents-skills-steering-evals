@@ -121,18 +121,15 @@ def _provider_shim_path(cfg: ExperimentConfig) -> Path:
 
 def _yaml_for_arm(cfg: ExperimentConfig, arm: str, results_dir: Path,
                   prompt_path: Path, items: list[dict]) -> dict:
-    provider_config = {
+    provider_config: dict = {
         "model": cfg.executor.model,
         "tier": cfg.executor.tier,
         "arm": arm,
         "exp_id": cfg.id,
         "results_dir": str(results_dir),
-        # promptfoo's python worker kills the call at config.timeoutMs (schema
-        # prefault 300000). exp-w3a's sonnet-5 mid executor legitimately exceeds
-        # 300s on diff-tracing reviews — every item died at exactly the worker
-        # wall (2026-07-26). 900s ceiling; the shim's own run_claude timeout is
-        # 840s so provider errors surface with stderr instead of a worker kill.
-        "timeoutMs": 900000,
+        # NOTE: do NOT put a `timeoutMs` here expecting it to govern the python
+        # worker — that was tried (2026-07-26) and proven inert; the worker wall
+        # is the REQUEST_TIMEOUT_MS env var, set in harness/run.py.
     }
     if cfg.executor.provider == "codex":
         # Threaded ONLY for the codex family so the claude provider config

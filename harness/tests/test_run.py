@@ -253,3 +253,19 @@ def test_run_experiment_force_clears_stale_and_proceeds(monkeypatch, tmp_path):
     # cleared it before generating/running, so it can never be glob'd
     # together with anything from this run.
     assert not (stale_calls / "baseline-stale-item.json").exists()
+
+
+def test_promptfoo_env_raises_python_worker_wall(monkeypatch):
+    # promptfoo's persistent python worker kills each provider call at
+    # getRequestTimeoutMs() = REQUEST_TIMEOUT_MS env (default 300000ms) — a
+    # GLOBAL knob, not provider config (config-level timeoutMs was proven
+    # inert: exp-w3a run 3 lost an item at exactly 300000ms with
+    # timeoutMs: 900000 present in the YAML). sonnet-class executors
+    # legitimately exceed 300s; the harness must raise the wall itself.
+    monkeypatch.delenv("REQUEST_TIMEOUT_MS", raising=False)
+    env = run_mod._promptfoo_env()
+    assert env["REQUEST_TIMEOUT_MS"] == "900000"
+
+    # an operator's explicit export still wins
+    monkeypatch.setenv("REQUEST_TIMEOUT_MS", "120000")
+    assert run_mod._promptfoo_env()["REQUEST_TIMEOUT_MS"] == "120000"

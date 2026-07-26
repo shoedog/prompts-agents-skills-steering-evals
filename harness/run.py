@@ -33,6 +33,16 @@ def _promptfoo_env() -> dict:
     env["PROMPTFOO_PYTHON"] = sys.executable
     env.setdefault("PROMPTFOO_DISABLE_TELEMETRY", "1")
     env.setdefault("PROMPTFOO_DISABLE_UPDATE", "1")
+    # promptfoo's persistent python worker kills each provider call at
+    # getRequestTimeoutMs() = getEnvInt("REQUEST_TIMEOUT_MS", 3e5) — a GLOBAL
+    # env knob (providers/shared.ts), NOT the provider config (a config-level
+    # `timeoutMs` was tried first and proven inert: exp-w3a run 3 lost
+    # neg-treatment mc-01 at exactly 300000ms with timeoutMs: 900000 present in
+    # the YAML). sonnet-class executors legitimately exceed 300s on diff-trace
+    # reviews; 900s here, with the claude shim's inner run_claude timeout at
+    # 840s so provider errors surface with a stdout tail instead of a worker
+    # kill. setdefault so an operator export still wins.
+    env.setdefault("REQUEST_TIMEOUT_MS", "900000")
     return env
 
 
