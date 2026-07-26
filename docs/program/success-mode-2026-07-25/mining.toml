@@ -1,0 +1,68 @@
+# Success-mode mining fan-out — host-side sol/luna miner lanes (2026-07-25).
+# Read-only codex sandbox: miners can stream the transcript corpora anywhere on the host
+# but cannot write; reports are captured from the node's final message via --out.
+# Auth rule (hard-won 2026-07-25): pre_authenticated = true, NEVER auth_method / the
+# automatic lane (it invokes the advertised chat-gpt action, which hangs headless).
+
+default = "sol-miner"
+
+allowed_cwd_root = "/Users/wesleyjinks/code"
+
+[registry]
+allowed_cmds = ["codex-acp"]
+
+[server]
+addr = "127.0.0.1:8091"
+
+[[agents]]
+id  = "sol-miner"
+cmd = "codex-acp"
+model = "gpt-5.6-sol"
+effort = "xhigh"          # proven combo (W2d acceptance: sol xhigh mints, effort_applied:true)
+pre_authenticated = true
+args = ["-c", "sandbox_mode=\"read-only\"", "-c", "approval_policy=\"never\""]
+
+[[agents]]
+id  = "luna-miner"
+cmd = "codex-acp"
+model = "gpt-5.6-luna"    # family id per docs/superpowers/plans/2026-07-11-r3-compatibility-canaries.md; FIRST USE on this login — smoke before mining
+effort = "high"
+pre_authenticated = true
+args = ["-c", "sandbox_mode=\"read-only\"", "-c", "approval_policy=\"never\""]
+
+[[prompts]]
+id = "smoke-reply"
+file = "/Users/wesleyjinks/code/a2a-bridge/prompts/smoke-reply.md"
+description = "one-line smoke reply prompt"
+
+[[workflows]]
+id = "smoke-sol-miner"
+[[workflows.nodes]]
+id = "go"
+agent = "sol-miner"
+prompt = "smoke-reply"
+inputs = []
+
+[[workflows]]
+id = "smoke-luna-miner"
+[[workflows.nodes]]
+id = "go"
+agent = "luna-miner"
+prompt = "smoke-reply"
+inputs = []
+
+[[workflows]]
+id = "mine-sol"
+[[workflows.nodes]]
+id = "mine"
+agent = "sol-miner"
+prompt_file = "/Users/wesleyjinks/Documents/success-mining/miner-node-prompt.md"
+inputs = []
+
+[[workflows]]
+id = "mine-luna"
+[[workflows.nodes]]
+id = "mine"
+agent = "luna-miner"
+prompt_file = "/Users/wesleyjinks/Documents/success-mining/miner-node-prompt.md"
+inputs = []
