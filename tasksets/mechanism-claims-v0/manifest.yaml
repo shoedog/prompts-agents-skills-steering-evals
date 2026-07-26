@@ -17,8 +17,11 @@
 #   [x] execution-verify every diff (compiles/parses; seeded misbehavior demonstrable;
 #       clean items genuinely defect-free) — see VERIFICATION.md, 2026-07-25
 #   [x] hunk-header arithmetic audit — see VERIFICATION.md, 2026-07-25
-#   [ ] fresh-model probe: each seeded defect findable, each clean item survivable
-#   [ ] owner sign-off on acceptable_match/reject_if citation bars
+#   [x] fresh-model probe: each seeded defect findable, each clean item survivable —
+#       satisfied for the 7-item set after the mc-08 drop (seeded 5/5 with correct
+#       citations; mc-06/mc-07 survive; PROBE.md Resolution, 2026-07-25)
+#   [x] owner sign-off on acceptable_match/reject_if citation bars — signed 2026-07-26
+#       (owner reviewed the per-item ACCEPT/REJECT-IF digest; "bars signed")
 taskset: mechanism-claims-v0
 task_family: review
 status: v0-seed-unverified

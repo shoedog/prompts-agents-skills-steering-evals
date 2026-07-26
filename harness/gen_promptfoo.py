@@ -127,6 +127,12 @@ def _yaml_for_arm(cfg: ExperimentConfig, arm: str, results_dir: Path,
         "arm": arm,
         "exp_id": cfg.id,
         "results_dir": str(results_dir),
+        # promptfoo's python worker kills the call at config.timeoutMs (schema
+        # prefault 300000). exp-w3a's sonnet-5 mid executor legitimately exceeds
+        # 300s on diff-tracing reviews — every item died at exactly the worker
+        # wall (2026-07-26). 900s ceiling; the shim's own run_claude timeout is
+        # 840s so provider errors surface with stderr instead of a worker kill.
+        "timeoutMs": 900000,
     }
     if cfg.executor.provider == "codex":
         # Threaded ONLY for the codex family so the claude provider config

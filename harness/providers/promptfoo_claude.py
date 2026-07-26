@@ -53,7 +53,7 @@ def call_api(prompt, options, context):
     os.makedirs(sandbox, exist_ok=True)
 
     try:
-        out = run_claude(prompt, model=model, cwd=sandbox, timeout=300)
+        out = run_claude(prompt, model=model, cwd=sandbox, timeout=840)
     except ProviderError as e:
         # Surface as a promptfoo provider error; the item's assert never runs
         # and the missing calls/judge files mark this item absent downstream.
