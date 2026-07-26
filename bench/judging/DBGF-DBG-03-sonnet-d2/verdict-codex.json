@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": false,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A restores a single ordered parameter add_locals call and adds an ordinal regression that would fail when every parameter ordinal is reset to 0, plus the ambiguity-to-None regression. However, it preserves per-param facts by first calling add_locals with a synthetic shared LocalFact and then adding the real per-param LocalFacts, which may duplicate or otherwise alter local_facts depending on Builder::add_local_fact storage semantics, so the fix is not clearly inert beyond the repair. Arm B removes the collision at the root more cleanly by separating binding insertion from fact insertion: params are bound once in source order through add_local_bindings, and each real fact is attached exactly once by def_byte. Its ordinal regression directly inspects scope-graph bindings and would fail on the buggy per-param code, and its ambiguity test includes a non-vacuous positive check before asserting None after duplicate same-rib bindings.",
+  "rationale": "Both arms address the specified parameter ordinal bug by batching parameter names into one ordered binding pass. Arm A is weaker because it calls add_locals with a dummy shared Param fact and then adds the actual per-binding fact afterward, creating risk of extra or changed local_facts entries and therefore another inertness breach. Arm B factors add_locals into fact attachment plus add_local_bindings, which preserves existing callers while giving bind_params a binding-only path for heterogeneous facts. Arm B's tests are also stronger: the ordinal test inspects serialized scope-graph BindingRefs directly, and the duplicate-rib test proves lookup is not vacuously returning None. Arm B is materially better."
+ },
+ "tokens_used": 21153
+}

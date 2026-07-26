@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": false,
+  "arm_a_scope_ok": false,
+  "arm_b_scope_ok": false,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": false,
+  "probe_answer": "Arm A tests are stronger because it adds a singleton fail-open fixture in addition to the shared coverage. Its strongest test is `scope_graph_free_fn_path_not_misrouted_to_colliding_method_pool`: it pins the colliding method bucket and asserts the actual free-function target file, so it catches the critical guard bug. Its weakest test is `scope_graph_macro_wildcard_shadow_keeps_all`: it does not assert len or target identities, so it is weaker against vacuous or partial results. Arm B has the same strongest test, but lacks Arm A's singleton fail-open Exact branch. Its weakest test is also the macro wildcard fixture, and its biggest gap is no coverage for singleton `owner_lookup_in_modules` fail-open. Most shared tests should fail on pre-change code, especially two-crate Exact recovery, inherent-plus-trait demotion, unresolved-owner demotion, and free-fn misroute. Several negative tests assert real behavior, but some should be tightened to exact counts and target files.",
+  "rationale": "WRONG: both arms broaden the authoritative Rust branch for unqualified calls with `site.qualifier.is_none()` and no owner-method pool, returning immediately from `rust_scope_graph_resolution` or dropping on graph miss. Task 5 was the owner-method `::` integration; changing unqualified fallback behavior is outside scope and can regress existing recall. WRONG: both arms still allow a post-`owner_lookup_in_modules` drop in the fail-open path, despite the task saying fail-open is routed only to that demote floor and stops. SMELL: both implementations are code-identical, so Arm A's only advantage is test coverage. Arm A is not materially better because the production defects are shared, but its tests are marginally stronger."
+ },
+ "tokens_used": 30687
+}

@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": false,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Both arms correctly split the classifier signal into 'binding materialized' vs 'type resolved' (A: RecoveredReceiver.poisoned + CallSite.receiver_binding; B: cleaner ReceiverClassification::{Resolved,Materialized} enum) and both suppress R3/R3b on materialize regardless of poisoning, routing resolved+unpoisoned to R6 owner_lookup and poisoned to residue. Both add TDD tests for the Python (named-import + wildcard) and TS (import-shadowed-param) false-Exact repros that would fail pre-fix (old code minted Exact QualifierOwner/ImportQualified), plus nested-class-body and same-line-after-call scope tests, plus a positive control. Divergence: Arm A gates the byte-based 'before-call' cutoff and class-body skip strictly to Python/JS/TS, leaving Rust/Go's walk_receiver_bindings check untouched (matches the task's explicit 'Rust/Go byte-identical'/'unchanged' requirement). Arm B removed the call_line parameter entirely and applies the byte-based cutoff to ALL languages, silently changing Rust/Go's shadow-ambiguity detection for same-line multi-binding cases (e.g. `let x=Foo::new(); x.m(); let x=Bar::new();` on one line: old row check counted both as before-call -> ambiguity bail; B's byte check now excludes the second -> resolves) - a real regression against the required scope, undetected by any new Rust/Go test. Arm A also adds a boundary test confirming an ordinary import-with-no-shadow still resolves via R3, which B lacks.",
+  "rationale": "Functionally both arms solve BLOCKER 1+2 and the MAJOR scope-aware recovery with equivalent TDD coverage of the three repros plus a positive control. The deciding factor is scope discipline: the task twice states Rust/Go must stay byte-identical/unchanged (BLOCKER section explicitly, and the Report deliverable demands confirming 'Rust/Go unchanged'). Arm A honors this by gating both the byte-based before-call cutoff and the class-body skip to Python/JS/TS only, leaving Rust/Go's recovery path bit-for-bit identical. Arm B deletes the call_line parameter and applies the byte-based cutoff unconditionally to every language, which changes Rust/Go's same-line multi-binding shadow-ambiguity outcome in a demonstrable way, uncovered by any new or existing test - a concrete WRONG-tier scope violation, not a style nit. Arm A also has one more regression test (TS import-without-shadow still resolves via R3) that Arm B omits. Arm B's code is arguably cleaner (enum classification, Language::class_node_types() abstraction vs A's poisoned-flag + redundant defensive OR + hardcoded class-kind match), but that stylistic edge doesn't offset the scope/correctness risk."
+ },
+ "cost_usd": 0.8416082999999999
+}

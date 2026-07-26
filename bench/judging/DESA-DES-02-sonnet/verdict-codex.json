@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": true,
+  "load_bearing_caveats_matched": true,
+  "scope_calibrated": true,
+  "would_have_prevented_wasted_work": true,
+  "probe_answer": "The memo gets the decisive shape right: keep hierarchy data on CallGraph keyed by file plus class byte span, reuse span-scoped lookup, reject bare class-name promotion, and avoid a full C3/MRO engine. Its recommended scope is slightly narrower/stricter than the final generalized wording because it emphasizes same-file single-inheritance chains, but that is aligned with the landed conservative direct-base slice rather than the naive full-MRO approach.",
+  "rationale": "The memo explicitly proposes class_bases keyed by (file, class_span), populated alongside method_class_span across build paths, with lookup filtered by class span. It also carries the important soundness caveats: no name-keyed owner_lookup walk, no external-base guessing, bail on multiple bases/ambiguity, and no need for full C3. Its extra fixture critique is off relative to the settled history, but not load-bearing against the architecture conclusion."
+ },
+ "tokens_used": 23546
+}

@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": false,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm B is the better implementation. It carries an explicit materialized bit even when recovery finds a local binding but no accepted type, so unresolved or poisoned Python/JS/TS receiver locals suppress R3/R3b. Arm A only sets materialized after receiver_type_in_fn returns a type, so untyped/destructured/shadow bindings and other unresolved-but-materialized cases can still fall through to R3/R3b. Arm B also tests the required non-poisoned positive control; Arm A's TS poison test is actually non-poisoned and expects TypedParam, so it does not cover the stated TS blocker.",
+  "rationale": "Arm A adds receiver_materialized and byte/class-scope filtering, but its materialization signal is incomplete: receiver_type_in_fn still returns Option, so a binding with no recoverable type is indistinguishable from no binding. That misses the spec's unresolved/materialized state and can leave R3/R3b enabled for local receiver bindings that fail type recovery. Arm A also suppresses import-qualified only in a TS case where Foo is locally defined, not imported/wildcard poisoned, and it lacks the requested positive-control test as a distinct regression check. Its scope fix is directionally right for same-line-after-call and nested class bodies, but the core classifier state is not complete. Arm B introduces receiver_binding_in_fn returning both recovered type and materialized, threads call_b"
+ },
+ "tokens_used": 14542
+}

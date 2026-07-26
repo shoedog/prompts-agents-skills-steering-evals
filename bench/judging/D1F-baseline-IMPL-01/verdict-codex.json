@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A: the suite would fail on pre-change code because watchdog_cancels_a_hung_turn_as_timed_out would hang until the test timeout and panic. The active/unmodeled and no-config tests would mostly pass pre-change, so they are negative/back-compat checks rather than TDD red tests. Strongest: watchdog_cancels_a_hung_turn_as_timed_out, because it asserts the real stream terminal Err(AgentTimedOut). Weakest: watchdog_does_not_trip_active_or_unmodeled_turn, because its delayed scripts run for less than the 100ms idle timeout, so it does not prove that activity advances the idle deadline across a turn longer than idle. Arm B: the suite would also fail on pre-change code via watchdog_cancels_a_hung_turn_as_timed_out. Its negative tests are stronger: active and unmodeled scripts run longer than idle with regular activity, assert no cancels, and the disabled test releases the agent and verifies normal Done. Strongest: watchdog_does_not_trip_active_or_unmodeled_turn. Weakest: no_watchdog_config_is_byte_identical, mainly because it is a back-compat test expected to pass pre-change, though it still asserts real behavior. Shared test gap: neither arm directly tests the PFIX-F edge where the post",
+  "rationale": "Both implementations satisfy the core task: watchdog only spawns when configured, disabled arm is Pending, sleep_until uses tokio::time::Instant::from_std, idle math undoes the +1 sentinel with saturating_sub, the watchdog arm discards the inner cancel result, teardown drops the oneshot sender, and AgentTimedOut is emitted only from the watchdog arm. Scope is appropriately limited to acp_backend.rs and its tests. WRONG: none found from the diffs. SMELL: both test suites omit a direct honored-cancel-after-timeout case for PFIX-F. SMELL: Arm A's active/unmodeled test is materially weaker because total scripted activity is below idle_timeout, and its no-config test does not verify normal completion or absence of cancel. Arm B is materially better because its tests exercise the moving idle-de\uae09"
+ },
+ "tokens_used": 60497
+}

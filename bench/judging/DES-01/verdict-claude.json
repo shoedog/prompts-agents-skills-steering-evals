@@ -1,0 +1,12 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": true,
+  "guarded_fallthrough_shape": true,
+  "buy_sized_realistically": false,
+  "js_ts_scope_correct": false,
+  "would_have_prevented_wasted_work": false,
+  "probe_answer": "The analysis's core routing design matches the adopted shape closely: recover typed receivers via P6-lite arms into R6/owner_lookup, but on a miss for an in-repo class-with-bases, fall through to existing R6 residue instead of dropping-external, with Rust/Go arms untouched and byte-identical. That is exactly the guarded hit-or-fallthrough shape that shipped. It fails on the other two axes: it recommends shipping Python+TS arms (with JS getting the ctor-local binding-walk arm) in the same slice, which is precisely the scope that later hit a JS/TS lexical-block soundness hole and had to be narrowed to Python-only. And it justifies shipping by extrapolating to off-brief corpora (mypy/httpx/black) predicting thousands of new Exact edges, while the actual measured buy across the shipped scope was negligible (~+17 Exact), with Express/JS ~0 as the analysis itself found for the brief's actual corpora.",
+  "rationale": "Mechanism match (guarded fallthrough, Rust/Go parity) is strong and would count as vindicated by shape despite different option labeling. But the analysis actively recommends including TS/JS binding-walk logic upfront rather than deferring it, which is the opposite of what the settled history required (narrow to Python-only after a JS/TS soundness hole, JS buy ~0, slice eventually shelved). Its headline buy justification leans on non-brief corpora numbers in the thousands, which overstates the measured negligible buy (~17 Exact) by orders of magnitude, so following it as written would have encouraged over-investment in JS/TS exactly where it turned out to be wasted work."
+ },
+ "cost_usd": 0.2196498
+}

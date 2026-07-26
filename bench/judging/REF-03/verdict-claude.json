@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": false,
+  "probe_answer": "Both arms genuinely delete the JS/TS recovery code (not just gate/flag it): both remove the TS parameter type_annotation case, the JS/TS variable_declarator/assignment_expression constructor-local cases, the new_expression constructor-type case, and the type_annotation_text helper, and narrow all four required sites (ast.rs:424 gate, resolution.rs:320 gate, R3/R3b materialized-receiver suppression, import/wildcard guard) to Python-only with identical logic. Both convert the TS typed-receiver tests to assert receiver_type.is_none()/receiver_materialized==false, and both add a correct JS and TS nested-lexical-block non-regression test matching the brief's exact repro, asserting R3 ImportQualified/Exact is preserved. Difference: Arm A's converted TS shadow test additionally pins the downstream fallback to the exact expected outcome (ResolutionKind::R6SingleOwner, NameOnly) for the non-import annotated case, matching main precisely; Arm B only asserts the result's kind is not TypedParam/ConstructorLocal, a weaker check that wouldn't catch a confidence/kind regression in that fallback path.",
+  "rationale": "Production code (ast.rs, resolution.rs) is functionally identical between arms \u2014 same four gates narrowed to Python-only, same JS/TS code paths deleted outright, same R3/R3b and miss-fallthrough restricted to Python. Both fully satisfy the descope probe: real removal (not disabling), TS tests converted to assert no-recovery, and a correct JS/TS lexical-block non-regression test preserving R3. The only distinguishable gap is test rigor: Arm A pins the TS 'ok' fallback case to an exact ResolutionKind/confidence, while Arm B uses a looser exclusion-based assertion that could pass under a latent confidence regression. This is a real but narrow test-quality edge, not a missing requirement or correctness defect, so it doesn't rise to material-better \u2014 both PRs are equivalently mergeable and equally satisfy the stated scope and rules."
+ },
+ "cost_usd": 0.5280903
+}

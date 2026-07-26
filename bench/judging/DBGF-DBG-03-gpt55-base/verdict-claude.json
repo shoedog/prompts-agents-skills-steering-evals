@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms remove the collision at the root: instead of calling add_locals once per param (each call's enumerate() restarting ordinals at 0), both collect all params first and perform ONE ordered binding pass so ordinals come out 0,1,2,... Both add the required ordinal-preservation test (fn f(a,b) -> distinct BindingRefs with ordinals 0/1) which fails under the old per-param code, plus a same-rib duplicate-local ambiguity test. Arm A reuses the existing add_locals by passing the full names slice with a placeholder LocalFact, then overwrites each param's real fact via a second per-def_byte loop -- inert only if local_facts storage is a last-write-wins keyed map (consistent with the codebase's BTreeMap convention, but unverified in the diff, so a mild SMELL/risk, not a demonstrated bug). Arm B splits add_locals into add_local_bindings (pure ordinal/binding logic, used by bind_params) and leaves add_locals's fact-writing behavior untouched for its other callers -- a cleanly behavior-preserving refactor that never writes a placeholder fact. Both are inert beyond the repair for other call sites.",
+  "rationale": "Both fixes correctly restore single-pass ordinal assignment and ship the two required regressions; neither has a demonstrated (WRONG-tier) defect. Arm B is modestly better on two concrete points: (1) its design avoids Arm A's write-placeholder-then-overwrite pattern for local_facts, which depends on an unverified overwrite-semantics assumption (SMELL in A, not proven wrong); (2) Arm B's ambiguity test also asserts the intermediate visible state (only the first `x` visible between the two lets) before asserting None post-duplicate, which rules out a vacuous/always-None implementation passing by accident -- Arm A's equivalent test only checks the final None case. These are real, diff-visible quality deltas, not stylistic nitpicks, so I lean B without calling A's approach incorrect."
+ },
+ "cost_usd": 0.6254894999999999
+}

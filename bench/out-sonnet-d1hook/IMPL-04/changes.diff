@@ -1,0 +1,118 @@
+# git -C /private/tmp/sonnet-hook-ws/IMPL-04 status --short
+ M bin/a2a-bridge/src/config.rs
+?? .claude/
+?? VERIFICATION.md
+
+# git -C /private/tmp/sonnet-hook-ws/IMPL-04 diff
+diff --git a/bin/a2a-bridge/src/config.rs b/bin/a2a-bridge/src/config.rs
+index d315bcf..3024661 100644
+--- a/bin/a2a-bridge/src/config.rs
++++ b/bin/a2a-bridge/src/config.rs
+@@ -263,6 +263,16 @@ pub struct WorkflowNodeToml {
+     pub prompt_file: String,
+     #[serde(default)]
+     pub inputs: Vec<String>,
++    #[serde(default)]
++    pub retry: Option<RetryToml>,
++}
++
++#[derive(Debug, serde::Deserialize)]
++pub struct RetryToml {
++    pub max_attempts: u32,
++    pub backoff_ms: u64,
++    #[serde(default)]
++    pub backoff_cap_ms: Option<u64>,
+ }
+ 
+ /// `[registry]` section — optional; controls which cmds are allowed.
+@@ -982,7 +992,14 @@ impl RegistryConfig {
+                         .map_err(|e| {
+                             ConfigError::Registry(format!("workflow {} input id: {e:?}", w.id))
+                         })?,
+-                    retry: None,
++                    retry: n
++                        .retry
++                        .as_ref()
++                        .map(|r| bridge_workflow::graph::RetryPolicy {
++                            max_attempts: r.max_attempts,
++                            backoff_ms: r.backoff_ms,
++                            backoff_cap_ms: r.backoff_cap_ms,
++                        }),
+                 });
+             }
+             let g = WorkflowGraph {
+@@ -2480,6 +2497,73 @@ addr="127.0.0.1:8080"
+         g.validate().unwrap();
+     }
+ 
++    #[test]
++    fn workflow_node_retry_parses() {
++        let toml = format!(
++            "{AGENTS_HEADER}\n[[workflows]]\nid = \"wf1\"\n\
++            [[workflows.nodes]]\nid = \"only\"\nagent = \"codex\"\nprompt_file = \"p.md\"\ninputs = []\n\
++            retry = {{ max_attempts = 3, backoff_ms = 250 }}\n{SERVER_FOOTER}"
++        );
++        let cfg: RegistryConfig = toml::from_str(&toml).unwrap();
++        let n = &cfg.workflows[0].nodes[0];
++        let r = n.retry.as_ref().unwrap();
++        assert_eq!((r.max_attempts, r.backoff_ms), (3, 250));
++    }
++
++    #[test]
++    fn workflow_node_retry_maps_into_graph() {
++        let dir = tempfile::tempdir().unwrap();
++        std::fs::write(dir.path().join("p.md"), "review {{input}}").unwrap();
++        let toml = format!(
++            "{AGENTS_HEADER}\n[[workflows]]\nid = \"wf1\"\n\
++            [[workflows.nodes]]\nid = \"only\"\nagent = \"codex\"\nprompt_file = \"p.md\"\ninputs = []\n\
++            retry = {{ max_attempts = 3, backoff_ms = 250 }}\n{SERVER_FOOTER}"
++        );
++        let cfg = RegistryConfig::parse(&toml).unwrap();
++        let wfs = cfg.load_workflows(dir.path()).unwrap();
++        let g = wfs
++            .get(&bridge_core::ids::WorkflowId::parse("wf1").unwrap())
++            .unwrap();
++        assert_eq!(
++            g.nodes[0].retry,
++            Some(bridge_workflow::graph::RetryPolicy {
++                max_attempts: 3,
++                backoff_ms: 250,
++                backoff_cap_ms: None,
++            })
++        );
++    }
++
++    #[test]
++    fn workflow_node_retry_absent_defaults_to_none_end_to_end() {
++        let dir = tempfile::tempdir().unwrap();
++        std::fs::write(dir.path().join("p.md"), "review {{input}}").unwrap();
++        let toml = format!(
++            "{AGENTS_HEADER}\n[[workflows]]\nid = \"wf1\"\n\
++            [[workflows.nodes]]\nid = \"only\"\nagent = \"codex\"\nprompt_file = \"p.md\"\ninputs = []\n{SERVER_FOOTER}"
++        );
++        let cfg = RegistryConfig::parse(&toml).unwrap();
++        assert!(cfg.workflows[0].nodes[0].retry.is_none());
++        let wfs = cfg.load_workflows(dir.path()).unwrap();
++        let g = wfs
++            .get(&bridge_core::ids::WorkflowId::parse("wf1").unwrap())
++            .unwrap();
++        assert_eq!(g.nodes[0].retry, None);
++    }
++
++    #[test]
++    fn workflow_node_retry_missing_max_attempts_fails_to_parse() {
++        let toml = format!(
++            "{AGENTS_HEADER}\n[[workflows]]\nid = \"wf1\"\n\
++            [[workflows.nodes]]\nid = \"only\"\nagent = \"codex\"\nprompt_file = \"p.md\"\ninputs = []\n\
++            retry = {{ backoff_ms = 250 }}\n{SERVER_FOOTER}"
++        );
++        assert!(
++            toml::from_str::<RegistryConfig>(&toml).is_err(),
++            "max_attempts has no #[serde(default)] — omitting it must fail parse, not silently default"
++        );
++    }
++
+     #[test]
+     fn parses_workflow_panel_weights() {
+         let dir = tempfile::tempdir().unwrap();
+

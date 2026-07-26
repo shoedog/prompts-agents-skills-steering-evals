@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": false,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms implement the requested flag surface in substance and the critical safety default for handler nonzero and invalid JSON: they release the current claim and return failure. Arm A exposes --idle-timeout but not --wait-seconds; the brief allowed --wait-seconds or --idle-timeout. Arm B exposes both as mutually exclusive options. Arm A covers invalid JSON, handler nonzero, missing reply body, max-deliveries, idle timeout/no work, ack/reply/release/none, and handler stdin JSON. Arm B covers invalid JSON, handler nonzero, max-deliveries, default persistent waiting, idle timeout after work, heartbeat while idle/task clearing, heartbeat while the handler runs, reply/ack/release/none, and avoiding immediate reclaim of a released delivery. B's tests are broader, especially around long-running worker and heartbeat behavior.",
+  "rationale": "Arm B is materially better because it implements a more faithful loop runner: it supports both wait option names, factors polling through a reusable helper, heartbeats while the handler subprocess is running, and avoids immediately reclaiming the same delivery after a release while still allowing the loop to continue to other work. Its tests exercise more specified edge cases, especially heartbeat and persistent-worker behavior. The main caveat is scope: B changes store/API surfaces by adding exclude_delivery_ids and adjusts coordination API heartbeat clear_task behavior, which is broader than strictly necessary. Arm A is narrower and generally correct, but it lacks handler-running heartbeats and stops the loop on release rather than continuing to other eligible deliveries; its tests also-"
+ },
+ "tokens_used": 17689
+}

@@ -1,0 +1,362 @@
+POST-RUN evidence (workspace after the Fable session)
+=====================================================
+
+$ cargo test --test integration scope_graph_
+  # all 8 new fixtures by shared name prefix: two_crate_owner_collision_recovers_to_single_exact, inherent_plus_trait_owner_demotes_not_drops, unresolved_owner_path_keeps_full_pool_not_drop, block_local_glob_shadow_keeps_all, macro_wildcard_shadow_keeps_all, pending_import_alias_over_colliding_pool_keeps_all, non_uniform_edition_keeps_all, free_fn_path_not_misrouted_to_colliding_method_pool
+  # expect_min_tests=8 matched_tests=14 min_tests_satisfied=True
+  [exit 0, 0.335s]
+  --- stdout (tail) ---
+  
+  running 14 tests
+  test resolution_test::scope_graph_free_fn_path_not_misrouted_to_colliding_method_pool ... ok
+  test resolution_test::scope_graph_unresolved_owner_path_keeps_full_pool_not_drop ... ok
+  test resolution_test::non_rust_resolution_is_unchanged_with_scope_graph_present ... ok
+  test resolution_test::scope_graph_inherent_plus_trait_owner_demotes_not_drops ... ok
+  test resolution_test::scope_graph_two_crate_owner_collision_recovers_to_single_exact ... ok
+  test resolution_test::rust_scope_graph_alias_import_narrows_to_defining_callable_not_spelling_decoy ... ok
+  test resolution_test::rust_scope_graph_ambiguous_alias_import_falls_through_without_wrong_process ... ok
+  test resolution_test::scope_graph_macro_wildcard_shadow_keeps_all ... ok
+  test resolution_test::scope_graph_block_local_glob_shadow_keeps_all ... ok
+  test resolution_test::scope_graph_pending_import_alias_over_colliding_pool_keeps_all ... ok
+  test resolution_test::rust_scope_graph_unqualified_import_narrows_to_single_callable ... ok
+  test resolution_test::rust_scope_graph_qualified_paths_resolve_or_disable_legacy_stem ... ok
+  test resolution_test::rust_scope_graph_authority_gate_and_poison_skip_legacy ... ok
+  test resolution_test::rust_scope_graph_unqualified_declines_do_not_legacy_guess ... ok
+  
+  test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 200 filtered out; finished in 0.21s
+  
+  --- stderr (tail) ---
+  warning: unused import: `prism::access_path::AccessPath`
+   --> tests/integration/../common/mod.rs:5:9
+    |
+  5 | pub use prism::access_path::AccessPath;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+  
+  warning: unused import: `CpgContext`
+   --> tests/integration/../common/mod.rs:9:41
+    |
+  9 | pub use prism::cpg::{CodePropertyGraph, CpgContext};
+    |                                         ^^^^^^^^^^
+  
+  warning: unused import: `std::path::Path`
+    --> tests/integration/../common/mod.rs:20:9
+     |
+  20 | pub use std::path::Path;
+     |         ^^^^^^^^^^^^^^^
+  
+  warning: unused variable: `sources`
+     --> tests/integration/core_test.rs:216:17
+      |
+  216 |     let (files, sources, diff) = make_cpp_test();
+      |                 ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_sources`
+      |
+      = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+  
+  warning: `prism` (test "integration") generated 4 warnings (run `cargo fix --test "integration" -p prism` to apply 4 suggestions)
+      Finished `test` profile [unoptimized + debuginfo] target(s) in 0.09s
+       Running tests/integration/main.rs (target/debug/deps/integration-d5351dc850a24cc9)
+
+$ cargo test --test integration
+  # full integration suite (132 passed/1 ignored per the reference session) — re-confirms the three pre-existing drop invariants near resolution_test.rs:1528/1596/1641 are undisturbed
+  [exit 0, 1.055s]
+  --- stdout (tail) ---
+  test resolution_test::r6_single_owner_unknown_receiver_kept_demoted ... ok
+  test resolution_test::r6_multi_owner_unknown_receiver_drops ... ok
+  test resolution_test::r7_stem_fallback_excludes_cross_file_statics ... ok
+  test resolution_test::recovered_receiver_collision_demotes_and_keeps_typed_param_relabel ... ok
+  test coverage_test::test_coverage_matrix_validation ... ok
+  test resolution_test::rust_receiver_alias_wrapper_field_chain_fails_closed ... ok
+  test resolution_test::rust_receiver_chain_external_intermediate_unchanged ... ok
+  test resolution_test::rust_receiver_chain_builder_new_cfg_arg_resolves_exact ... ok
+  test resolution_test::rust_receiver_alias_wrapper_return_chain_fails_closed ... ok
+  test resolution_test::rust_receiver_chain_trait_intermediate_unchanged ... ok
+  test resolution_test::rust_receiver_destructured_param_does_not_mistype ... ok
+  test resolution_test::rust_receiver_chain_nested_arg_intermediate_resolves_exact ... ok
+  test resolution_test::rust_receiver_chain_wrapper_peel_intermediate_unchanged ... ok
+  test resolution_test::rust_receiver_chain_inrepo_then_external_unchanged ... ok
+  test resolution_test::removing_implementer_drops_interface_edge_no_phantom ... ok
+  test resolution_test::rust_receiver_destructured_pattern_init_does_not_mistype ... ok
+  test resolution_test::rust_receiver_mut_param_still_types ... ok
+  test resolution_test::rust_receiver_outcome_cross_module_no_collision ... ok
+  test resolution_test::rust_receiver_let_bound_method_init_chain_resolves_exact ... ok
+  test resolution_test::rust_receiver_outcome_external_recv_no_in_repo_method_drops ... ok
+  test resolution_test::rust_receiver_outcome_extension_trait_on_external_resolves ... ok
+  test resolution_test::rust_receiver_outcome_external_same_bare_decoy_does_not_bind_local_method ... ok
+  test resolution_test::rust_receiver_mut_self_builder_chain_still_types ... ok
+  test resolution_test::rust_receiver_outcome_incomplete_identity_bucket_falls_back_to_bare ... ok
+  test resolution_test::rust_receiver_outcome_graph_backed_combine_kind_inherent_exact_trait_nameonly ... ok
+  test resolution_test::rust_receiver_outcome_trait_dyn_dispatch_found_as_nameonly ... ok
+  test resolution_test::rust_receiver_outcome_trait_static_dispatch_found_as_nameonly ... ok
+  test resolution_test::rust_receiver_outcome_unrecovered_receiver_hits_residue ... ok
+  test resolution_test::rust_receiver_outcome_wins_over_owner_key_collision ... ok
+  test resolution_test::rust_receiver_simple_param_still_types ... ok
+  test resolution_test::rust_receiver_struct_pattern_param_fails_closed ... ok
+  test resolution_test::rust_receiver_tuple_pattern_param_fails_closed ... ok
+  test resolution_test::rust_scope_graph_alias_import_narrows_to_defining_callable_not_spelling_decoy ... ok
+  test resolution_test::rust_scope_graph_ambiguous_alias_import_falls_through_without_wrong_process ... ok
+  test resolution_test::rust_receiver_wrapper_return_chain_fails_closed ... ok
+  test resolution_test::scope_graph_block_local_glob_shadow_keeps_all ... ok
+  test resolution_test::scope_graph_free_fn_path_not_misrouted_to_colliding_method_pool ... ok
+  test resolution_test::rust_scope_graph_authority_gate_and_poison_skip_legacy ... ok
+  test resolution_test::scope_graph_inherent_plus_trait_owner_demotes_not_drops ... ok
+  test resolution_test::rust_scope_graph_unqualified_import_narrows_to_single_callable ... ok
+  test resolution_test::rust_scope_graph_qualified_paths_resolve_or_disable_legacy_stem ... ok
+  test resolution_test::slice_elem_variant_reserved ... ignored, SliceElem is reserved (spec §5/§10); classifier returns None until a future slice
+  test resolution_test::scope_graph_pending_import_alias_over_colliding_pool_keeps_all ... ok
+  test resolution_test::scope_graph_macro_wildcard_shadow_keeps_all ... ok
+  test resolution_test::type_assertion_comma_ok_is_not_a_call_receiver ... ok
+  test resolution_test::scope_graph_two_crate_owner_collision_recovers_to_single_exact ... ok
+  test resolution_test::scope_graph_unresolved_owner_path_keeps_full_pool_not_drop ... ok
+  test resolution_test::type_assertion_concrete_pointer_receiver_owner_resolves ... ok
+  test resolution_test::var_local_concrete_receiver_owner_resolves ... ok
+  test resolution_test::var_local_false_name_in_initializer_not_recovered ... ok
+  test resolution_test::type_assertion_interface_receiver_dispatches_exact ... ok
+  test resolution_test::type_assertion_grammar_pin_normalization ... ok
+  test resolution_test::var_local_off_in_legacy_mode ... ok
+  test resolution_test::slice_a_legacy_parity_p6_typed_param ... ok
+  test resolution_test::var_local_interface_receiver_dispatches_exact ... ok
+  test resolution_test::var_local_shadowed_binding_bails ... ok
+  test resolution_test::rust_scope_graph_unqualified_declines_do_not_legacy_guess ... ok
+  test resolution_test::var_local_untyped_multiname_does_not_mis_recover ... ok
+  test resolution_test::var_local_typed_multiname_recovers_shared_type ... ok
+  test scoped_cpg_test::test_scoped_cpg_excludes_transitive_callees ... ok
+  test scoped_cpg_test::test_scoped_cpg_excludes_unrelated ... ok
+  test scoped_cpg_test::test_scoped_cpg_falls_back_for_large_scope ... ok
+  test scoped_cpg_test::test_scoped_cpg_includes_callees ... ok
+  test scoped_cpg_test::test_scoped_cpg_files_map_still_has_all_files ... ok
+  test scoped_cpg_test::test_skeleton_call_graph_has_direct_calls ... ok
+  test scoped_cpg_test::test_scoped_cpg_includes_changed_files ... ok
+  test umbrella_completeness_test::umbrella_main_files_include_all_sibling_tests ... ok
+  test scoped_cpg_test::test_scoped_cpg_results_subset_of_full ... ok
+  test coverage_test::test_algorithm_language_matrix ... ok
+  test coverage_test::test_language_coverage_minimum ... ok
+  test scoped_cpg_test::test_scoped_cpg_with_taint ... ok
+  test cwe_phase3_suppression_test::test_cwe_phase3_js_ts_suppression_rate_meets_80pct ... ok
+  test hapi_regression_test::test_hapi_4552_review_suite_smoke ... ok
+  test core_test::test_multi_algorithm_findings_merged ... ok
+  test coverage_test::diagram_coverage_for_plan1_algorithms ... ok
+  test cwe_phase2_suppression_test::test_cwe_phase2_python_suppression_rate_meets_80pct ... ok
+  test cwe_phase1_suppression_test::test_cwe_phase1_suppression_rate_meets_80pct ... ok
+  
+  test result: ok. 213 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.98s
+  
+  --- stderr (tail) ---
+  warning: unused import: `prism::access_path::AccessPath`
+   --> tests/integration/../common/mod.rs:5:9
+    |
+  5 | pub use prism::access_path::AccessPath;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+  
+  warning: unused import: `CpgContext`
+   --> tests/integration/../common/mod.rs:9:41
+    |
+  9 | pub use prism::cpg::{CodePropertyGraph, CpgContext};
+    |                                         ^^^^^^^^^^
+  
+  warning: unused import: `std::path::Path`
+    --> tests/integration/../common/mod.rs:20:9
+     |
+  20 | pub use std::path::Path;
+     |         ^^^^^^^^^^^^^^^
+  
+  warning: unused variable: `sources`
+     --> tests/integration/core_test.rs:216:17
+      |
+  216 |     let (files, sources, diff) = make_cpp_test();
+      |                 ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_sources`
+      |
+      = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+  
+  warning: `prism` (test "integration") generated 4 warnings (run `cargo fix --test "integration" -p prism` to apply 4 suggestions)
+      Finished `test` profile [unoptimized + debuginfo] target(s) in 0.04s
+       Running tests/integration/main.rs (target/debug/deps/integration-d5351dc850a24cc9)
+
+$ cargo test --lib
+  # full lib suite (332 per the reference session)
+  [exit 0, 3.779s]
+  --- stdout (tail) ---
+  test resolution::embedding_kind_tests::embedded_promotion_as_str ... ok
+  test resolution::scope_resolution_predicate_tests::non_uniform_edition_disproves_nothing ... ok
+  test resolution_disproof::tests::prune_empty_input_is_empty ... ok
+  test resolution_disproof::tests::prune_intersection_across_two_predicates ... ok
+  test resolution_disproof::tests::prune_keeps_undisproved_candidates ... ok
+  test resolution_disproof::tests::prune_to_empty_returns_original_pool ... ok
+  test resolution_identity::tests::external_canonicalization_unifies_std_paths ... ok
+  test resolution_disproof::tests::prune_with_no_predicates_is_identity ... ok
+  test resolution_identity::tests::in_repo_struct_named_string_is_not_external ... ok
+  test receiver_index::tests::method_facts_distinguish_inherent_trait_self_arity ... ok
+  test resolution_identity::tests::in_repo_first_then_external_and_unresolved_is_none ... ok
+  test resolution_receiver::tests::method_call_parts_decomposes_nested_arg_chain_from_ast ... ok
+  test resolution_receiver::tests::dispatch_method_single_exact_filters_kind_arity_self_and_wrapper_peel ... ok
+  test repo_loader::tests::rust_coverage_ignores_non_utf8_python ... ok
+  test resolution_receiver::tests::rust_receiver_local_fact_cycle_fails_closed ... ok
+  test repo_loader::tests::rust_coverage_false_when_a_rust_file_is_skipped ... ok
+  test resolution_receiver::tests::rust_receiver_chain_depth_cap_fails_closed ... ok
+  test repo_loader::tests::single_edition_workspace_is_uniform ... ok
+  test slice::diagram_tests::diagram_warning_serde_round_trip_and_kind_classification ... ok
+  test slice::diagram_tests::multi_slice_result_aggregates_diagram_warnings ... ok
+  test slice::diagram_tests::slice_config_diagram_node_cap_default ... ok
+  test slice::diagram_tests::slice_result_default_omits_diagram_fields_in_json ... ok
+  test slice::diagram_tests::slice_graph_serde_round_trip ... ok
+  test terraform::tests::test_entities_touching_lines ... ok
+  test resolution_receiver::tests::rust_receiver_typer_falls_through_generic_and_unresolved ... ok
+  test terraform::tests::test_reachability ... ok
+  test terraform::tests::test_ref_graph_basic ... ok
+  test type_db::tests::test_all_fields_with_inheritance ... ok
+  test type_db::tests::test_class_hierarchy ... ok
+  test type_db::tests::test_pointer_type_detection ... ok
+  test type_db::tests::test_extract_from_ast_json ... ok
+  test type_db::tests::test_record_lookup_with_typedef ... ok
+  test type_db::tests::test_remove_output_flags ... ok
+  test type_db::tests::test_shell_split ... ok
+  test type_db::tests::test_typedef_resolution ... ok
+  test type_db::tests::test_union_detection ... ok
+  test repo_loader::tests::omitted_plus_explicit_edition_workspace_is_not_uniform ... ok
+  test type_db::tests::test_strip_type_qualifiers ... ok
+  test resolution_receiver::tests::rust_receiver_typer_recovers_direct_call_with_args_and_typed_let ... ok
+  test type_providers::go::canon_tests::channel_direction_distinguishes ... ok
+  test type_providers::go::canon_tests::grouped_params_expand ... ok
+  test type_providers::go::canon_tests::any_equals_empty_interface ... ok
+  test type_providers::go::canon_tests::param_names_dropped_iface_eq_concrete ... ok
+  test type_providers::go::canon_tests::parenthesized_type_unwraps ... ok
+  test type_providers::go::canon_tests::return_mismatch_differs ... ok
+  test type_providers::go::canon_tests::variadic_canonicalizes ... ok
+  test repo_loader::tests::parallel_loader_is_element_for_element_identical_to_serial_reference ... ok
+  test type_providers::go::dispatch_tests::empty_live_fires_fallback_full_set ... ok
+  test type_providers::go::embedding_tests::direct_field_shadows_promoted_method ... ok
+  test type_providers::go::embedding_tests::embedded_interface_not_promoted ... ok
+  test type_providers::go::embedding_tests::diamond_returns_both_equal_depth_paths ... ok
+  test type_providers::go::dispatch_tests::rta_prunes_to_live ... ok
+  test type_providers::go::embedding_tests::embedded_field_name_shadows_promoted_method ... ok
+  test type_providers::go::embedding_tests::intermediate_embedded_field_shadows_deeper_method ... ok
+  test type_providers::go::embedding_tests::promotes_concrete_method_from_embedded_struct ... ok
+  test repo_loader::tests::mixed_edition_workspace_is_not_uniform ... ok
+  test type_providers::go::embedding_tests::promotes_transitively_with_depth ... ok
+  test resolution_receiver::tests::rust_receiver_typer_preserves_cross_module_identity_for_field_return_and_self ... ok
+  test type_providers::go::satisfaction_tests::embedded_method_satisfies ... ok
+  test type_providers::go::satisfaction_tests::ambiguous_equal_depth_promoted_method_does_not_satisfy ... ok
+  test type_providers::go::satisfaction_tests::generic_interface_is_non_dispatchable ... ok
+  test type_providers::go::satisfaction_tests::anonymous_interface_method_is_gap ... ok
+  test type_providers::go::satisfaction_tests::embedded_external_interface_fails_closed_not_partial ... ok
+  test type_providers::go::satisfaction_tests::generic_instantiation_in_method_body_does_not_exclude_method ... ok
+  test type_providers::go::satisfaction_tests::pointer_receiver_only_admits_as_pointer ... ok
+  test type_providers::go::satisfaction_tests::multi_method_partial_satisfier_not_admitted ... ok
+  test type_providers::go::satisfaction_tests::generic_receiver_method_is_excluded_from_satisfaction ... ok
+  test type_providers::go::satisfaction_tests::mixed_value_and_pointer_method_admits_as_pointer_only ... ok
+  test type_providers::go::satisfaction_tests::signature_mismatch_does_not_satisfy ... ok
+  test type_providers::go::satisfaction_tests::type_set_interface_is_non_dispatchable ... ok
+  test type_providers::go::satisfaction_tests::value_receiver_admits_as_both_t_and_ptr_t ... ok
+  test resolution_receiver::tests::rust_receiver_typer_recovers_param_field_return_wrapper_and_path ... ok
+  test cpg::tests::cpg_build_survives_deep_c_initializer_without_stack_overflow ... ok
+  test cpg::tests::load_and_context_build_survive_deep_c_initializer ... ok
+  test call_graph::tests::rust_receiver_updates_parallel_matches_serial_reference ... ok
+  test call_graph::tests::level4_index_matches_legacy_oracle_over_full_universe ... ok
+  test call_graph::tests::rematerialize_corpus_has_rust_receiver_updates ... ok
+  
+  test result: ok. 332 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.72s
+  
+  --- stderr (tail) ---
+  warning: unused import: `BTreeSet`
+      --> src/type_providers/go.rs:1602:38
+       |
+  1602 |     use std::collections::{BTreeMap, BTreeSet};
+       |                                      ^^^^^^^^
+       |
+       = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+  
+  warning: `prism` (lib test) generated 1 warning (run `cargo fix --lib -p prism --tests` to apply 1 suggestion)
+      Finished `test` profile [unoptimized + debuginfo] target(s) in 0.04s
+       Running unittests src/lib.rs (target/debug/deps/prism-67b1e8306ecba215)
+
+$ cargo fmt --all --check
+  # formatting gate
+  [exit 0, 0.551s]
+
+$ cargo build --release
+  # release build clean, per the task's AGENTS.md-mandated Tier-A accuracy harness prerequisite
+  [exit 0, 24.654s]
+  --- stderr (tail) ---
+     Compiling typenum v1.19.0
+     Compiling version_check v0.9.5
+     Compiling hashbrown v0.16.1
+     Compiling crossbeam-utils v0.8.21
+     Compiling equivalent v1.0.2
+     Compiling serde_json v1.0.149
+     Compiling libc v0.2.183
+     Compiling cc v1.2.57
+     Compiling generic-array v0.14.7
+     Compiling indexmap v2.13.0
+     Compiling memchr v2.8.0
+     Compiling itoa v1.0.18
+     Compiling utf8parse v0.2.2
+     Compiling aho-corasick v1.1.4
+     Compiling anstyle-parse v1.0.0
+     Compiling anstyle v1.0.14
+     Compiling colorchoice v1.0.5
+     Compiling ryu v1.0.23
+     Compiling regex-syntax v0.8.10
+     Compiling is_terminal_polyfill v1.70.2
+     Compiling anstyle-query v1.1.5
+     Compiling rayon-core v1.13.0
+     Compiling tree-sitter-hcl v1.1.0
+     Compiling anstream v1.0.0
+     Compiling tree-sitter-bash v0.25.1
+     Compiling tree-sitter-c v0.24.1
+     Compiling tree-sitter-python v0.23.6
+     Compiling tree-sitter-rust v0.24.2
+     Compiling tree-sitter-javascript v0.23.1
+     Compiling tree-sitter-cpp v0.23.4
+     Compiling tree-sitter-lua v0.5.0
+     Compiling tree-sitter-typescript v0.23.2
+     Compiling tree-sitter-java v0.23.5
+     Compiling tree-sitter-go v0.23.4
+     Compiling clap_lex v1.1.0
+     Compiling thiserror v2.0.18
+     Compiling pratt v0.4.0
+     Compiling heck v0.5.0
+     Compiling winnow v1.0.1
+     Compiling winnow v0.7.15
+     Compiling option-ext v0.2.0
+     Compiling fnv v1.0.7
+     Compiling strsim v0.11.1
+     Compiling toml_write v0.1.2
+     Compiling crossbeam-epoch v0.9.18
+     Compiling anyhow v1.0.102
+     Compiling crossbeam-deque v0.8.6
+     Compiling clap_builder v4.6.0
+     Compiling regex-automata v0.4.14
+     Compiling syn v2.0.117
+     Compiling cpufeatures v0.2.17
+     Compiling dirs-sys v0.5.0
+     Compiling block-buffer v0.10.4
+     Compiling crypto-common v0.1.7
+     Compiling digest v0.10.7
+     Compiling regex v1.12.3
+     Compiling tree-sitter v0.25.10
+     Compiling serde_derive v1.0.228
+     Compiling clap_derive v4.6.0
+     Compiling thiserror-impl v2.0.18
+     Compiling fixedbitset v0.5.7
+     Compiling prism v3.1.2 (/private/tmp/sonnet-base-ws/IMPL-08)
+     Compiling cfg-if v1.0.4
+     Compiling streaming-iterator v0.1.9
+     Compiling either v1.15.0
+     Compiling rayon v1.12.0
+     Compiling sha2 v0.10.9
+     Compiling clap v4.6.0
+     Compiling petgraph v0.7.1
+     Compiling dirs v6.0.0
+     Compiling serde_spanned v0.6.9
+     Compiling toml_datetime v0.6.11
+     Compiling vecmap-rs v0.2.4
+     Compiling hcl-primitives v0.1.11
+     Compiling bincode v1.3.3
+     Compiling toml_edit v0.22.27
+     Compiling hcl-edit v0.9.6
+     Compiling toml v0.8.23
+     Compiling hcl-rs v0.19.7
+      Finished `release` profile [optimized] target(s) in 24.63s

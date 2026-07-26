@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": true,
+  "load_bearing_caveats_matched": true,
+  "scope_calibrated": true,
+  "would_have_prevented_wasted_work": true,
+  "probe_answer": "The memo correctly recommends Option B (import-qualified/import-bound narrowing) as the shippable rung, placed after LocalDef/R4 and before R5-free-multi, matching exactly what landed (bf58508, R4c import-member resolution). It explicitly rejects same-directory Exact for Python/JS as unsound because sibling files aren't in lexical scope absent an import, calling for same-dir to be telemetry-only \u2014 precisely the caveat the settled outcome calls decisive. It also correctly identifies fail-open behavior for re-exports/external/unresolved cases, matching the hardening commits (5dde32b, 54dbabc) around soundness guards. Scope sizing (pydantic ~300 direct Exact vs 25k upper bound, fastapi ~113) is calibrated to reality rather than the inflated headline number.",
+  "rationale": "The memo's Option B recommendation, its explicit soundness rejection of same-dir Exact (Option A) as edge-minting, its fail-open guards for shadowing/re-exports/unresolved roots, and its realistic (non-inflated) sizing all align with what actually shipped and was later hardened. This is a strong match on shape, caveats, and calibration."
+ },
+ "cost_usd": 0.1187583
+}

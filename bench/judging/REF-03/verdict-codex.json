@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A: (a) yes, JS/TS recovery arms are removed from parameter, binding, assignment, new_expression, and annotation helper paths, not just gated off; (b) yes, TS tests assert receiver_type None and receiver_materialized false; (c) yes, JS and TS nested-block R3 non-regressions are present and assert ImportQualified to api with no materialization. Arm B: (a) yes, the same JS/TS recovery paths are removed; (b) yes, TS tests are converted to no recovery/materialization, though with slightly fewer receiver_recovery assertions than A; (c) yes, JS and TS nested-block R3 non-regressions are present and correct.",
+  "rationale": "Both arms implement the core code change correctly and keep scope narrow. Arm A has somewhat stronger tests, including receiver_recovery None and a precise TS residue assertion. However, Arm A only adds doc addenda and appears to leave stale plan/spec sections that still describe Python/JS/TS recovery, JS hit acceptance, and old cache-bump instructions. Arm B updates the plan/spec consistently for Python-only, JS/TS deferred, and CACHE_VERSION 25. Because docs were an explicit requirement, B is materially better overall."
+ },
+ "tokens_used": 39095
+}

@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Arm A: strongest test is no_watchdog_config_is_byte_identical because it verifies the disabled arm stays pending, sends no cancel, then releases the hung agent and proves the turn completes normally. Weakest is watchdog_does_not_trip_active_or_unmodeled_turn in the sense that it would mostly pass on pre-change code, but it is still valuable as a regression guard for false idle trips and unmodeled update activity. Arm B: strongest test is watchdog_cancels_a_hung_turn_as_timed_out because it fails on the pre-change code and asserts the real terminal AgentTimedOut plus cancel notification. Weakest is no_watchdog_config_is_byte_identical because it only proves no event arrives within 150ms and no cancel before drop; it does not release the agent or assert the normal completion path remains intact. In both arms, the hung-turn test would fail on pre-change code. The negative active/unmodeled and disabled tests mostly pass pre-change, but they cover important new-path regressions rather than serving as red tests.",
+  "rationale": "Both arms implement the watchdog task only when configured, use a Pending future when disabled, convert std deadlines with Instant::from_std, undo the +1 last-activity sentinel with saturating_sub(1), discard the inner cancel outcome in the watchdog arm, drop the done sender on driver exit, and map watchdog-triggered Err(()) to AgentTimedOut. I do not see a provable WRONG behavior in either implementation. SMELL: Arm B's no-config test leaves the prompt hung and only checks a bounded non-event, so it is weaker evidence for byte-identical behavior. SMELL: Arm B's active/unmodeled test does not assert that no cancel was sent. Arm A covers the same implementation surface with stronger behavioral assertions, especially disabled-path completion after release and no-cancel checks for active/unon"
+ },
+ "tokens_used": 29051
+}

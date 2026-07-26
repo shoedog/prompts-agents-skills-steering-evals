@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": false,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms add the requested precedence test, and that test would fail against the pre-change behavior once adapted to the old API because comment-only typed content would not fall back to title and the title tier did not exist. As written, both also fail to compile on pre-change code because they call the new 4-argument API. The strongest test in both arms is the comment-only typed -> title case, which directly targets RR2-FIX-5. The weakest in both is the typed-wins case, because it asserts only `.0` and not `CommitSource::Typed`; both suites also miss typed-over-file, comment-only file, NUL stripping, and typed/file 64KiB sanitization.",
+  "rationale": "WRONG: Arm A changes `tweak.rs` even though the task explicitly says tweak.rs is not a caller and to leave it. It appears to be a mechanical adaptation after changing `decide`, but it is still outside the requested scope. SMELL: Arm A also widens the internal `decide` tuple type to `CommitSource`; the task only required replacing the `commit_message` bool and re-specing the main warning. Arm B keeps the scope tighter while still resolving typed/file/title/derived in `commit_message`, wiring main and merge, and warning only on `CommitSource::Derived`. SMELL in both: the new precedence tests mostly assert messages, not sources, so they under-test the new enum. Overall, both are functionally close, but Arm B is materially better because it satisfies the requested behavior without the explicit"
+ },
+ "tokens_used": 25082
+}

@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Both arms fix the root cause: bind_params now calls the binding pass ONCE over all params in source order, so BindingRef.ordinal stays 0,1,2,... instead of resetting per param. Arm A extracts a new add_local_bindings(names) primitive (binding-only) that add_locals now wraps, then attaches per-param facts by def_byte separately - no other add_locals caller's behavior changes (inert). Arm B reuses add_locals as-is: it calls it once with a throwaway placeholder LocalFact(annotation:None) for all params, then immediately overwrites each local_facts[(file,def_byte)] with the real fact - functionally inert if local_facts is an overwriting map, but it briefly writes wrong per-param data (kind=Param/no annotation) before correcting it, a rougher edge than A's approach. Both add an ordinal-preservation test (fn f(a,b) -> ordinals 0,1, provably 0,0 under the old per-param code) and a same-rib duplicate-name test asserting lookup returns None.",
+  "rationale": "Both diffs are functionally correct fixes with both required regression tests present and each ordinal test would fail under the pre-fix per-param code. Arm A is modestly stronger: it isolates the ordinal-assignment loop into add_local_bindings so no bogus intermediate LocalFact is ever written (Arm B writes a placeholder fact with annotation:None then overwrites it - a smell, not proven wrong since it likely relies on overwrite-map semantics). Arm A's tests are also more rigorous for this recall-safety-critical subsystem: it asserts a.scope==b.scope alongside ordinals, and its ambiguity test proves the None isn't vacuous by first checking the pre-shadow lookup succeeds. Arm B's ambiguity test uses assert_eq!(Option<&Binding>, None), which needs Binding: PartialEq+Debug - the file's existing test uses matches!/field-access instead, suggesting this may not hold and could risk a compile failure; this is a plausible risk (SMELL), not confirmed. Neither arm touches let/pattern binding sites, implying both judged those sites weren't affected - a wash. No WRONG findings confirmed in either; the delta is code-quality and test-rigor level, hence 'materially better' for A rather than a blocking defect in B."
+ },
+ "cost_usd": 0.7358832000000001
+}

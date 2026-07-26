@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms wire the Rust scope-graph owner prune fail-open through owner_lookup_in_modules and stop before the legacy stem block, with the free-function guard and owner-prune helper in place. Arm B's fixture coverage is more complete for the specified integration seams because it includes the mixed-edition keep-all test required by the brief; Arm A covers the other major seams but omits that required mixed-edition fixture.",
+  "rationale": "The production code changes are effectively equivalent and appear to implement the requested fail-open routing, free-fn guard, owner-prune, ScopeResolution pruning, and owner_method_key helper. The material difference is test coverage against the explicit Task 5 list: Arm B adds the mixed-edition keep-all fixture, while Arm A does not. Arm A has extensive comments and otherwise strong fixtures, but missing a named required test makes it incomplete relative to the brief. Neither arm appears out of scope in production behavior."
+ },
+ "tokens_used": 27303
+}

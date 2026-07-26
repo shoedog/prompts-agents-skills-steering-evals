@@ -1,0 +1,34 @@
+# DRAFT v0 seed (2026-07-25) — not execution-verified.
+seeded: false
+clean_rationale: the doc comments state exactly what the code does. compact_runs() claims per-group
+  delete-after-durable-merge bounding INTERMEDIATE scratch — the loop merges one MERGE_FANIN group,
+  fsyncs, deletes that group's inputs, repeats. seal() claims merge-everything-then-delete ordering
+  with a ~2x seal-time high-water that compact_runs cannot reduce — the body calls merge_sorted over
+  all of self.runs into sealed.run, fsyncs, and only then removes inputs, so the 2x note is accurate
+  and honestly disclosed rather than papered over. The crash-safety rationale (never delete the only
+  durable copy) matches the fsync-before-remove sequencing in both methods. Doc and code agree; the
+  correct review is APPROVE with no findings.
+tempting_non_defects:
+- proposing delete-inputs-during-the-final-merge to halve the seal peak and filing the current
+  ordering as a defect "the comment itself admits" — the ordering is a documented, deliberate
+  crash-safety invariant (per the context contract, sealing must never delete the only durable copy);
+  an accurate capacity disclosure is not a bug admission.
+- claiming the seal() comment CONTRADICTS compact_runs() ("compact_runs does delete inputs, so the
+  peak claim is wrong") — compact_runs deletes per-group during intermediate merges; the final merge
+  still needs every remaining run present at once, which is precisely what the comment says.
+- flagging the fsync_file call before remove_file as unnecessary ceremony — it is the mechanism that
+  makes the delete safe, and removing it would create the real defect.
+- flagging that seal() merges even when one run remains — a real micro-inefficiency also present in
+  the honest original; an optimization note, not an incorrect behavior, and the doc makes no claim
+  it avoids that copy.
+provenance:
+  incident: 'clean-side twin of mc-02, and the fix-shape of the real incident: after Fable''s W-1
+    caught the false merge-deletion bonus claim (f57999e7 L7679), the accurate statement of seal()
+    behavior is exactly this doc comment — merge-then-delete, ~2x high-water at seal, compact_runs
+    cannot touch it. A reviewer must be able to APPROVE the honest version.'
+  repo_ref: 'stockTrading crates/tools/historical-backfill/src/canonical/g4c_replay_spool.rs —
+    G4cReplaySpool::seal(), compact_runs() (symbols, not copied code)'
+  detector_rows: 'discriminating pair for mc-02; mining/out/failure_signatures.jsonl
+    detector=admission session=f57999e7 line_no=7679'
+rubric_emphasis: 'false-alarm side — an accurate, unflattering capacity disclosure must not be
+  rejected as a defect; the treatment may not manufacture contradictions it cannot cite.'

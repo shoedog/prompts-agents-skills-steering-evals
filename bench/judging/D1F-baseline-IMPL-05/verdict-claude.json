@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": false,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both suites trivially 'fail' on pre-change code since the 2-arg signature won't compile. More telling: A's new commit_precedence test only asserts `.0` (the message string), never checking the returned CommitSource, and has zero coverage of the 64KiB bound despite A's own clean_commit_candidate implementing one. B's equivalent test asserts full tuples (message+CommitSource) for every case AND adds an oversize-candidate test (65537 'x' chars) expecting fallback to Title. That test is not trivially passing \u2014 it actually fails against Arm A's implementation, which truncates oversized input to 64KiB and returns it as a present Typed message rather than treating it as absent, contradicting the spec's 'mirror read_commit_msg_file's bounding' (whose old contract was None-on-oversize). Strongest A test: commit_precedence_and_comment_only_falls_back_to_title (covers 4 precedence branches). Weakest A test: same one, for omitting `.1` checks and the oversize case. Strongest B test: the oversize-boundary case in the same-named test \u2014 a real edge case tied to spec intent. Weakest B test: the retained commit_message_file_else_fallback, fairly mechanical/redundant with the newer test.",
+  "rationale": "Functionally both implement typed>file>title>derived precedence correctly for the common paths and update all three call sites plus the warning re-spec. Two concrete differentiators favor B (WRONG-tier, not stylistic): (1) Arm A's clean_commit_candidate truncates an oversized typed/file candidate to 64KiB and uses the truncated text as a present Typed/File message, instead of treating oversize as ABSENT the way read_commit_msg_file's original contract did ('None if absent/unreadable/oversize/...') \u2014 a real bug on large inputs, uncaught by A's own tests. Arm B implements and explicitly tests reject-on-oversize. (2) The brief explicitly says '(tweak.rs passes original_message into decide \u2014 it does NOT call commit_message; leave it.)' Arm A nonetheless changed decide()'s signature to (String, CommitSource) and modified tweak.rs to satisfy it \u2014 a direct violation of an explicit instruction. Arm B kept decide()'s bool-based signature, converting CommitSource to bool only at the commit_message call sites, leaving tweak.rs untouched exactly as instructed. Both compile and are otherwise equivalent in merge.rs handling."
+ },
+ "cost_usd": 0.6112989
+}

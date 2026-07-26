@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": false,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Arm A: yes. It keeps a distinct materialized signal (`receiver_binding`) separate from usable `receiver_type`, preserves it for poisoned Python/JS/TS bindings, and suppresses R3/R3b on that signal while letting poisoned cases fall to residue. Its tests cover the Python poisoned R3b false-Exact, the TS import-shadowing R3 false-Exact, nested class-body recovery, same-line-after-call recovery, wildcard poison, and a positive TypedParam control; the two main false-Exact tests would fail pre-fix. Arm B: mostly yes on root cause. It uses `ReceiverClassification::{Resolved, Materialized}` and `receiver_materialized` to distinguish binding-found from type-resolved, and its tests reproduce both main false-Exact cases and would fail pre-fix. However, its scope recovery changes the byte cutoff for Rust/Go too, violating the explicit Rust/Go byte-identical constraint.",
+  "rationale": "A is materially better. Both arms solve the central materialized-versus-resolved receiver state and suppress R3/R3b for poisoned Python/JS/TS receivers. WRONG for Arm B: `walk_receiver_bindings` now uses `node.start_byte() >= call_start_byte` for every language, so Rust/Go same-line binding behavior can change; that violates the task's strict Python/JS/TS gate and Rust/Go byte-identical requirement. Arm A confines the byte-based cutoff and nested-class skip to Python/JS/TS while leaving Rust/Go row pruning unchanged. Test-wise, A is stronger: it adds the required repros plus wildcard poison, same-line-after-call, a real-import-without-local boundary control, and exact-confidence assertions for the TS typed-param path. B's tests are adequate for the blockers but slightly narrower."
+ },
+ "tokens_used": 27127
+}

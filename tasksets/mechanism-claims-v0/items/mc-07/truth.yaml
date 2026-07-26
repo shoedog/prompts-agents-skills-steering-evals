@@ -1,0 +1,29 @@
+# DRAFT v0 seed (2026-07-25) — not execution-verified.
+seeded: false
+clean_rationale: the handoff's next step is runnable exactly as written. The documented command is
+  `backfill verify-archive --rebuild-index`; the acceptance guard for --rebuild-index enumerates
+  verify-archive and load-canonical, so the parse succeeds, and the dispatch arm passes rebuild_index
+  through to verify_archive(). The stricter-looking guard immediately below it governs a DIFFERENT
+  flag (--emit-report, restricted to the two load-path subcommands) and is irrelevant to the
+  documented command, which does not use --emit-report. Doc and code agree; the correct review is
+  APPROVE with no findings.
+tempting_non_defects:
+- pattern-matching the --emit-report restriction onto --rebuild-index ("verify-archive is excluded by
+  the guard, so the RESUME step is unrunnable") — the exclusion list read is from the WRONG guard; the
+  --rebuild-index guard explicitly names verify-archive as accepting.
+- claiming the RESUME step must also pass --emit-report because the context mentions both flags — the
+  doc'd command needs only --rebuild-index, and emit_report stays None, which every guard permits.
+- the boolean --rebuild-index is parsed with `= true` while --emit-report uses next_value; an
+  intentional bool-vs-valued flag difference, not a defect.
+- complaining that the guard error messages do not name the subcommand the user typed — a usability
+  preference, not an incorrect behavior, and identical to the codebase's existing style for --dry-run.
+provenance:
+  incident: 'clean-side twin of mc-03. In the real incident (fb80415b L334) the handoff step was NOT
+    runnable; this item is the world where the handoff was written correctly against the accept-list.
+    A reviewer who traces the right guard approves; one who pattern-matches the adjacent restriction
+    raises a false alarm — the over-rejection failure cite-or-label must not introduce.'
+  repo_ref: 'stockTrading crates/tools/historical-backfill/src/main.rs — per-flag accept-list matches!
+    guards (symbols, not copied code)'
+  detector_rows: 'discriminating pair for mc-03; see forensics report section 1 mode 9'
+rubric_emphasis: 'false-alarm side, absence-claim flavor — the treatment must enumerate from the
+  CORRECT guard before asserting a flag is rejected; adjacent-guard confusion is a false finding.'

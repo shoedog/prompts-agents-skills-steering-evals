@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": false,
+  "load_bearing_caveats_matched": false,
+  "scope_calibrated": true,
+  "would_have_prevented_wasted_work": false,
+  "probe_answer": "The memo correctly verifies the double-capture mechanism, correctly scopes it Python-only with the JS/TS 'decorators are child nodes, no double-capture' reasoning, and correctly sizes the impact (~20% pydantic methods, precision-only, caller-side doubling, CPG doubling). But its core design decision is inverted: it recommends keeping the INNER function_definition and dropping the wrapper's FunctionId, whereas the vindicated/shipped fix (merged #132) made the decorated WRAPPER the single canonical FunctionId and dropped the inner \u2014 explicitly labeled 'wrapper-canonical' in the merged docs, with a dedicated unwrap_decorated() helper added for field readers that need the inner node, a CFG fix to avoid double-building for wrapper+inner, and an inventory fix to explicitly keep the wrapper. The memo's own precedent claim ('inventory already dedups to the inner') is contradicted by the shipped inventory fix title ('inventory keeps decorated wrapper'), suggesting a factual misread that fed the wrong choice.",
+  "rationale": "General strategy (fix-at-extraction, single canonical FunctionId, Python-only scope) matches, but the decisive load-bearing choice \u2014 which node survives as canonical \u2014 is exactly backwards versus what shipped (wrapper-canonical, not inner-canonical). That inversion would send an implementing team down a path requiring later rework (they'd need to flip the canonical node choice and retrofit unwrap_decorated/CFG/inventory changes the vindicated design already accounts for), so it would not have prevented wasted work despite otherwise solid verification and impact sizing."
+ },
+ "cost_usd": 0.22639230000000002
+}

@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Arm A tests would fail on pre-change code because rich_snapshot_frames did not exist and the rich projection was not wired. They assert real behavior: the required interleaved ToolCall test checks order plus patched fields, and the extra plan/orphan/cursor test covers meaningful edge paths. Strongest: rich_snapshot_plan_latest_orphan_update_and_cursor. Weakest: golden_two_node_run_wire_tuples, which is valuable regression coverage but does not exercise the new rich path. Arm B tests would also fail pre-change, at least at compile time, and its rich_snapshot_folds_toolcall_interleaved asserts the main happy path with a completed ToolCall. Strongest: rich_snapshot_folds_toolcall_interleaved. Weakest: golden_two_node_run_wire_tuples as evidence for the new work, because it only proves no-rich compatibility; Arm B adds no negative/edge coverage for latest Plan, orphan updates, cursor-after-merge, sparse empty replacements, or reattach SSE sentinel behavior.",
+  "rationale": "WRONG: none clearly demonstrated in either implementation from the diffs. Both wire the snapshot/events projection through the terminal and working reattach paths, merge node frames with folded rich frames, rederive the sentinel from the merged list, and preserve no-rich behavior. SMELL in Arm B: test coverage is thin and leaves several specified branches unguarded; it also leaves the stale dead_code allow cleanup undone. Arm A is materially better because it adds stronger edge-case coverage for Plan replacement, orphan ToolCallUpdate, and merged cursor filtering, while keeping the implementation close to the specified event-state semantics."
+ },
+ "tokens_used": 35195
+}

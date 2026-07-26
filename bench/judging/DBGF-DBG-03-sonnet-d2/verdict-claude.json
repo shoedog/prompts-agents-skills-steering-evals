@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms remove the collision at the root: instead of per-name add_locals calls (each re-deriving ordinal 0 from a 1-element slice), both collect all params in source order and make ONE ordered binding pass, then attach per-param LocalFacts separately by def_byte. Both add an ordinal test that fails on the buggy code (asserting a=0,b=1, not both 0) and the required same-rib duplicate-name -> None ambiguity test. Arm A keeps add_locals's original signature: calls it once with the ordered names plus a placeholder LocalFact, then overwrites local_facts per param in a second loop -- inert, but a throwaway write. Arm B splits add_locals into a fact-writing wrapper plus a new fact-free add_local_bindings primitive, calling only the ordered-binding primitive from bind_params and writing each real fact exactly once -- touching both files the finding cited (items.rs + locals.rs), no throwaway writes. Both fixes are inert beyond the repair; no other add_locals call sites were touched by either arm.",
+  "rationale": "Both fixes correctly restore positional ordinals and add both required regressions -- neither has a demonstrated WRONG defect. The gap is rigor: Arm B's ordinal test asserts directly against the raw scope-graph bindings/BindingRef data (the exact artifact the bug corrupted), while Arm A goes through the resolve-query API, one layer removed. Arm B's ambiguity test also proves it isn't vacuously true by first asserting the correct binding IS visible before the duplicate makes it ambiguous; Arm A's test only asserts None. Arm B's fix is also cleaner, writing each local_fact exactly once via a new fact-free add_local_bindings primitive, versus Arm A routing through add_locals's per-name fact loop with a throwaway dummy LocalFact that gets overwritten. These are real, demonstrable quality edges in a recall-safety-critical subsystem, not just style nits."
+ },
+ "cost_usd": 0.48721770000000003
+}

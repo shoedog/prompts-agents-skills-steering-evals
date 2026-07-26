@@ -1,0 +1,216 @@
+POST-RUN evidence (workspace after the Fable session)
+=====================================================
+
+$ cargo test -p a2a-bridge commit_precedence_and_comment_only_falls_back_to_title
+  # the new named test for the 4-arg precedence signature
+  # expect_min_tests=1 matched_tests=1 min_tests_satisfied=True
+  [exit 0, 0.283s]
+  --- stdout (tail) ---
+  
+  running 1 test
+  test implement::tests::commit_precedence_and_comment_only_falls_back_to_title ... ok
+  
+  test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 282 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+  
+  --- stderr (tail) ---
+      Finished `test` profile [unoptimized + debuginfo] target(s) in 0.21s
+       Running unittests src/main.rs (target/debug/deps/a2a_bridge-b1d362ae4379bfdc)
+       Running tests/e2e_acp_codex.rs (target/debug/deps/e2e_acp_codex-59efc4f6d61c7444)
+       Running tests/e2e_acp_kiro.rs (target/debug/deps/e2e_acp_kiro-b9f1723bac30bbe6)
+       Running tests/e2e_delegate_bridge.rs (target/debug/deps/e2e_delegate_bridge-feecbcb6cd35ddbd)
+       Running tests/e2e_fanout_bridge.rs (target/debug/deps/e2e_fanout_bridge-1a3d07aa5c687474)
+       Running tests/e2e_kiro.rs (target/debug/deps/e2e_kiro-a80394f0810f66b3)
+       Running tests/e2e_registry.rs (target/debug/deps/e2e_registry-f27004ad25e87d09)
+       Running tests/integration_delegate.rs (target/debug/deps/integration_delegate-776999d1840173a6)
+       Running tests/integration_fanout.rs (target/debug/deps/integration_fanout-881b0d79c130e16a)
+       Running tests/integration_inbound_kiro.rs (target/debug/deps/integration_inbound_kiro-aa961f151967a286)
+       Running tests/integration_run_workflow.rs (target/debug/deps/integration_run_workflow-d834bf6a42ae740f)
+       Running tests/mcp_spawn.rs (target/debug/deps/mcp_spawn-76208144befae437)
+
+$ cargo build --workspace
+  # THE DISCRIMINATOR: tweak.rs:260 builds a (String, CommitSource) tuple consumed by implement::decide and does not itself call commit_message, but its literal must be updated from the old (String, bool) shape to (String, CommitSource) once CommitSource replaces bool — the original gpt-5.5 session's 3-file scope (implement.rs/main.rs/merge.rs) missed this and the controller had to patch it separately. A candidate that misses tweak.rs fails this compile check; one that finds all 4 sites passes it.
+  [exit 0, 7.822s]
+  --- stderr (tail) ---
+     Compiling fastrand v2.4.1
+     Compiling rustix v1.1.4
+     Compiling hyper v1.10.1
+     Compiling regex-syntax v0.8.10
+     Compiling lsp-mcp v0.1.0 (/private/tmp/gpt55-ws/IMPL-05/crates/lsp-mcp)
+     Compiling futures-lite v2.6.1
+     Compiling piper v0.2.5
+     Compiling futures-concurrency v7.7.1
+     Compiling blocking v1.6.2
+     Compiling hyper-util v0.1.20
+     Compiling regex-automata v0.4.14
+     Compiling hyper-rustls v0.27.9
+     Compiling axum v0.7.9
+     Compiling reqwest v0.12.28
+     Compiling polling v3.11.0
+     Compiling async-io v2.6.0
+     Compiling matchers v0.2.0
+     Compiling tracing-subscriber v0.3.23
+     Compiling async-signal v0.2.14
+     Compiling async-process v2.5.0
+     Compiling bridge-a2a-outbound v0.1.0 (/private/tmp/gpt55-ws/IMPL-05/crates/bridge-a2a-outbound)
+     Compiling bridge-api v0.1.0 (/private/tmp/gpt55-ws/IMPL-05/crates/bridge-api)
+     Compiling bridge-observ v0.1.0 (/private/tmp/gpt55-ws/IMPL-05/crates/bridge-observ)
+     Compiling agent-client-protocol v0.12.1
+     Compiling bridge-a2a-inbound v0.1.0 (/private/tmp/gpt55-ws/IMPL-05/crates/bridge-a2a-inbound)
+     Compiling bridge-acp v0.1.0 (/private/tmp/gpt55-ws/IMPL-05/crates/bridge-acp)
+     Compiling bridge-container v0.1.0 (/private/tmp/gpt55-ws/IMPL-05/crates/bridge-container)
+     Compiling a2a-bridge v0.1.0 (/private/tmp/gpt55-ws/IMPL-05/bin/a2a-bridge)
+      Finished `dev` profile [unoptimized + debuginfo] target(s) in 7.79s
+
+$ cargo test -p a2a-bridge
+  # full a2a-bridge bin-crate suite green (existing commit_message tests at implement.rs updated to the new 4-arg signature, not just the new test passing)
+  [exit 0, 2.636s]
+  --- stdout (tail) ---
+  
+  test result: ok. 283 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.26s
+  
+  
+  running 2 tests
+  test real_codex_acp_prompt_round_trip_with_mode_applied ... ignored, needs codex-acp on PATH + authenticated; UNRUN in the authoring env (codex-acp absent)
+  test unauthenticated_codex_acp_surfaces_agent_not_authenticated ... ignored, needs an UNAUTHENTICATED codex-acp on PATH; UNRUN in the authoring env (codex-acp absent)
+  
+  test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+  
+  
+  running 1 test
+  test real_kiro_acp_prompt_round_trip_yields_pong_then_done ... ignored, needs an authenticated kiro-cli on PATH (run `kiro-cli whoami`); makes a real model call
+  
+  test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+  
+  
+  running 1 test
+  test bridge_a_delegates_through_bridge_b_to_kiro ... ignored, needs authenticated kiro-cli + two bridge instances
+  
+  test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+  
+  
+  running 1 test
+  test bridge_a_fanout_through_bridge_b_to_kiro ... ignored, needs authenticated kiro-cli + two bridge instances
+  
+  test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+  
+  
+  running 1 test
+  test real_kiro_round_trip_returns_pong ... ignored, needs an authenticated kiro-cli on PATH
+  
+  test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+  
+  
+  running 7 tests
+  test claude_warm_two_turns_via_acp ... ignored, needs claude-agent-acp on PATH + subscription-logged-in claude; makes real (Haiku) model calls
+  test live_edit_changes_new_session_model ... ignored, needs kiro-cli on PATH + authed; makes real model calls
+  test override_applies ... ignored, needs codex-acp on PATH + authed; makes a real model call
+  test route_to_each_agent_by_id ... ignored, needs codex-acp + kiro-cli on PATH, both authed; makes real model calls
+  test route_to_each_of_three_agents_by_id ... ignored, needs codex-acp + kiro-cli + gemini on PATH, all authed; makes real model calls
+  test registry_rejects_api_entry_with_cmd ... ok
+  test api_entry_resolves_and_serves_through_registry ... ok
+  
+  test result: ok. 2 passed; 0 failed; 5 ignored; 0 measured; 0 filtered out; finished in 0.00s
+  
+  
+  running 1 test
+  test delegate_skill_round_trips_through_peer ... ok
+  
+  test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+  
+  
+  running 2 tests
+  test fanout_degrades_when_peer_fails ... ok
+  test fanout_merges_kiro_and_peer_with_terminal ... ok
+  
+  test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+  
+  
+  running 2 tests
+  test streaming_message_drives_replay_backend_to_artifact ... ok
+  test artifact_frame_is_last_sse_frame ... ok
+  
+  test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+  
+  
+  running 3 tests
+  test example_config_loads_three_nodes ... ok
+  test unknown_workflow_id_fails_cleanly ... ok
+  test known_workflow_id_resolves_graph ... ok
+  
+  test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+  
+  
+  running 1 test
+  test mcp_subcommand_handshake_and_tool_call_over_real_pipes ... ok
+  
+  test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.18s
+  
+  --- stderr (tail) ---
+      Finished `test` profile [unoptimized + debuginfo] target(s) in 0.09s
+       Running unittests src/main.rs (target/debug/deps/a2a_bridge-b1d362ae4379bfdc)
+       Running tests/e2e_acp_codex.rs (target/debug/deps/e2e_acp_codex-59efc4f6d61c7444)
+       Running tests/e2e_acp_kiro.rs (target/debug/deps/e2e_acp_kiro-b9f1723bac30bbe6)
+       Running tests/e2e_delegate_bridge.rs (target/debug/deps/e2e_delegate_bridge-feecbcb6cd35ddbd)
+       Running tests/e2e_fanout_bridge.rs (target/debug/deps/e2e_fanout_bridge-1a3d07aa5c687474)
+       Running tests/e2e_kiro.rs (target/debug/deps/e2e_kiro-a80394f0810f66b3)
+       Running tests/e2e_registry.rs (target/debug/deps/e2e_registry-f27004ad25e87d09)
+       Running tests/integration_delegate.rs (target/debug/deps/integration_delegate-776999d1840173a6)
+       Running tests/integration_fanout.rs (target/debug/deps/integration_fanout-881b0d79c130e16a)
+       Running tests/integration_inbound_kiro.rs (target/debug/deps/integration_inbound_kiro-aa961f151967a286)
+       Running tests/integration_run_workflow.rs (target/debug/deps/integration_run_workflow-d834bf6a42ae740f)
+       Running tests/mcp_spawn.rs (target/debug/deps/mcp_spawn-76208144befae437)

@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": false,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Both arms add the same two tests, and both should fail on pre-change code because SqliteStore lacked the real batch table/method overrides and batch child persistence. Arm A strongest test: sqlite_claim_is_atomic_single_runner, because it asserts Created then ExistingWorking plus exactly one child row. Arm A weakest test: sqlite_migration_idempotent_and_batch_roundtrip, because it only proves reopen plus one field of get_batch, not all batch fields, migrated old schemas, index existence, or task batch_id/item_id round-trip. Arm B strongest and weakest tests are the same. Arm B's tests are not strong enough to catch its claim_batch_child bug because the helper always passes a Working TaskRecord; they do not test that claim_batch_child forces inserted status to working when rec.status is different. Neither arm covers CAS false paths, fail_batch_if_status error persistence, active_batches filtering, list ordering/limits, ExistingTerminal, or real concurrent claims.",
+  "rationale": "WRONG (Arm B): claim_batch_child inserts rec.status.as_str() instead of forcing status='working'. With rec.status=Completed, the first claim returns Created but stores a completed child; the second claim for the same batch/item returns ExistingTerminal instead of ExistingWorking. The task explicitly required new claimed children to be inserted as working. Arm A uses the required literal working status. SMELL (both): tests are minimal and mostly happy-path; they assert real behavior and regression-catch the missing implementation, but leave several new methods and edge cases untested. Scope is acceptable for both: sqlite.rs plus bridge-store dev-dependency/Cargo.lock are task-related."
+ },
+ "tokens_used": 31113
+}

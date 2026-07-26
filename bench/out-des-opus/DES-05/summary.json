@@ -1,0 +1,91 @@
+{
+  "id": "DES-05",
+  "ws": "/private/tmp/des-opus-ws/DES-05",
+  "dry_run": false,
+  "model": "claude-opus-4-8",
+  "replay_preface": "Replay note: you are working in /private/tmp/des-opus-ws/DES-05 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged.",
+  "run_status": "ok",
+  "subtype": "success",
+  "api_error_status": null,
+  "returncode": 0,
+  "session_id": "f9599f05-c648-4c41-a5a5-3152828e74c1",
+  "duration_ms": 662618,
+  "num_turns": 29,
+  "usage": {
+    "input_tokens": 17966,
+    "cache_creation_input_tokens": 123517,
+    "cache_read_input_tokens": 1665426,
+    "output_tokens": 42822,
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 123517,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1584,
+        "cache_read_input_tokens": 121671,
+        "cache_creation_input_tokens": 16925,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 16925
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "total_cost_usd": 3.228263,
+  "stop_reason": "end_turn",
+  "is_error": false,
+  "result_text": "Memo written to `docs/superpowers/specs/2026-07-04-python-decorated-method-double-capture-analysis.md`. Read-only \u2014 no source touched. Here's the substance.\n\n## Verification (confirmed, with one correction to the \u00a79 seed)\n\nThe double-capture is **real and Python-only**:\n- `src/queries.rs:92-97` \u2014 the Python Functions query captures **both** `(function_definition)` and `(decorated_definition)`. Both survive as `FunctionId`s (`src/call_graph.rs:20-25`) sharing `(file, name, owner, end_line, class_span)` and differing **only in `start_line`** (decorator line vs `def` line). `function_name` (`languages/mod.rs:908-918`), `method_owner` (`:1084-1100`), and `method_owner_class_node` (`:1182-1197`) all normalize the wrapper onto the inner's name/owner/class-node \u2014 which is exactly why **1a's same-class narrowing can never separate them** (they land in its `\u22652 \u2192 NameOnly` arm, `resolution.rs:724-728`).\n\n**Correction to \u00a79:** JS/TS do **not** double-capture \u2014 their query has no decorator-wrapper alternative (`queries.rs:98-115`); decorators are *child* nodes (proven by prism's own `taint.rs:2292-2299`). So this is a **Python-only** gate, and the buy is smaller than \u00a79's \"JS/TS similar\" framing implied. **C++ templates** double-capture identically (`queries.rs:129-134`) \u2014 a parallel instance, deferred.\n\n## Impact \u2014 bigger than \u00a79 framed\nBeyond the callee-side NameOnly demotes (`self.m()`, `Cls.m()`, cross-file free `helper()`), I found the **caller-side loop also iterates `all_functions()`** (`call_graph.rs:582-645`), so it attributes body calls to **both** the wrapper and inner caller IDs \u2192 **every call a decorated method makes is recorded twice**, plus decorator invocations (`@validator(...)`, `@app.route(...)`) become spurious call edges. And the **CPG mints two `Function` nodes** per decorated method (`cpg/build.rs:328-360`). It's all **precision, no recall loss** \u2014 both captures point at the same real method.\n\n## Recommendation \u2014 Option A (skip the wrapper at index build)\nAdd a Python-only `if func_node.kind() == \"decorated_definition\" { continue; }` at the six `FunctionId`-minting loops in `call_graph.rs`, keeping the **inner**. This:\n- fixes callee precision, caller-side doubling, decorator-edge pollution, and CPG node doubling **in one move**;\n- leaves `all_functions()` and its AST consumers **untouched** \u2014 decisive, because `taint` relies on the *wrapper* (`taint.rs:4374-4375,4753-4758`) while `inventory` already dedups to the *inner* (`inventory.rs:34-56`, the reusable precedent). The wrapper node is wanted; only the second *`FunctionId`* is not \u2014 so fix at the id layer, not the AST (rules out Option C) and not the resolver (Option B misses the caller-side + CPG doubling).\n- is recall-neutral (the inner is always captured; decorated *classes* already produce no id) and can only move `multi_target_exact_sites` **down**.\n\nThin slice: shared skip predicate across the 6 sites \u2192 `CACHE_VERSION` 21\u219222 \u2192 discriminating unit/free-fn/caller/CPG-node/merged-graph fixtures \u2192 pydantic `call-stats` (Exact\u2191, NameOnly\u2193, `total_call_sites`\u2193, canary flat/down) with Rust/Go byte-identical. Deferred: C++ templates, decorator-line `nodes-at`.\n\nKey risk: **six edit sites** \u2014 miss one (esp. a caller loop or `build_direct_subset`) and the phantom returns on that path; guard with 1a's merged-graph (`extend`) test.",
+  "timed_out": false,
+  "parse_error": null,
+  "terminal_reason": "completed",
+  "tests_passed_guess": "pass",
+  "evidence_summary": [
+    {
+      "cmd": "git diff --quiet",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    }
+  ],
+  "scaffold": {
+    "tracked_scaffold_paths": [
+      ".claude-plugin/marketplace.json",
+      ".claude-plugin/plugin.json",
+      "AGENTS.md",
+      "CLAUDE.md"
+    ],
+    "missing_on_disk_after_checkout": [],
+    "has_CLAUDE_md": true,
+    "has_dot_claude_dir": false,
+    "has_AGENTS_md": true,
+    "agents_md_shimmed": false,
+    "global_hooks_present": true,
+    "shim": {
+      "present": false,
+      "sha256_at_write": null,
+      "sha256_after_run": null,
+      "changed": false
+    }
+  },
+  "shim": {
+    "present": false,
+    "changed": false,
+    "sha256_at_write": null,
+    "sha256_after_run": null
+  },
+  "source_repo_touched": false,
+  "transcript_lookup_note": null,
+  "transcript_path": "bench/out-des-opus/DES-05/transcript.jsonl"
+}

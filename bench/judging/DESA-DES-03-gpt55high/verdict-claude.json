@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": true,
+  "load_bearing_caveats_matched": true,
+  "scope_calibrated": true,
+  "would_have_prevented_wasted_work": true,
+  "probe_answer": "The memo recommends exactly what shipped: an import-qualified bare-call rung (Option B) placed after LocalDef/R4-local and before the repo-wide FreeMulti/R5 fallback, Exact only on a singleton candidate, covering Python from-imports, JS named imports, and CommonJS destructuring. It explicitly rejects same-directory/same-package Exact for Python/JS as unsound because sibling files aren't in scope without an import, citing coincidental-name collision risk (fn, schema, receive) \u2014 the same rationale the settled outcome gives for rejecting Option A and keeping same-dir as telemetry only. It correctly scopes the win as a bounded subset (129 pydantic, 96 fastapi) rather than the full 25k upper bound, and defers full re-export/package resolution to a later scope-graph slice, matching the incremental, Python-anchored hardening actually landed (bf58508, 5dde32b, 54dbabc).",
+  "rationale": "Recommendation shape, rung placement, singleton-only soundness guard, and explicit rejection of same-dir Exact all match the vindicated design almost verbatim. Sizing is conservative and honestly caveated as a lower bound, consistent with what was actually shipped as an incremental rung rather than a full 25k-edge fix. Following this memo would have led straight to the landed design without wasted work on the unsound same-directory approach."
+ },
+ "cost_usd": 0.1720575
+}

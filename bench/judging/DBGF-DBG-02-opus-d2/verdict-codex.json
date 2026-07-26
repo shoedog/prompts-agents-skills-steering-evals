@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Both arms implement the root cause: local receiver binding/materialization is distinct from resolved receiver type, so poisoned Python/JS/TS receivers suppress R3/R3b and fall through without owner/import false Exacts. Both add scope-aware recovery using call start byte and nested class skipping. Arm A's tests cover the Python poisoned owner case, wildcard edge, TS import-shadowing false Exact, nested class recovery, same-line-after-call recovery, a non-poisoned positive control, and additionally a JS nested-class path. Arm B covers the key required cases too, but its nested class skip omits TypeScript's `abstract_class_declaration` node kind and it includes a committed VERIFICATION.md that should be ignored for judging.",
+  "rationale": "Arm A is materially better. The core implementation is slightly cleaner because `ReceiverClassification::{Unmaterialized, MaterializedPoisoned, Recovered}` explicitly models the required state split, while Arm B folds it into `Option<RecoveredReceiver>{ poisoned }`. Both work for the main repros. The decisive difference is scope coverage: Arm A skips Python `class_definition` and JS/TS/TSX `class_declaration`, `abstract_class_declaration`, and `class`; Arm B skips only `class_definition`, `class_declaration`, and `class`, leaving a plausible TS abstract-class nested body hole. Arm A also has broader regression coverage including a JavaScript nested-class body test and explicit receiver_materialized assertions. Arm B's tests are good for the mandatory repros, but not stronger than A's."
+ },
+ "tokens_used": 31625
+}

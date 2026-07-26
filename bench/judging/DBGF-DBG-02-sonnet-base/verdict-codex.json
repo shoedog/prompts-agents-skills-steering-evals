@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": false,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A tries to add a distinct receiver_materialized signal, but the diff as written would not compile because ReceiverCtx is moved into classify() and then reused for materialized(). Even ignoring that, it keeps the import-name bail in classify(), so the TS import-shadowed api: Foo case suppresses R3 but degrades to NameOnly instead of recovering the unpoisoned local Foo type. Its recovery byte cutoff also applies to Rust/Go, violating the strict Python/JS/TS gate. Arm B has the better root-cause model: ReceiverClassification distinguishes Unmaterialized, MaterializedPoisoned, and Recovered; Python/JS/TS scan for a local binding before leaving R3/R3b live; poisoned bindings suppress R3/R3b and fall to residue; unpoisoned bindings still recover Exact owner lookup. Its scope recovery is byte-aware for Python/JS/TS and skips nested class scopes while preserving Rust/Go line behavior. Arm B's tests reproduce both false-Exact cases and the scope recovery bug and would fail on the pre-fix behavior.",
+  "rationale": "WRONG Arm A: compile failure from moving recv_ctx into classifier.classify(recv_ctx) and then reusing it for classifier.materialized(recv_ctx). WRONG Arm A: the TS import-shadowed typed param remains receiver_type None/NameOnly even though Foo is local and unpoisoned; the task says resolved+unpoisoned bindings should route through R6 owner_lookup. WRONG Arm A: receiver_type_in_fn now uses byte cutoff for all languages, so Rust/Go are not byte-identical. SMELL Arm A: cache version is not bumped despite adding serialized CallSite state. Arm B is complete and materially better: it implements the required distinct materialized-vs-resolved state, correctly suppresses R3/R3b for poisoned local bindings, preserves exact recovery for unpoisoned typed params, fixes byte/scope recovery in the scoped"
+ },
+ "tokens_used": 41103
+}

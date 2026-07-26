@@ -1,0 +1,88 @@
+{
+  "harness": {
+    "argv_redacted": [
+      "/Users/wesleyjinks/.local/bin/claude",
+      "-p",
+      "<task_prompt omitted here \u2014 see the task yaml>",
+      "--model",
+      "claude-sonnet-5",
+      "--output-format",
+      "json",
+      "--dangerously-skip-permissions"
+    ],
+    "cwd": "/private/tmp/sonnet-hook-ws/IMPL-03",
+    "model": "claude-sonnet-5",
+    "timeout_sec": 4500,
+    "started_at": "2026-07-04T23:20:05+00:00",
+    "ended_at": "2026-07-04T23:32:10+00:00",
+    "wall_sec": 725.776,
+    "timed_out": false,
+    "returncode": 0
+  },
+  "cli_result": {
+    "type": "result",
+    "subtype": "success",
+    "is_error": false,
+    "api_error_status": null,
+    "duration_ms": 724725,
+    "duration_api_ms": 569781,
+    "ttft_ms": 11245,
+    "ttft_stream_ms": 1065,
+    "time_to_request_ms": 11,
+    "num_turns": 62,
+    "result": "## Verification gate complete\n\n**Commands run:**\n- `cargo test -p bridge-store sqlite_claim` \u2192 1 passed, 0 failed (original targeted check)\n- `cargo test -p bridge-store` (full crate) \u2192 36 passed, 0 failed\n- `cargo check --workspace --tests` (90s-bounded probe) \u2192 finished in 0.11s (cached, so the workspace-build stall the task brief warned about didn't apply here)\n- `cargo test --workspace` \u2192 **1262 passed, 0 failed** across 57 test binaries, all 15 crates + the bin\n\n**Gap analysis + fixes:** the original two tests only covered the happy paths. I added 7 more tests covering negative/edge cases for every new method: duplicate `create_batch` id (error), `get_batch` on a missing id (`None`), `list_batches`/`active_batches` filtering (excluding completed batches), `claim_batch_child`'s `ExistingTerminal` outcome, CAS no-ops for `cancel_batch_if_working`/`settle_batch_if_status`/`fail_batch_if_status`, and `batch_id`/`item_id` round-tripping through the plain `create()`/`get()`/`list()` path (not just `claim_batch_child`). All of these fail against the pre-change trait defaults, so they're real regression guards.\n\n**No failures found** anywhere in the full workspace run \u2014 nothing to report under the \"found a failure outside scope\" clause.\n\nFull details, exact commands, and an honest \"Not verified\" list (no multithreaded race test, no clippy/fmt, not integrated with the not-yet-built admission loop) are in `VERIFICATION.md` at the repo root.",
+    "stop_reason": "end_turn",
+    "session_id": "54b70240-c8ba-4636-ade6-363d5728c05b",
+    "total_cost_usd": 4.215929099999999,
+    "usage": {
+      "input_tokens": 117,
+      "cache_creation_input_tokens": 169167,
+      "cache_read_input_tokens": 7902637,
+      "output_tokens": 55319,
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 169167,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "not_available",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 563,
+          "cache_read_input_tokens": 192122,
+          "cache_creation_input_tokens": 246,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 246
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard"
+    },
+    "modelUsage": {
+      "claude-sonnet-5": {
+        "inputTokens": 117,
+        "outputTokens": 55319,
+        "cacheReadInputTokens": 7902637,
+        "cacheCreationInputTokens": 169167,
+        "webSearchRequests": 0,
+        "costUSD": 4.215929099999999,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000
+      }
+    },
+    "permission_denials": [],
+    "terminal_reason": "completed",
+    "fast_mode_state": "off",
+    "uuid": "15042845-1c5c-40fb-9506-3d72cafa321e"
+  },
+  "stdout_tail": null,
+  "stderr_tail": "",
+  "parse_error": null,
+  "replay_preface": "Replay note: you are working in /private/tmp/sonnet-hook-ws/IMPL-03 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged."
+}

@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": false,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Both arms' test pairs would fail to compile on pre-change code (WorkflowNodeToml lacks `retry`), so neither is vacuous, and both assert concrete field values rather than tautologies. Strongest in each: `workflow_node_retry_maps_into_graph` (PR-FIX-9) \u2014 both drive the real production path via `cfg.load_workflows(dir.path())` and assert full `RetryPolicy` equality on `WorkflowGraph.nodes[0].retry`, genuinely proving the config->graph wiring rather than just TOML deser; these are essentially equal in rigor. Weakest in each: `workflow_node_retry_parses`. Arm A's version calls `RegistryConfig::parse(&toml)`, the same production entry point used in its own second test and elsewhere in the file. Arm B's version instead calls raw `toml::from_str::<RegistryConfig>(&toml)`, bypassing whatever normalization/validation `RegistryConfig::parse` performs, and is inconsistent with Arm B's own second test which does use `RegistryConfig::parse` \u2014 a self-inconsistent, less production-faithful choice. Neither arm adds negative/edge cases (e.g. malformed retry, zero max_attempts) beyond what the task explicitly specified, so coverage breadth is equal; the differentiator is fidelity of the parse-path test.",
+  "rationale": "Core requirement (RetryToml, WorkflowNodeToml.retry, graph-mapping, PR-FIX-9 test) is implemented correctly and equivalently by both arms, entirely within config.rs as required. Arm B additionally edits `crates/bridge-workflow/src/graph.rs`, replacing `checked_mul(...).unwrap_or(MAX)` with `saturating_mul(...)` in `backoff_for` \u2014 functionally identical, unforced (Task 2 already passed clippy with the old form), and outside Task 3's explicit scope ('Touches bin/a2a-bridge/src/config.rs'; 'implement ONLY what the task... specifies'). That is a concrete, demonstrable scope-discipline violation (WRONG per the stated rule, not a hypothetical risk), touching previously dual-reviewed code no task authorized it to touch. Arm B's `workflow_node_retry_parses` also inconsistently bypasses the app's own `RegistryConfig::parse` in favor of raw `toml::from_str`, unlike its own sibling test. Arm A stays strictly in-scope and uses the production parse API consistently."
+ },
+ "cost_usd": 0.3886571999999999
+}

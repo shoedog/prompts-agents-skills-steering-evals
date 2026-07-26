@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": false,
+  "probe_answer": "Yes for both. Each arm removes the per-param ordinal collision at the root by attaching per-param LocalFact data by def_byte, then inserting all parameter bindings in one ordered pass so BindingRef ordinals come from the full parameter slice. Each adds an ordinal regression that would fail on the buggy code, plus the requested same-rib ambiguity -> None test. Both fixes appear inert beyond the intended repair for let/pattern call sites, which still bind full ordered slices.",
+  "rationale": "Arm A splits binding insertion into add_local_bindings while preserving add_locals for same-fact call sites. Arm B changes add_locals to accept Option<LocalFact>, updates homogeneous call sites to Some(...), and uses None after pre-attaching param facts. Both preserve ordinal assignment from enumerate over the complete ordered names slice. The test coverage is effectively equivalent: both pin a=0 and b=1 and assert duplicate same-rib lookup returns None. Arm A's same-scope assertion is a small extra check, while Arm B filters value namespace; neither difference is material."
+ },
+ "tokens_used": 14816
+}

@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": false,
+  "probe_answer": "Both arms' hung-turn test (watchdog_cancels_a_hung_turn_as_timed_out) is the strongest in each: it gates the fake agent forever, sets a 50ms hard_wall_clock, and would hang past the test's own 2s bound on pre-Task5 code (no watchdog wiring) \u2014 it asserts the exact Err(AgentTimedOut) variant, that session/cancel was sent, and stream termination. Real behavior, not trivial. The active/unmodeled test in both arms is solid too: it would fail a naive/buggy Task5 implementation that mis-applies FIX-5 saturating idle math or forgets to bump activity on unmodeled (Thought) updates, since idle_timeout(100ms) < total runtime. Weakest in both arms is no_watchdog_config_is_byte_identical, since with watchdog=None nothing computes a deadline, so it can only catch 'over-eager' bugs, not omissions \u2014 but Arm A's version is more rigorous: after the 300ms no-timeout check it releases the gate and asserts the turn completes normally with Done{end_turn}, actually verifying 'byte-identical' end-to-end. Arm B's equivalent only checks the 150ms non-response window and rec.cancels being empty, then ends the test without ever releasing the gate or confirming eventual normal completion \u2014 a real (if minor) rigor gap, not present in Arm A.",
+  "rationale": "Both diffs implement the exact same PFIX-F/G/H/L mechanics: watchdog arm unconditionally discards the inner cancel-select outcome and sets timed_out_local=true+Err(()); the disabled path uses Some/None matched against a pending::<()> future so no task spawns and the arm never fires; sleep_until uses Instant::from_std; la_instant uses saturating_sub(1) undoing the sentinel; drop(done_tx) runs at the common post-select cleanup on every exit path; the terminal match guards Err(()) if timed_out_local before the generic AgentCrashed arm, and Ok(resp) is never relabeled. No WRONG (provably incorrect) behavior found in either \u2014 differences are SMELL-level style choices (Arm A: shared la_instant closure, ScriptedUpdate::Sleep enum variant; Arm B: inline duplicated la_instant calc, Recorder-level delay flag). The one concrete test gap is Arm B's byte-identical test never releasing the gate to confirm eventual normal completion, unlike Arm A's version \u2014 enough to call A's tests marginally stronger, not enough to call the overall submission materially better since production code correctness is a tie."
+ },
+ "cost_usd": 0.5554065
+}

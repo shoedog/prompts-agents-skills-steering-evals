@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": false,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms make the core fix work: gated classifier state distinct from resolved type, suppressing R3/R3b on a poisoned-but-materialized binding, with tests reproducing the Python owner-collision and TS import-shadowing false-Exacts plus a nested-class non-recovery test and a positive TypedParam control; these fail on pre-fix logic (the bugs are demonstrated pre-existing). Verified by actually building/testing both (Arm A is the real on-disk workspace; Arm B's diff applied cleanly to the base commit in a fresh worktree) \u2014 both build, `cargo fmt --check` clean, full `cargo test` and `cargo test --features mcp` green. But root-cause depth differs: Arm A duplicates the AST scan in a separate `materialized()` fn, leaves `classify()`'s import bail intact (its own TS test comment admits 'recovery still bails', settling for NameOnly), applies the byte-cutoff to ALL languages (not gated), and skips a CACHE_VERSION bump. I empirically found Arm A changes Rust/Go behavior for a same-line-after-call binding (Some(Foo)->None), violating the explicit 'Rust/Go byte-identical' instruction, and misses TS `abstract_class_declaration` in its scope-skip so a nested abstract class still mis-recovers \u2014 both confirmed via constructed repros. Arm B's tri-state `ReceiverClassification` computed once, explicit Rust/Go line-based branch, abstract-class coverage, and CACHE_VERSION bump all held up under this adversarial testing.",
+  "rationale": "Empirically verified both arms by compiling/testing them (Arm A's actual workspace on disk; Arm B's diff applied to a clean worktree of the shared base commit). Both pass their own test suites, fmt, and the mcp feature build. However, targeted repros exposed real defects unique to Arm A: (1) it applies the byte-based 'binding before call' cutoff to Rust/Go too, silently changing resolution for a same-line-after-call binding, directly violating the task's explicit 'Rust/Go byte-identical' requirement; (2) its nested-class-scope skip omits TS's `abstract_class_declaration`, so a nested abstract class with a static-block binding still exhibits the exact MAJOR bug being fixed; (3) it never bumps CACHE_VERSION despite changing CallSite/resolution behavior, against the file's own established convention; (4) it duplicates the AST scan and leaves the `is_import` gate unfixed, so its own test settles for NameOnly on the TS shadowing case instead of the fully resolvable Exact/TypedParam answer Arm B achieves. Arm B avoided all of these while passing the same verification bar."
+ },
+ "cost_usd": 2.9551085999999995
+}

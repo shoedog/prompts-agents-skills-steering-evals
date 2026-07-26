@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": true,
+  "load_bearing_caveats_matched": true,
+  "scope_calibrated": true,
+  "would_have_prevented_wasted_work": true,
+  "probe_answer": "The memo correctly recommends the tri-state member-visibility policy (option B: enrich the member probe via a new policy hook rather than engine-side Rust inspection), matching the vindicated design-of-record. It states the cardinal invariant precisely (continue only when every candidate is provably Hidden, poison on any Unknown/undecidable pub(in)), and explicitly warns the 14,663 figure is the target population, not the guaranteed recall buy, distinguishing known_hidden vs undecidable and continued-to-candidate vs continued-to-unresolved. It got essentially everything right: sound rule, architecture choice, telemetry bucket split, and risk enumeration (Unknown-to-Hidden collapse, bare-name path preservation, combine arbitration). Minor deviations (naming member_hidden_continued vs the shipped member_visible hook naming, and treating GlobEdgeVis rename as unaddressed) are cosmetic, not substantive.",
+  "rationale": "All four grading dimensions are satisfied: the recommended design shape matches the landed tri-state policy, the load-bearing caveats (poison-on-Unknown, buy-sizing caveat) are both present and emphasized, scope/quantitative framing correctly separates the 14,663 raw count from the real recall buy, and following this memo would have avoided the naive over-claim failure mode the task brief warns against."
+ },
+ "cost_usd": 0.14654129999999999
+}

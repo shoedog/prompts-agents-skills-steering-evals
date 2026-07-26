@@ -1,0 +1,1017 @@
+# Blind pairwise code-review judgment — G5F-IMPL-08
+
+Two different engineers (Arm A, Arm B) independently completed the SAME task
+from the same starting commit. You see the task brief and both final diffs.
+You do NOT know who the engineers are; judge only the work. Answer the JSON
+schema exactly; a_materially_better/b_materially_better may not both be true;
+both false = parity. Ignore any VERIFICATION.md or process-artifact files in
+a diff — judge the code and tests.
+
+## Task brief (both arms received this; process environments may differ — judge the WORK)
+
+# Implement (EDIT-ONLY) — prism scope-graph recovery — TASK 5 ONLY (integration)
+
+## EXECUTE EXACTLY ONE TASK: Task 5 — the resolve_call_site_full integration.
+**Tasks 1, 2, 3, 4, 6 are ALREADY IMPLEMENTED AND COMMITTED — do NOT touch them; their
+passing tests are expected.** **Tasks 7 and 8 are LATER — do NOT do them.** Only Task 5.
+
+## Environment
+Repo `/Users/wesleyjinks/code/slicing`, branch `scope-graph-precision-recovery`. Plan:
+`docs/superpowers/plans/2026-06-21-scope-graph-precision-recovery.md` — use ONLY its
+**Task 5** section for exact code/paths/tests. The `ScopeResolution` predicate +
+`graph_target_ids` + the `graph_target_resolution` 1->Exact/>1->demoted change already
+exist (Task 4, committed) — wire them in; do not redefine them.
+
+Sandbox is `workspace-write`: you CAN edit + run `cargo`, but CANNOT use git. Run NO git
+commands; leave edits UNCOMMITTED (the host commits).
+
+## Do Task 5's TDD steps EXCEPT the commit (write tests, RED, implement, GREEN, fmt, regress):
+Implement in `src/resolution.rs`: the Rust scope branch of `resolve_call_site_full`
+(~lines 690-702) with the **free-fn guard** (`rust_graph_qualified_target_is_free_fn`:
+the `::` path resolves to a non-empty id-set all NOT in `method_owners` -> accept the
+shipped graph free-fn resolution, skip the prune) + the **owner-prune** (fetch the bare
+`(owner,method)` pool, run `prune` with `ScopeResolution`: 1->Exact, >1->demoted) +
+**fail-open** routed ONLY to `owner_lookup_in_modules` (the #120 demote floor) and
+stopping (never the stem block); plus the `rust_scope_prune_owner` method and the
+`owner_method_key` free helper — exactly as the plan's Task 5 specifies.
+
+Tests in `tests/integration/resolution_test.rs` (exact from the plan): the headline
+two-crate `CliTest::with_file` recovery (-> single Exact), the inherent+trait pruned
+demote, the ①C block-local-glob/macro keep-all, the ②B re-export/pending-alias-over-
+colliding-pool keep-all, the mixed-edition keep-all, the fail-open (NameOnly not dropped),
+the free-fn-misroute guard (`crate::m::f()` cross-module -> module free fn, not the method
+pool), and RE-CONFIRM the three drop invariants still pass
+(`resolution_test.rs:1528/1596/1641` region).
+
+Use the helpers `build`/`build_without_scope_graph`/`build_rust_complete`/`site_in`/
+`resolve_call_site` as the plan specifies per fixture. If any RED does not match the
+plan, STOP and report. macOS: `--test integration` runs normally. Do NOT touch `eval/`.
+
+## Report: exact files modified, per-fixture RED→GREEN evidence, the three-drop-invariant
+re-confirmation, fmt/build/`cargo test --test integration`/`--lib` results, any deviation.
+
+
+## Probe question (answer in `probe_answer`, per arm)
+
+Focus on TEST RIGOR: for each arm, would its tests FAIL on the pre-change code, do they cover negative/edge cases per new code path, and do they assert real behavior rather than trivially passing? Name the strongest and weakest test in each arm.
+
+## Arm A diff
+
+```diff
+diff --git a/src/resolution.rs b/src/resolution.rs
+index 43fcd3b..18694f2 100644
+--- a/src/resolution.rs
++++ b/src/resolution.rs
+@@ -557,6 +557,71 @@ impl CallGraph {
+         self.graph_target_resolution(graph, site, &target)
+     }
+ 
++    /// Does the authoritative graph resolve this `::` call's qualified-callable
++    /// path to a **free function** (vs a method)? `true` iff the path resolves to
++    /// a single callable `Target` whose id-set is non-empty and **every** resolved
++    /// `FunctionId` is a free function (∉ `method_owners`) — i.e. its binding sits
++    /// in a MODULE scope, not an `impl`/type owner scope. Used to divert a
++    /// free-function `::` call whose owner-segment NAME collides with a struct's
++    /// method bucket (the `has_bare_pool` false-positive) away from the owner-prune
++    /// and onto the shipped resolve-or-drop graph path. A method target, an
++    /// empty/unresolvable target (e.g. an illegal same-scope `mod m`+`struct m`,
++    /// which resolves `Ambiguous` → `None`), or a non-`::` site returns `false`
++    /// (take the owner-prune — recall-safe; never a real-edge drop).
++    fn rust_graph_qualified_target_is_free_fn(
++        &self,
++        graph: &ScopeGraph,
++        site: &CallSite,
++        file: FileId,
++        from: ScopeId,
++    ) -> bool {
++        if !site.callee_name.contains("::") {
++            return false;
++        }
++        let Some(target) = rust_graph_qualified_callable_edge(graph, site, file, from) else {
++            return false;
++        };
++        let ids = self.graph_target_ids(graph, &target);
++        !ids.is_empty() && ids.iter().all(|fid| !self.method_owners.contains_key(*fid))
++    }
++
++    /// Owner-keyed disproof prune (spec §4). Fetch the bare `(owner, method)` pool
++    /// from `self.methods`, run the `ScopeResolution` predicate, and decide:
++    /// 1 survivor → Exact (recovery); >1 → demoted (pruned NameOnly); unchanged
++    /// from the bare pool → `None` (fall through to the #120 demote floor). Only
++    /// reduces below the bare pool when the predicate actually disproved someone.
++    fn rust_scope_prune_owner(
++        &self,
++        graph: &ScopeGraph,
++        site: &CallSite,
++        file: FileId,
++        from: ScopeId,
++        name: &str,
++    ) -> Option<Vec<ResolvedCallee<'_>>> {
++        // Owner key `(T, m)` from `mod::T::m` (shared with the splice via
++        // owner_method_key, so both agree on the bare key).
++        let (owner, method) = owner_method_key(name)?;
++        let pool_ids = self.methods.get(&(owner, method))?;
++        let pool: Vec<&FunctionId> = pool_ids.iter().collect();
++        let pred = ScopeResolution::new(self);
++        let cx = crate::resolution_disproof::DisproofCx { graph, file, from };
++        let pruned = crate::resolution_disproof::prune(
++            pool.clone(),
++            site,
++            &cx,
++            &[&pred as &dyn crate::resolution_disproof::DisproofPredicate],
++        );
++        // Unchanged from the bare pool → the predicate proved nothing → fall
++        // through to the #120 demote floor (do NOT mint here).
++        if pruned.len() == pool.len() {
++            return None;
++        }
++        Some(match pruned.len() {
++            1 => exact(pruned, ResolutionKind::QualifiedOwner),
++            _ => demoted(pruned, ResolutionKind::QualifiedOwner),
++        })
++    }
++
+     /// The in-repo `FunctionId`s a resolved callable `Target` maps to, applying
+     /// the same per-binding file + owner narrowing `graph_target_resolution`
+     /// uses. Shared by the `ScopeResolution` predicate and `graph_target_resolution`.
+@@ -719,10 +784,98 @@ impl CallGraph {
+                 && (name.contains("::") || site.qualifier.is_none())
+             {
+                 if let Some((file, from)) = rust_authoritative_scope(graph, site) {
+-                    return match self.rust_scope_graph_resolution(graph, site, file, from) {
+-                        Some(resolved) => ResolutionOutcome::hit(resolved),
+-                        None => ResolutionOutcome::dropped(DropReason::UnknownName),
++                    // Split an owner-keyed `::` name into (owner, method) and ask
++                    // whether a bare `(owner, method)` pool exists — that is what
++                    // separates an owner-METHOD `::` site (which the disproof prune
++                    // owns) from a free-FUNCTION `::` path / `self::`/`Self::`/`::x`
++                    // (which it does not). `None` ⇒ not an owner-method site.
++                    let owner_method = if name.contains("::") {
++                        owner_method_key(name)
++                    } else {
++                        None
+                     };
++                    let has_bare_pool = owner_method
++                        .as_ref()
++                        .is_some_and(|(o, m)| self.methods.contains_key(&(o.clone(), m.clone())));
++
++                    // Free-fn misroute guard (codex re-confirm-2 P1): a bare
++                    // `(owner, method)` pool collides on NAME alone, so a legal
++                    // free-function `::` call `crate::m::f()` whose owner-segment
++                    // name `m` also names a struct (even in another module) would
++                    // wrongly enter the owner-prune and mint that struct's method.
++                    // If the authoritative graph resolves THIS `::` path to a
++                    // free-function target (all ids ∉ method_owners — its binding
++                    // sits in a MODULE scope, not an impl/type owner scope), keep
++                    // the shipped graph resolution (resolve-or-drop) and skip the
++                    // owner-prune entirely. A method target (or an unresolvable
++                    // path) falls through to the prune below, unchanged.
++                    if has_bare_pool
++                        && name.contains("::")
++                        && self.rust_graph_qualified_target_is_free_fn(graph, site, file, from)
++                    {
++                        return match self.rust_scope_graph_resolution(graph, site, file, from) {
++                            Some(resolved) => ResolutionOutcome::hit(resolved),
++                            None => ResolutionOutcome::dropped(DropReason::UnknownName),
++                        };
++                    }
++
++                    if has_bare_pool {
++                        // Owner-method `T::m`: the prune is the authority. It gates
++                        // the id-set resolution behind ①C (no block-local shadow)
++                        // and ②B (leading segment binds DIRECTLY), so a single Exact
++                        // is minted ONLY when both contracts hold. 1 survivor →
++                        // Exact (recovery); >1 → pruned NameOnly demote.
++                        if let Some(resolved) =
++                            self.rust_scope_prune_owner(graph, site, file, from, name)
++                        {
++                            return ResolutionOutcome::hit(resolved);
++                        }
++                        // Fail-open: the predicate proved nothing (uncertain — a
++                        // shadow/alias/ambiguous leading segment, or an unresolved
++                        // owner). Route ONLY to #120's owner_lookup_in_modules demote
++                        // floor and STOP — NEVER the legacy stem heuristic (that
++                        // would re-introduce the same-stem guess the three shipped
++                        // drop invariants forbid). A singleton bare pool here is a
++                        // legitimate Exact; a collision demotes to NameOnly.
++                        let (owner, method) = owner_method.as_ref().expect("has_bare_pool");
++                        let segs: Vec<&str> = name.split("::").collect();
++                        // module_segs = the path between crate/super-stripped head
++                        // and the method, for the existing module-narrowing.
++                        let mut prefix: Vec<&str> = segs[..segs.len() - 1].to_vec();
++                        while matches!(prefix.first(), Some(&"crate") | Some(&"super")) {
++                            prefix.remove(0);
++                        }
++                        let module_segs = &prefix[..prefix.len().saturating_sub(1)];
++                        if let Some(resolved) =
++                            self.owner_lookup_in_modules(owner, method, module_segs)
++                        {
++                            return ResolutionOutcome::hit(resolved);
++                        }
++                        // A bare pool existed but module-narrowing eliminated it (a
++                        // wrong module hint must not drop a real edge — but here the
++                        // pool is empty post-narrow; owner_lookup_in_modules already
++                        // ignores an empty narrow, so this arm is unreachable for a
++                        // present key — fall to the drop below defensively).
++                        return ResolutionOutcome::dropped(DropReason::UnknownName);
++                    }
++
++                    // Free-function `::` path or unqualified call: the shipped
++                    // graph resolution (1→Exact / >1→demoted via the Task-4
++                    // graph_target_resolution rule). NOTE: this path does NOT mint
++                    // an owner-method Exact (no bare pool — or a bare pool whose
++                    // owner-name collides with a free fn, already diverted to the
++                    // free-fn guard above), so the ①C/②B bypass cannot recur here.
++                    if let Some(resolved) =
++                        self.rust_scope_graph_resolution(graph, site, file, from)
++                    {
++                        return ResolutionOutcome::hit(resolved);
++                    }
++
++                    // Authoritative graph declined → drop (the shipped invariant: no
++                    // legacy free-fn fan-out, no stem heuristic, for an authoritative
++                    // miss). A free-fn `::` miss (`crate::missing::target`) and an
++                    // unqualified bare miss both land here.
++                    return ResolutionOutcome::dropped(DropReason::UnknownName);
+                 }
+             }
+         }
+@@ -1456,6 +1609,23 @@ fn rust_graph_qualified_callable_edge(
+     }
+ }
+ 
++/// Split an owner-keyed `mod::T::m` call name into the bare `(owner, method)`
++/// key — owner = the segment immediately before the method, after stripping
++/// leading `crate::`/`super::`. Returns `None` for `self`/`Self` heads (handled
++/// by R7/SelfReceiver elsewhere) or a single-segment name (no owner).
++fn owner_method_key(name: &str) -> Option<(String, String)> {
++    let mut segs: Vec<&str> = name.split("::").collect();
++    let method = segs.pop()?;
++    while matches!(segs.first(), Some(&"crate") | Some(&"super")) {
++        segs.remove(0);
++    }
++    let owner = *segs.last()?;
++    if owner == "self" || owner == "Self" {
++        return None;
++    }
++    Some((owner.to_string(), method.to_string()))
++}
++
+ fn rust_call_path_anchor(raw: &str) -> Option<(Anchor, RawPath)> {
+     let mut segs: Vec<String> = raw.split("::").map(str::to_string).collect();
+     if segs.is_empty() {
+diff --git a/tests/integration/resolution_test.rs b/tests/integration/resolution_test.rs
+index 9ec74e0..1447a06 100644
+--- a/tests/integration/resolution_test.rs
++++ b/tests/integration/resolution_test.rs
+@@ -1688,6 +1688,320 @@ fn rust_scope_graph_authority_gate_and_poison_skip_legacy() {
+     );
+ }
+ 
++#[test]
++fn scope_graph_two_crate_owner_collision_recovers_to_single_exact() {
++    use prism::languages::Language::Rust;
++    // The ruff CliTest::with_file class in miniature: two crates each define
++    // `CliTest::with_file`. With the scope graph present, a call in crate `a`
++    // resolves to crate `a`'s definition alone — single Exact (the headline
++    // recovery). The bare `("CliTest","with_file")` key holds BOTH defs.
++    //
++    // This is THE test BLOCKER-1 (the module-scope exclusion) unblocks: there is
++    // NO block-local shadow here, so ①C must NOT fire — the `CliTest` def lives at
++    // module/root scope (②B's anchor + directness proof), and `scope_chain_below_
++    // module` excludes that scope, so the predicate prunes the cross-crate `b`
++    // candidate and the pool resolves to a single Exact. Under the old module-
++    // INCLUSIVE scan, `CliTest`'s own def-binding would self-shadow → keep-all →
++    // this would stay 2×NameOnly and FAIL. The block-local-glob test below pins the
++    // complementary direction (a real block shadow still keeps-all).
++    let sources = [
++        (
++            "a/src/lib.rs",
++            "pub struct CliTest;\nimpl CliTest {\n    pub fn with_file(&self) {}\n}\npub fn drive() {\n    CliTest::with_file();\n}\n",
++            Rust,
++        ),
++        (
++            "b/src/lib.rs",
++            "pub struct CliTest;\nimpl CliTest {\n    pub fn with_file(&self) {}\n}\n",
++            Rust,
++        ),
++    ];
++    let (cg, _) = build(&sources);
++    assert!(
++        cg.scope_graph.is_some(),
++        "convention build has a scope graph"
++    );
++    assert_eq!(
++        cg.methods
++            .get(&("CliTest".to_string(), "with_file".to_string()))
++            .map(|v| v.len()),
++        Some(2),
++        "the bare owner key collides across both crates"
++    );
++    let r = cg.resolve_call_site(&site_in(&cg, "drive", "CliTest::with_file"));
++    assert_eq!(r.len(), 1, "recovers to a single candidate");
++    assert_eq!(r[0].target.file, "a/src/lib.rs");
++    assert_eq!(r[0].confidence, ResolutionConfidence::Exact);
++    assert_eq!(r[0].kind, ResolutionKind::QualifiedOwner);
++}
++
++#[test]
++fn scope_graph_inherent_plus_trait_owner_demotes_not_drops() {
++    use prism::languages::Language::Rust;
++    // The resolved type `Widget` owns BOTH an inherent `make` and a trait `make`.
++    // The leading segment binds directly + unshadowed, so the predicate runs, but
++    // it cannot prune below the inherent/trait pair (both owned by Widget). Today
++    // this DROPS (graph_target_resolution returned None on ids==2); the §4 change
++    // demotes it to 2 NameOnly edges (recall fix: drop -> demote).
++    let sources = [(
++        "src/lib.rs",
++        "pub struct Widget;\npub trait Build { fn make(&self); }\nimpl Widget { pub fn make(&self) {} }\nimpl Build for Widget { fn make(&self) {} }\npub fn drive() {\n    Widget::make();\n}\n",
++        Rust,
++    )];
++    let (cg, _) = build(&sources);
++    let out = cg.resolve_call_site_full(&site_in(&cg, "drive", "Widget::make"));
++    assert_eq!(out.drop, None, "must not drop — recall fix");
++    assert_eq!(out.resolved.len(), 2, "inherent + trait both kept");
++    assert!(
++        out.resolved
++            .iter()
++            .all(|c| c.confidence == ResolutionConfidence::NameOnly),
++        "the unprunable owner pair demotes to NameOnly"
++    );
++    assert!(out
++        .resolved
++        .iter()
++        .all(|c| c.kind == ResolutionKind::QualifiedOwner));
++}
++
++#[test]
++fn scope_graph_unresolved_owner_path_keeps_full_pool_not_drop() {
++    use prism::languages::Language::Rust;
++    // The owner type path does NOT resolve through the graph (`Missing` is not in
++    // scope at the call site — it is neither defined nor imported in lib.rs), but
++    // the bare owner key COLLIDES across two files. ②B's call-site directness
++    // fails (no `Missing` rib binding at the call site) → keep-all, and the
++    // fail-open routes the `::` site to the #120 demote floor — NameOnly×2, NOT a
++    // drop, NOT a stem guess.
++    //
++    // The pool MUST collide (two `Missing::make` defs): `owner_lookup_in_modules`
++    // demotes a >1 same-owner pool to NameOnly but returns *Exact* for a singleton
++    // (resolution.rs:677-679) — a single-def fixture would (correctly) be Exact and
++    // FALSIFY the NameOnly assertion (codex MAJOR @ this fixture). The collision is
++    // the demote floor the test means to pin.
++    let sources = [
++        (
++            "src/lib.rs",
++            "mod other;\nmod more;\npub fn drive() {\n    Missing::make();\n}\n",
++            Rust,
++        ),
++        (
++            "src/other.rs",
++            "pub struct Missing;\nimpl Missing {\n    pub fn make(&self) {}\n}\n",
++            Rust,
++        ),
++        (
++            "src/more.rs",
++            "pub struct Missing;\nimpl Missing {\n    pub fn make(&self) {}\n}\n",
++            Rust,
++        ),
++    ];
++    let (cg, _) = build(&sources);
++    // Two same-owner `Missing::make` defs → the fail-open demotes (NameOnly),
++    // never Exact, never a drop, never the stem heuristic.
++    assert_eq!(
++        cg.methods
++            .get(&("Missing".to_string(), "make".to_string()))
++            .map(|v| v.len()),
++        Some(2),
++        "the bare owner key must collide so the floor is a NameOnly demote, not Exact",
++    );
++    let out = cg.resolve_call_site_full(&site_in(&cg, "drive", "Missing::make"));
++    assert_eq!(out.drop, None, "owner-keyed `::` miss demotes, not drops");
++    assert_eq!(
++        out.resolved.len(),
++        2,
++        "both colliding defs are kept (recall)"
++    );
++    assert!(
++        out.resolved
++            .iter()
++            .all(|c| c.confidence == ResolutionConfidence::NameOnly),
++        "fail-open lands at the #120 NameOnly demote floor"
++    );
++    assert!(
++        out.resolved
++            .iter()
++            .all(|c| c.kind == ResolutionKind::QualifiedOwner),
++        "a same-owner collision demotes as QualifiedOwner (not TraitCha / not stem)"
++    );
++}
++
++#[test]
++fn scope_graph_block_local_glob_shadow_keeps_all() {
++    use prism::languages::Language::Rust;
++    // Module-level `use a::Foo;` + a function with a block-local `use b::*;` and a
++    // `Foo::m()` call. Both `a::Foo` and `b::Foo` exist with `m`. The
++    // module-anchored resolution sees only `a::Foo`, but the block-local glob is a
++    // potential shadow of `Foo` → the predicate keeps all (does NOT prune to
++    // a::Foo::m). An exact-ident-only ①C would wrongly drop b::Foo::m (the BLOCKER).
++    let sources = [
++        (
++            "src/lib.rs",
++            "mod a;\nmod b;\nuse crate::a::Foo;\npub fn drive() {\n    use crate::b::*;\n    Foo::m();\n}\n",
++            Rust,
++        ),
++        ("src/a.rs", "pub struct Foo;\nimpl Foo {\n    pub fn m(&self) {}\n}\n", Rust),
++        ("src/b.rs", "pub struct Foo;\nimpl Foo {\n    pub fn m(&self) {}\n}\n", Rust),
++    ];
++    let (cg, _) = build(&sources);
++    let out = cg.resolve_call_site_full(&site_in(&cg, "drive", "Foo::m"));
++    // Keep-all: the bare ("Foo","m") key holds both; the block-local glob blocks
++    // the prune, so this falls through to the demote floor (NameOnly, not a single
++    // Exact, not a drop).
++    assert_eq!(out.drop, None);
++    assert!(
++        out.resolved.len() >= 2
++            && out
++                .resolved
++                .iter()
++                .all(|c| c.confidence == ResolutionConfidence::NameOnly),
++        "block-local glob shadow keeps the full pool at NameOnly"
++    );
++}
++
++#[test]
++fn scope_graph_macro_wildcard_shadow_keeps_all() {
++    use prism::languages::Language::Rust;
++    // An item-position name-introducing macro invocation poisons NS_TYPE over the
++    // trailing block scope; a bare `Foo::m()` after it could be shadowed by an
++    // unknowable macro-introduced `Foo` → keep-all.
++    let sources = [
++        (
++            "src/lib.rs",
++            "mod a;\nmod b;\nuse crate::a::Foo;\nmacro_rules! gen { () => {}; }\npub fn drive() {\n    gen!();\n    Foo::m();\n}\n",
++            Rust,
++        ),
++        ("src/a.rs", "pub struct Foo;\nimpl Foo {\n    pub fn m(&self) {}\n}\n", Rust),
++        ("src/b.rs", "pub struct Foo;\nimpl Foo {\n    pub fn m(&self) {}\n}\n", Rust),
++    ];
++    let (cg, _) = build(&sources);
++    let out = cg.resolve_call_site_full(&site_in(&cg, "drive", "Foo::m"));
++    assert_eq!(out.drop, None);
++    assert!(
++        out.resolved
++            .iter()
++            .all(|c| c.confidence == ResolutionConfidence::NameOnly),
++        "a covering macro wildcard keeps the full pool at NameOnly"
++    );
++}
++
++#[test]
++fn scope_graph_pending_import_alias_over_colliding_pool_keeps_all() {
++    use prism::languages::Language::Rust;
++    // ②B directness, against a COLLIDING pool — the test that distinguishes the
++    // correct call-site-rib directness oracle from the unsound global target
++    // search (codex BLOCKER). The leading segment `Foo` binds at the call site
++    // via a NAMED IMPORT `use crate::a::Foo;` — a `BindTarget::Pending` binding —
++    // and there is NO block-local shadow/glob (so ①C does not fire; ②B is the
++    // ONLY thing standing between the prune and a wrong drop). The bare
++    // ("Foo","m") pool COLLIDES: both `a::Foo::m` and `b::Foo::m` are in it.
++    //
++    // Correct ②B (inspect the call site's own rib binding): `Foo`'s rib binding
++    // is `Pending` → not a direct `Resolved(Item)` → keep-all → BOTH survive at
++    // NameOnly (the demote floor). The BUGGY global search would chase the
++    // `Pending` import to `a::Foo`, then find `a::Foo`'s DEFINITION binding
++    // (`Resolved(Item)`) anywhere in the graph and call it "direct", resolve the
++    // final callable to `a::Foo::m` alone, and DISPROVE `b::Foo::m` — dropping a
++    // real edge. So this test FAILS (recall loss) iff the global-search oracle is
++    // used, and PASSES only with the call-site-rib oracle.
++    let sources = [
++        (
++            "src/lib.rs",
++            "mod a;\nmod b;\nuse crate::a::Foo;\npub fn drive() {\n    Foo::m();\n}\n",
++            Rust,
++        ),
++        (
++            "src/a.rs",
++            "pub struct Foo;\nimpl Foo {\n    pub fn m(&self) {}\n}\n",
++            Rust,
++        ),
++        (
++            "src/b.rs",
++            "pub struct Foo;\nimpl Foo {\n    pub fn m(&self) {}\n}\n",
++            Rust,
++        ),
++    ];
++    let (cg, _) = build(&sources);
++    // Pin the colliding pool so a future extraction change can't silently make
++    // this test vacuous (a singleton pool can't be wrongly pruned).
++    assert_eq!(
++        cg.methods
++            .get(&("Foo".to_string(), "m".to_string()))
++            .map(|v| v.len()),
++        Some(2),
++        "the bare owner key must collide across a::Foo and b::Foo",
++    );
++    let out = cg.resolve_call_site_full(&site_in(&cg, "drive", "Foo::m"));
++    assert_eq!(out.drop, None, "a Pending import alias must not drop");
++    assert!(
++        out.resolved.len() == 2
++            && out
++                .resolved
++                .iter()
++                .all(|c| c.confidence == ResolutionConfidence::NameOnly),
++        "②B keeps the full colliding pool at NameOnly (a global-search oracle \
++         would wrongly prune to a::Foo::m and drop b::Foo::m)",
++    );
++}
++
++#[test]
++fn scope_graph_free_fn_path_not_misrouted_to_colliding_method_pool() {
++    use prism::languages::Language::Rust;
++    // Residual free-fn misroute (codex re-confirm-2 P1). `crate::m::f()` is a
++    // legitimate MODULE FREE-FUNCTION call. A struct `m` with method `f` lives in
++    // a DIFFERENT module (`other`) — legal Rust — so `methods[("m","f")]` is
++    // populated and `owner_method_key("crate::m::f") == ("m","f")` collides with
++    // it: `has_bare_pool == true` even though this is a free-fn site. The free-fn
++    // guard must divert it to the shipped graph resolution (which resolves the
++    // MODULE free fn `m::f`) and NOT into the owner-prune / `owner_lookup_in_modules`
++    // fail-open (which would mint the cross-module `other::m::f` METHOD — a wrong
++    // edge). The owner-segment `m` binds to a MODULE, not a type, so the resolved
++    // graph target is a free fn (∉ method_owners) → the gate fires.
++    //
++    // NOTE: the discriminating fixture is CROSS-module on purpose. A *same-scope*
++    // `mod m` + `struct m` (codex's first-cut fixture) is illegal Rust (E0428) and
++    // the graph resolves the leading `m` as `Ambiguous` → the qualified edge is
++    // `None` → the guard does NOT fire and the site keeps the recall-safe owner-
++    // prune fail-open; it neither compiles-as-intended nor discriminates the oracle.
++    let sources = [
++        (
++            "src/lib.rs",
++            "mod m;\nmod other;\npub fn drive() {\n    crate::m::f();\n}\n",
++            Rust,
++        ),
++        ("src/m.rs", "pub fn f() {}\n", Rust),
++        (
++            "src/other.rs",
++            "pub struct m;\nimpl m {\n    pub fn f(&self) {}\n}\n",
++            Rust,
++        ),
++    ];
++    let (cg, _) = build(&sources);
++    // Pin the colliding method bucket so the test can't go vacuous (no collision →
++    // has_bare_pool false → the misroute path is never even reachable).
++    assert_eq!(
++        cg.methods
++            .get(&("m".to_string(), "f".to_string()))
++            .map(|v| v.len()),
++        Some(1),
++        "the cross-module struct `m::f` must populate the colliding method bucket",
++    );
++    let out = cg.resolve_call_site_full(&site_in(&cg, "drive", "crate::m::f"));
++    assert_eq!(out.drop, None, "the free-fn `::` path resolves, not drops");
++    assert_eq!(
++        out.resolved.len(),
++        1,
++        "the module free fn is the single resolved target"
++    );
++    assert_eq!(
++        out.resolved[0].target.file, "src/m.rs",
++        "must resolve to the MODULE free fn, never the cross-module method pool \
++         (src/other.rs)",
++    );
++    assert_eq!(out.resolved[0].confidence, ResolutionConfidence::Exact);
++}
++
+ #[test]
+ fn non_rust_resolution_is_unchanged_with_scope_graph_present() {
+     use prism::languages::Language::Python;
+
+```
+
+## Arm B diff
+
+```diff
+diff --git a/src/resolution.rs b/src/resolution.rs
+index 43fcd3b..6d8cdd3 100644
+--- a/src/resolution.rs
++++ b/src/resolution.rs
+@@ -557,6 +557,51 @@ impl CallGraph {
+         self.graph_target_resolution(graph, site, &target)
+     }
+ 
++    /// Does the authoritative graph resolve this `::` call to a free function
++    /// rather than a method?
++    fn rust_graph_qualified_target_is_free_fn(
++        &self,
++        graph: &ScopeGraph,
++        site: &CallSite,
++        file: FileId,
++        from: ScopeId,
++    ) -> bool {
++        if !site.callee_name.contains("::") {
++            return false;
++        }
++        let Some(target) = rust_graph_qualified_callable_edge(graph, site, file, from) else {
++            return false;
++        };
++        let ids = self.graph_target_ids(graph, &target);
++        !ids.is_empty() && ids.iter().all(|fid| !self.method_owners.contains_key(*fid))
++    }
++
++    /// Owner-keyed disproof prune. A strict prune to one survivor recovers Exact;
++    /// a strict prune to several survivors keeps every remaining edge demoted.
++    fn rust_scope_prune_owner(
++        &self,
++        graph: &ScopeGraph,
++        site: &CallSite,
++        file: FileId,
++        from: ScopeId,
++        name: &str,
++    ) -> Option<Vec<ResolvedCallee<'_>>> {
++        let (owner, method) = owner_method_key(name)?;
++        let pool_ids = self.methods.get(&(owner, method))?;
++        let pool: Vec<&FunctionId> = pool_ids.iter().collect();
++        let pred = ScopeResolution::new(self);
++        let cx = DisproofCx { graph, file, from };
++        let pruned = prune(pool.clone(), site, &cx, &[&pred as &dyn DisproofPredicate]);
++
++        if pruned.len() == pool.len() {
++            return None;
++        }
++        Some(match pruned.len() {
++            1 => exact(pruned, ResolutionKind::QualifiedOwner),
++            _ => demoted(pruned, ResolutionKind::QualifiedOwner),
++        })
++    }
++
+     /// The in-repo `FunctionId`s a resolved callable `Target` maps to, applying
+     /// the same per-binding file + owner narrowing `graph_target_resolution`
+     /// uses. Shared by the `ScopeResolution` predicate and `graph_target_resolution`.
+@@ -719,10 +764,54 @@ impl CallGraph {
+                 && (name.contains("::") || site.qualifier.is_none())
+             {
+                 if let Some((file, from)) = rust_authoritative_scope(graph, site) {
+-                    return match self.rust_scope_graph_resolution(graph, site, file, from) {
+-                        Some(resolved) => ResolutionOutcome::hit(resolved),
+-                        None => ResolutionOutcome::dropped(DropReason::UnknownName),
++                    let owner_method = if name.contains("::") {
++                        owner_method_key(name)
++                    } else {
++                        None
+                     };
++                    let has_bare_pool = owner_method
++                        .as_ref()
++                        .is_some_and(|(o, m)| self.methods.contains_key(&(o.clone(), m.clone())));
++
++                    if has_bare_pool
++                        && name.contains("::")
++                        && self.rust_graph_qualified_target_is_free_fn(graph, site, file, from)
++                    {
++                        return match self.rust_scope_graph_resolution(graph, site, file, from) {
++                            Some(resolved) => ResolutionOutcome::hit(resolved),
++                            None => ResolutionOutcome::dropped(DropReason::UnknownName),
++                        };
++                    }
++
++                    if has_bare_pool {
++                        if let Some(resolved) =
++                            self.rust_scope_prune_owner(graph, site, file, from, name)
++                        {
++                            return ResolutionOutcome::hit(resolved);
++                        }
++
++                        let (owner, method) = owner_method.as_ref().expect("has_bare_pool");
++                        let segs: Vec<&str> = name.split("::").collect();
++                        let mut prefix: Vec<&str> = segs[..segs.len() - 1].to_vec();
++                        while matches!(prefix.first(), Some(&"crate") | Some(&"super")) {
++                            prefix.remove(0);
++                        }
++                        let module_segs = &prefix[..prefix.len().saturating_sub(1)];
++                        if let Some(resolved) =
++                            self.owner_lookup_in_modules(owner, method, module_segs)
++                        {
++                            return ResolutionOutcome::hit(resolved);
++                        }
++                        return ResolutionOutcome::dropped(DropReason::UnknownName);
++                    }
++
++                    if let Some(resolved) =
++                        self.rust_scope_graph_resolution(graph, site, file, from)
++                    {
++                        return ResolutionOutcome::hit(resolved);
++                    }
++
++                    return ResolutionOutcome::dropped(DropReason::UnknownName);
+                 }
+             }
+         }
+@@ -1491,6 +1580,20 @@ fn rust_call_path_anchor(raw: &str) -> Option<(Anchor, RawPath)> {
+     Some((anchor, RawPath(segs)))
+ }
+ 
++/// Split an owner-keyed `mod::T::m` call name into the bare `(owner, method)`.
++fn owner_method_key(name: &str) -> Option<(String, String)> {
++    let mut segs: Vec<&str> = name.split("::").collect();
++    let method = segs.pop()?;
++    while matches!(segs.first(), Some(&"crate") | Some(&"super")) {
++        segs.remove(0);
++    }
++    let owner = *segs.last()?;
++    if owner == "self" || owner == "Self" {
++        return None;
++    }
++    Some((owner.to_string(), method.to_string()))
++}
++
+ fn graph_file_for_scope(graph: &ScopeGraph, scope: ScopeId) -> Option<FileId> {
+     graph
+         .scope(scope)?
+diff --git a/tests/integration/resolution_test.rs b/tests/integration/resolution_test.rs
+index 9ec74e0..7d370d3 100644
+--- a/tests/integration/resolution_test.rs
++++ b/tests/integration/resolution_test.rs
+@@ -1688,6 +1688,282 @@ fn rust_scope_graph_authority_gate_and_poison_skip_legacy() {
+     );
+ }
+ 
++#[test]
++fn scope_graph_two_crate_owner_collision_recovers_to_single_exact() {
++    use prism::languages::Language::Rust;
++    let sources = [
++        (
++            "a/src/lib.rs",
++            "pub struct CliTest;\nimpl CliTest {\n    pub fn with_file(&self) {}\n}\npub fn drive() {\n    CliTest::with_file();\n}\n",
++            Rust,
++        ),
++        (
++            "b/src/lib.rs",
++            "pub struct CliTest;\nimpl CliTest {\n    pub fn with_file(&self) {}\n}\n",
++            Rust,
++        ),
++    ];
++    let (cg, _) = build(&sources);
++    assert!(
++        cg.scope_graph.is_some(),
++        "convention build has a scope graph"
++    );
++    assert_eq!(
++        cg.methods
++            .get(&("CliTest".to_string(), "with_file".to_string()))
++            .map(|v| v.len()),
++        Some(2),
++        "the bare owner key collides across both crates"
++    );
++    let r = cg.resolve_call_site(&site_in(&cg, "drive", "CliTest::with_file"));
++    assert_eq!(r.len(), 1, "recovers to a single candidate");
++    assert_eq!(r[0].target.file, "a/src/lib.rs");
++    assert_eq!(r[0].confidence, ResolutionConfidence::Exact);
++    assert_eq!(r[0].kind, ResolutionKind::QualifiedOwner);
++}
++
++#[test]
++fn scope_graph_inherent_plus_trait_owner_demotes_not_drops() {
++    use prism::languages::Language::Rust;
++    let sources = [(
++        "src/lib.rs",
++        "pub struct Widget;\npub trait Build { fn make(&self); }\nimpl Widget { pub fn make(&self) {} }\nimpl Build for Widget { fn make(&self) {} }\npub fn drive() {\n    Widget::make();\n}\n",
++        Rust,
++    )];
++    let (cg, _) = build(&sources);
++    let out = cg.resolve_call_site_full(&site_in(&cg, "drive", "Widget::make"));
++    assert_eq!(out.drop, None, "must not drop - recall fix");
++    assert_eq!(out.resolved.len(), 2, "inherent + trait both kept");
++    assert!(
++        out.resolved
++            .iter()
++            .all(|c| c.confidence == ResolutionConfidence::NameOnly),
++        "the unprunable owner pair demotes to NameOnly"
++    );
++    assert!(out
++        .resolved
++        .iter()
++        .all(|c| c.kind == ResolutionKind::QualifiedOwner));
++}
++
++#[test]
++fn scope_graph_unresolved_owner_path_keeps_full_pool_not_drop() {
++    use prism::languages::Language::Rust;
++    let sources = [
++        (
++            "src/lib.rs",
++            "mod other;\nmod more;\npub fn drive() {\n    Missing::make();\n}\n",
++            Rust,
++        ),
++        (
++            "src/other.rs",
++            "pub struct Missing;\nimpl Missing {\n    pub fn make(&self) {}\n}\n",
++            Rust,
++        ),
++        (
++            "src/more.rs",
++            "pub struct Missing;\nimpl Missing {\n    pub fn make(&self) {}\n}\n",
++            Rust,
++        ),
++    ];
++    let (cg, _) = build(&sources);
++    assert_eq!(
++        cg.methods
++            .get(&("Missing".to_string(), "make".to_string()))
++            .map(|v| v.len()),
++        Some(2),
++        "the bare owner key must collide so the floor is NameOnly, not Exact",
++    );
++    let out = cg.resolve_call_site_full(&site_in(&cg, "drive", "Missing::make"));
++    assert_eq!(out.drop, None, "owner-keyed `::` miss demotes, not drops");
++    assert_eq!(out.resolved.len(), 2, "both colliding defs are kept");
++    assert!(
++        out.resolved
++            .iter()
++            .all(|c| c.confidence == ResolutionConfidence::NameOnly),
++        "fail-open lands at the #120 NameOnly demote floor"
++    );
++    assert!(
++        out.resolved
++            .iter()
++            .all(|c| c.kind == ResolutionKind::QualifiedOwner),
++        "a same-owner collision demotes as QualifiedOwner"
++    );
++}
++
++#[test]
++fn scope_graph_block_local_glob_shadow_keeps_all() {
++    use prism::languages::Language::Rust;
++    let sources = [
++        (
++            "src/lib.rs",
++            "mod a;\nmod b;\nuse crate::a::Foo;\npub fn drive() {\n    use crate::b::*;\n    Foo::m();\n}\n",
++            Rust,
++        ),
++        (
++            "src/a.rs",
++            "pub struct Foo;\nimpl Foo {\n    pub fn m(&self) {}\n}\n",
++            Rust,
++        ),
++        (
++            "src/b.rs",
++            "pub struct Foo;\nimpl Foo {\n    pub fn m(&self) {}\n}\n",
++            Rust,
++        ),
++    ];
++    let (cg, _) = build(&sources);
++    let out = cg.resolve_call_site_full(&site_in(&cg, "drive", "Foo::m"));
++    assert_eq!(out.drop, None);
++    assert!(
++        out.resolved.len() >= 2
++            && out
++                .resolved
++                .iter()
++                .all(|c| c.confidence == ResolutionConfidence::NameOnly),
++        "block-local glob shadow keeps the full pool at NameOnly"
++    );
++}
++
++#[test]
++fn scope_graph_macro_wildcard_shadow_keeps_all() {
++    use prism::languages::Language::Rust;
++    let sources = [
++        (
++            "src/lib.rs",
++            "mod a;\nmod b;\nuse crate::a::Foo;\nmacro_rules! gen { () => {}; }\npub fn drive() {\n    gen!();\n    Foo::m();\n}\n",
++            Rust,
++        ),
++        (
++            "src/a.rs",
++            "pub struct Foo;\nimpl Foo {\n    pub fn m(&self) {}\n}\n",
++            Rust,
++        ),
++        (
++            "src/b.rs",
++            "pub struct Foo;\nimpl Foo {\n    pub fn m(&self) {}\n}\n",
++            Rust,
++        ),
++    ];
++    let (cg, _) = build(&sources);
++    let out = cg.resolve_call_site_full(&site_in(&cg, "drive", "Foo::m"));
++    assert_eq!(out.drop, None);
++    assert!(
++        out.resolved
++            .iter()
++            .all(|c| c.confidence == ResolutionConfidence::NameOnly),
++        "a covering macro wildcard keeps the full pool at NameOnly"
++    );
++}
++
++#[test]
++fn scope_graph_pending_import_alias_over_colliding_pool_keeps_all() {
++    use prism::languages::Language::Rust;
++    let sources = [
++        (
++            "src/lib.rs",
++            "mod a;\nmod b;\nuse crate::a::Foo;\npub fn drive() {\n    Foo::m();\n}\n",
++            Rust,
++        ),
++        (
++            "src/a.rs",
++            "pub struct Foo;\nimpl Foo {\n    pub fn m(&self) {}\n}\n",
++            Rust,
++        ),
++        (
++            "src/b.rs",
++            "pub struct Foo;\nimpl Foo {\n    pub fn m(&self) {}\n}\n",
++            Rust,
++        ),
++    ];
++    let (cg, _) = build(&sources);
++    assert_eq!(
++        cg.methods
++            .get(&("Foo".to_string(), "m".to_string()))
++            .map(|v| v.len()),
++        Some(2),
++        "the bare owner key must collide across a::Foo and b::Foo",
++    );
++    let out = cg.resolve_call_site_full(&site_in(&cg, "drive", "Foo::m"));
++    assert_eq!(out.drop, None, "a Pending import alias must not drop");
++    assert!(
++        out.resolved.len() == 2
++            && out
++                .resolved
++                .iter()
++                .all(|c| c.confidence == ResolutionConfidence::NameOnly),
++        "Pending import alias keeps the full colliding pool at NameOnly",
++    );
++}
++
++#[test]
++fn scope_graph_mixed_edition_keeps_full_pool_not_drop() {
++    let sources = [
++        (
++            "src/lib.rs",
++            "mod a;\nmod b;\npub struct Foo;\npub fn drive() {\n    Foo::m();\n}\n",
++        ),
++        (
++            "src/a.rs",
++            "pub struct Foo;\nimpl Foo {\n    pub fn m(&self) {}\n}\n",
++        ),
++        (
++            "src/b.rs",
++            "pub struct Foo;\nimpl Foo {\n    pub fn m(&self) {}\n}\n",
++        ),
++    ];
++    let (mut cg, _) = build_rust_complete(&sources);
++    cg.scope_graph
++        .as_mut()
++        .expect("scope graph")
++        .edition_uniform = false;
++
++    let out = cg.resolve_call_site_full(&site_in(&cg, "drive", "Foo::m"));
++    assert_eq!(out.drop, None, "non-uniform edition must keep all");
++    assert_eq!(out.resolved.len(), 2, "both colliding defs are kept");
++    assert!(out
++        .resolved
++        .iter()
++        .all(|c| c.confidence == ResolutionConfidence::NameOnly));
++}
++
++#[test]
++fn scope_graph_free_fn_path_not_misrouted_to_colliding_method_pool() {
++    use prism::languages::Language::Rust;
++    let sources = [
++        (
++            "src/lib.rs",
++            "mod m;\nmod other;\npub fn drive() {\n    crate::m::f();\n}\n",
++            Rust,
++        ),
++        ("src/m.rs", "pub fn f() {}\n", Rust),
++        (
++            "src/other.rs",
++            "pub struct m;\nimpl m {\n    pub fn f(&self) {}\n}\n",
++            Rust,
++        ),
++    ];
++    let (cg, _) = build(&sources);
++    assert_eq!(
++        cg.methods
++            .get(&("m".to_string(), "f".to_string()))
++            .map(|v| v.len()),
++        Some(1),
++        "the cross-module struct `m::f` must populate the colliding method bucket",
++    );
++    let out = cg.resolve_call_site_full(&site_in(&cg, "drive", "crate::m::f"));
++    assert_eq!(out.drop, None, "the free-fn `::` path resolves, not drops");
++    assert_eq!(
++        out.resolved.len(),
++        1,
++        "the module free fn is the single resolved target"
++    );
++    assert_eq!(
++        out.resolved[0].target.file, "src/m.rs",
++        "must resolve to the module free fn, never the cross-module method pool",
++    );
++    assert_eq!(out.resolved[0].confidence, ResolutionConfidence::Exact);
++}
++
+ #[test]
+ fn non_rust_resolution_is_unchanged_with_scope_graph_present() {
+     use prism::languages::Language::Python;
+
+```

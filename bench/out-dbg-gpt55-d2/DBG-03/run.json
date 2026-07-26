@@ -1,0 +1,36 @@
+{
+  "harness": {
+    "executor": "codex",
+    "effort": "high",
+    "cwd": "/private/tmp/dbg-g5d2-ws/DBG-03",
+    "argv": [
+      "/opt/homebrew/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "-o",
+      "/private/tmp/dbg-g5d2-ws/DBG-03/.codex-final-message.md",
+      "-"
+    ],
+    "started_at": "2026-07-05T06:13:32+00:00",
+    "returncode": 0,
+    "timed_out": false,
+    "timeout_sec": 4500,
+    "stderr_tail": "lue) = arm_value {\n             walk_expr(b, path, &arm_value, arm_scope, ctx);\n@@ -306,12 +314,14 @@\n         cond_scope,\n         ctx.file,\n         hi,\n-        &names,\n-        LocalFact {\n-            kind: BindingKind::Pattern,\n-            annotation: None,\n-            init: None,\n-        },\n+        &locals_with_fact(\n+            &names,\n+            LocalFact {\n+                kind: BindingKind::Pattern,\n+                annotation: None,\n+                init: None,\n+            },\n+        ),\n     );\n     for blk in blocks {\n         walk_block_body(b, path, &blk, cond_scope, ctx);\n@@ -343,10 +353,9 @@\n     scope: ScopeId,\n     file: FileId,\n     scope_end: usize,\n-    names: &[(String, usize)],\n-    fact: LocalFact,\n+    locals: &[(String, usize, LocalFact)],\n ) {\n-    for (i, (name, def_byte)) in names.iter().enumerate() {\n+    for (i, (name, def_byte, fact)) in locals.iter().enumerate() {\n         b.add_local_fact(file, *def_byte, fact.clone());\n         b.add_binding(\n             scope,\n@@ -372,6 +381,16 @@\n     }\n }\n \n+fn locals_with_fact(\n+    names: &[(String, usize)],\n+    fact: LocalFact,\n+) -> Vec<(String, usize, LocalFact)> {\n+    names\n+        .iter()\n+        .map(|(name, def_byte)| (name.clone(), *def_byte, fact.clone()))\n+        .collect()\n+}\n+\n fn init_expr(pf: &ParsedFile, value: &Node) -> Option<InitExpr> {\n     match value.kind() {\n         \"call_expression\" => {\ndiff --git a/tests/name_resolution/rust_populate_test.rs b/tests/name_resolution/rust_populate_test.rs\nindex a3c26e9ccc68561acbcabc9f9766849a50577e69..f6403e48209f9660d335952fa8391b6a4bb8ee73\n--- a/tests/name_resolution/rust_populate_test.rs\n+++ b/tests/name_resolution/rust_populate_test.rs\n@@ -21,7 +21,8 @@\n     enclosing_scope, file_id, populate_rust, RustCrateConfig,\n };\n use prism::name_resolution::types::{\n-    Anchor, NamespaceId, RawPath, ResStatus, Resolution, ResolveQuery, SourceLoc, Target,\n+    Anchor, BindingRef, NamespaceId, RawPath, ResStatus, Resolution, ResolveQuery, SourceLoc,\n+    Target,\n };\n \n // \u2500\u2500 fixture + query helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n@@ -154,6 +155,21 @@\n     );\n }\n \n+fn resolved_local_ref(res: &Resolution) -> BindingRef {\n+    assert_eq!(\n+        res.status,\n+        ResStatus::Resolved,\n+        \"expected Resolved(Local), got {:?} ({:?})\",\n+        res.status,\n+        res.candidates\n+    );\n+    assert_eq!(res.candidates.len(), 1, \"expected one candidate\");\n+    match &res.candidates[0].target {\n+        Target::Local(binding_ref) => binding_ref.clone(),\n+        other => panic!(\"expected Local target, got {other:?}\"),\n+    }\n+}\n+\n /// Convention-fallback config (no manifest): edition 2015, conventional roots.\n fn convention(fs: &BTreeMap<String, ParsedFile>) -> RustCrateConfig {\n     RustCrateConfig::from_convention(fs)\n@@ -344,6 +360,38 @@\n }\n \n #[test]\n+fn test_local_param_ordinals_preserve_source_order() {\n+    let src = \"fn host(a: i32, b: i32){ let _z = (a, b); }\\n\";\n+    let fs = files(&[(\"src/lib.rs\", src)]);\n+    let g = populate_rust(&fs, &convention(&fs), None);\n+\n+    let a = resolve_bare_at(\n+        &g,\n+        &fs,\n+        2015,\n+        \"src/lib.rs\",\n+        byte_of(src, \"(a, b\"),\n+        \"a\",\n+        NS_VALUE,\n+    );\n+    let b = resolve_bare_at(\n+        &g,\n+        &fs,\n+        2015,\n+        \"src/lib.rs\",\n+        byte_of(src, \"(a, b\"),\n+        \"b\",\n+        NS_VALUE,\n+    );\n+\n+    let a_ref = resolved_local_ref(&a);\n+    let b_ref = resolved_local_ref(&b);\n+    assert_eq!(a_ref.scope, b_ref.scope, \"params share the callable rib\");\n+    assert_eq!(a_ref.ordinal, 0, \"first param keeps parent ordinal\");\n+    assert_eq!(b_ref.ordinal, 1, \"second param must not restart at zero\");\n+}\n+\n+#[test]\n fn test_local_closure_arg_shadows_free_fn() {\n     let src = \"pub fn f(){}\\nfn host(){ let c = |f| { let _z = f; }; }\\n\";\n     let (res, _) = single_file_resolve(src, 2015, \"_z = f\", \"f\", NS_VALUE);\n\nhook: Stop\nhook: Stop Completed\ntokens used\n155,413\n"
+  },
+  "cli_result": {
+    "subtype": "success",
+    "is_error": false,
+    "num_turns": null,
+    "usage": {
+      "tokens_used": 155413
+    },
+    "total_cost_usd": null,
+    "result": "STATUS: DONE\n\nImplemented the inertness fix and amended `f89dd5c` to new SHA `17aa46cd5ed484092b642dfd52a692bb97460233`.\n\nWhat changed:\n- Restored function params to one ordered `add_locals` pass, so `BindingRef.ordinal` stays `0,1,2,...`.\n- Kept `local_facts` attached by `(file, def_byte)` per binding.\n- Verified other let/pattern call sites were still single ordered passes; no extra ordinal fix needed there.\n- Added regressions for param ordinal preservation and duplicate same-rib lookup returning `None`.\n\nFiles changed by this fix:\n- `src/name_resolution/rust_populator/walk/items.rs`\n- `src/name_resolution/rust_populator/walk/locals.rs`\n- `src/name_resolution/binding_lookup.rs`\n- `tests/name_resolution/rust_populate_test.rs`\n\nVerification:\n- Pre-fix ordinal regression failed as expected: second param resolved with ordinal `0`, expected `1`.\n- `cargo test --lib`: 273 passed / 0 failed.\n- `cargo test --test name_resolution`: 92 passed / 0 failed.\n- Full `cargo test`: 2,237 passed / 0 failed / 1 ignored.\n- `cargo fmt` and `cargo fmt --check`: passed.\n- `cargo clippy --all-targets`: exited 0; existing warnings remain outside touched files, none in touched files.\n- `cargo build`: passed.\n- `cargo build --release`: passed.\n- `cd eval && uv run tier-a --matrix-only --allow-stale-sut`: passed, 0 regressions.\n- `git diff --check`: clean.\n- Working tree: clean.\n\nSelf-review:\n- Recall safety preserved: duplicate same-rib locals return `None`, not an arbitrary binding.\n- Inertness restored: params now use the same full-slice ordinal enumeration shape as parent `48f15d9`; let/pattern sites already retained that shape.\n- No file split. No untracked eval/snapshot artifacts touched.\n- Did not run `cargo build --features mcp`; this fix does not touch build/cache-related code.",
+    "session_id": null,
+    "duration_ms": 642281
+  },
+  "replay_preface": "Replay note: you are working in /private/tmp/dbg-g5d2-ws/DBG-03 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged."
+}

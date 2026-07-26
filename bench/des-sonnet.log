@@ -1,0 +1,33 @@
+[bench] running 4 task(s): ['DES-02', 'DES-03', 'DES-04', 'DES-05']
+
+[bench] === DES-02 === ws=/private/tmp/des-sonnet-ws/DES-02 dry_run=False model=claude-sonnet-5
+[bench] git clone --local /Users/wesleyjinks/code/slicing /private/tmp/des-sonnet-ws/DES-02
+[bench] git -C /private/tmp/des-sonnet-ws/DES-02 checkout bench/DES-02-pre
+[bench] git -C /private/tmp/des-sonnet-ws/DES-02 remote remove origin
+[bench] evidence: git diff --quiet
+[bench] transcript: /Users/wesleyjinks/.claude/projects/-private-tmp-des-sonnet-ws-DES-02/7a08a382-6bca-4f35-8ba5-16f80958719d.jsonl -> bench/out-des-sonnet/DES-02/transcript.jsonl
+[bench] DES-02: dry_run=False tests_passed_guess='pass' cost=$3.763423799999999 out=bench/out-des-sonnet/DES-02
+
+[bench] === DES-03 === ws=/private/tmp/des-sonnet-ws/DES-03 dry_run=False model=claude-sonnet-5
+[bench] git clone --local /Users/wesleyjinks/code/slicing /private/tmp/des-sonnet-ws/DES-03
+[bench] git -C /private/tmp/des-sonnet-ws/DES-03 checkout bench/DES-03-pre
+[bench] git -C /private/tmp/des-sonnet-ws/DES-03 remote remove origin
+[bench] evidence: git diff --quiet
+[bench] transcript: /Users/wesleyjinks/.claude/projects/-private-tmp-des-sonnet-ws-DES-03/25edf3c2-8d42-4ef7-8fab-c6924f919e9b.jsonl -> bench/out-des-sonnet/DES-03/transcript.jsonl
+[bench] DES-03: dry_run=False tests_passed_guess='pass' cost=$3.2820176999999995 out=bench/out-des-sonnet/DES-03
+
+[bench] === DES-04 === ws=/private/tmp/des-sonnet-ws/DES-04 dry_run=False model=claude-sonnet-5
+[bench] git clone --local /Users/wesleyjinks/code/slicing /private/tmp/des-sonnet-ws/DES-04
+[bench] git -C /private/tmp/des-sonnet-ws/DES-04 checkout bench/DES-04-pre
+[bench] git -C /private/tmp/des-sonnet-ws/DES-04 remote remove origin
+[bench] evidence: git diff --quiet
+[bench] transcript: /Users/wesleyjinks/.claude/projects/-private-tmp-des-sonnet-ws-DES-04/79c40ca5-035f-471f-8969-a18356f53bc9.jsonl -> bench/out-des-sonnet/DES-04/transcript.jsonl
+[bench] DES-04: dry_run=False tests_passed_guess='fail' cost=$5.895501000000001 out=bench/out-des-sonnet/DES-04
+
+[bench] === DES-05 === ws=/private/tmp/des-sonnet-ws/DES-05 dry_run=False model=claude-sonnet-5
+[bench] git clone --local /Users/wesleyjinks/code/slicing /private/tmp/des-sonnet-ws/DES-05
+[bench] git -C /private/tmp/des-sonnet-ws/DES-05 checkout bench/DES-05-pre
+[bench] git -C /private/tmp/des-sonnet-ws/DES-05 remote remove origin
+[bench] evidence: git diff --quiet
+[bench] transcript: /Users/wesleyjinks/.claude/projects/-private-tmp-des-sonnet-ws-DES-05/919cc344-5b0d-4715-af53-5290678adc91.jsonl -> bench/out-des-sonnet/DES-05/transcript.jsonl
+[bench] DES-05: dry_run=False tests_passed_guess='pass' cost=$4.4570691 out=bench/out-des-sonnet/DES-05

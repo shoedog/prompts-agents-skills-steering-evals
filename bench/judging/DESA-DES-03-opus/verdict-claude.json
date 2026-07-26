@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": true,
+  "load_bearing_caveats_matched": true,
+  "scope_calibrated": true,
+  "would_have_prevented_wasted_work": true,
+  "probe_answer": "The memo correctly recommends Option B (import-qualified narrowing) as the sole shippable rung, matching the vindicated bf58508/5dde32b/54dbabc R4c import-member resolution. It explicitly rejects the same-directory/same-package Exact tier as unsound for Python ('co-location \u2260 target'), which is exactly the settled rejection of naive Go-style same-dir preference. It carries the load-bearing caveats: path-suffix over stem matching (proven via the pydantic.fields vs pydantic/v1/fields.py collision), lang-gating to Py/JS/TS, fail-open on 0/>1 matches, and measured zero-collision soundness before claiming the buy. Scope is calibrated \u2014 corpus-dependent sizing (pydantic-dominant, fastapi small), explicit deferral of full scope-graph resolution, honest acknowledgment that the exact converted-edge number awaits implementation rather than overclaiming the 25k upper bound.",
+  "rationale": "Memo's recommendation, caveats, and scope all align tightly with the settled outcome: ship the import-qualified rung (Option B), reject same-dir Exact as unsound, defer full cross-module resolution to slice 4. No material gaps that would have caused wasted engineering effort."
+ },
+ "cost_usd": 0.11030730000000001
+}

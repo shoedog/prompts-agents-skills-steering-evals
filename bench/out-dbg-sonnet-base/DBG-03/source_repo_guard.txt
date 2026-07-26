@@ -1,0 +1,12 @@
+# source_repo: /Users/wesleyjinks/code/slicing
+# before: git -C <source_repo> status --porcelain
+?? .superpowers/
+?? eval/snapshots/prism-fb81481dafa7.json
+
+# before_returncode: 0
+
+# after: git -C <source_repo> status --porcelain
+?? .superpowers/
+?? eval/snapshots/prism-fb81481dafa7.json
+
+# after_returncode: 0

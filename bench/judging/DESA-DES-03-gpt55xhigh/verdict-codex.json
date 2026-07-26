@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": true,
+  "load_bearing_caveats_matched": true,
+  "scope_calibrated": true,
+  "would_have_prevented_wasted_work": true,
+  "probe_answer": "The memo\u2019s main recommendation is the vindicated shape: add an import-bound bare-call rung after local same-file resolution and before repo-wide FreeMulti, Exact only when the imported module resolves to one matching candidate, and explicitly reject same-directory Python/JS Exact as unsound. It also carries the key guardrails: fail open on unresolved/re-export/shadowing uncertainty, keep Go unchanged, and treat same-dir as telemetry. The one slight mismatch is that it talks about external imports as an external/drop cleanup, while the oracle emphasizes fail-open on miss/external, but this does not undermine the core shipped design.",
+  "rationale": "This would have steered implementation toward the landed B/R4c design and away from the naive same-directory preference. Its sizing is appropriately conservative relative to the 25k upper bound and calls out that same-file is already handled, same-dir buy is modest and unsound, and import-bound wins are the real slice. The caveats are close enough to the settled hardening record, including one-candidate Exact, pre-R5 placement, relative import handling, and shadowing/duplicate guards."
+ },
+ "tokens_used": 18020
+}

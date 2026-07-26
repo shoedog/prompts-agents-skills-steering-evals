@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms fix the root cause by collecting parameters and doing one ordered binding pass, then attaching per-param facts by def_byte. Both add an ordinal regression that would fail on the buggy per-param add_locals implementation. Both appear inert for other binding sites; let/pattern callers remain single ordered passes.",
+  "rationale": "Arm A is functionally correct: it adds an Option<LocalFact> path so params can attach facts separately, then binds all params in one add_locals call. Its ordinal test would catch the collision, and it adds the required ambiguity-to-None test. Arm B does the same repair but with a cleaner binding-only helper that preserves the existing add_locals API for ordinary call sites. Its tests are stronger: the ordinal pin lives in the name_resolution integration area and the duplicate-local lookup test includes a positive non-vacuity assertion before checking ambiguity. That makes B materially better, though A is also acceptable."
+ },
+ "tokens_used": 31344
+}

@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": false,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Yes for Arm A: the no-rich path starts from snapshot_frames(snap, None), folds no rich frames, sorts by seq, then cursor-filters once, so the golden node projection remains byte-identical. Folded tool calls are emitted once per id at the latest applied seq, so base/update events are not duplicated. Arm B also preserves the basic golden path, but it mishandles sparse content clearing, which is a correctness gap in the folded toolcall projection.",
+  "rationale": "Both arms implement the consistent read, replace both reattach sites, rederive the sentinel from merged frames, and add the required interleaved rich golden. Arm A is materially better because it correctly preserves sparse patch semantics for ToolCallUpdate content: Some(empty) replaces the field and None leaves it unchanged, including orphan updates. Arm B only applies content when Some(content) is present and cannot represent clearing content if the event model uses Option<ContentSummary> as the patch value, so it fails the specified 'Some replaces, incl. Some(empty)' behavior. Arm A also adds stronger coverage for latest Plan, orphan update, and merged cursor filtering. Arm A's downside is scope discipline: it edits reattach.rs only to remove now-obsolete dead_code allows, despite the '"
+ },
+ "tokens_used": 26438
+}

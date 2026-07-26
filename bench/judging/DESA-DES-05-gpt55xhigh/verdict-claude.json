@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": false,
+  "load_bearing_caveats_matched": false,
+  "scope_calibrated": true,
+  "would_have_prevented_wasted_work": false,
+  "probe_answer": "The memo correctly verifies the Python-only double-capture mechanism with precise file:line citations, correctly maps the resolver/CPG blast radius, and correctly hedges on JS/TS (recommending a canary rather than assuming a fix is needed there) \u2014 matching the settled outcome's Python-only scoping and JS/TS caution. However, its core architectural recommendation is inverted: it proposes making the inner `function_definition` canonical and dropping the `decorated_definition` wrapper, while the shipped fix (#132) did the opposite \u2014 wrapper-canonical, dropping the inner. The memo even flags in its own Risks section that dropping the wrapper loses decorator-line coverage, which is plausibly exactly why the team chose wrapper-canonical instead \u2014 meaning following this memo as written would likely have required a reversal once span/decorator-coverage issues surfaced.",
+  "rationale": "Scope (Python-only, extraction-level canonicalization, defer decorator semantics/JS-TS unless canary-proven) is well-calibrated and matches the shipped slice's shape and size. But the single most decisive design choice \u2014 which node becomes the canonical FunctionId \u2014 is the opposite of what was vindicated, so the memo would not have prevented rework; a team implementing it would likely have hit the decorator-span/coverage problem the memo itself anticipated and then had to flip to wrapper-canonical, matching the real commit history (inventory keeps decorated wrapper, unwrap_decorated used only for field reads)."
+ },
+ "cost_usd": 0.22980450000000002
+}

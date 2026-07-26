@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms make the watchdog select arm active only when watchdog config exists and use a Pending future plus no spawned task when disabled. Both also use Task-4 activity tracking, so unmodeled updates can keep an active turn alive. Arm B is stronger because its tests actually run active and unmodeled turns for longer than the idle timeout, which proves the watchdog is not firing on live activity; Arm A's active/unmodeled test total duration is under the 100ms idle threshold, so it would pass even if activity did not refresh the idle deadline.",
+  "rationale": "Both implementations follow the key binding points: spawn only when configured, use tokio Instant::from_std, undo the last-activity +1 sentinel with saturating_sub(1), discard the watchdog cancel inner outcome and return Err(()) with timed_out_local, drop the watchdog completion sender on driver exit, and map watchdog Err(()) to AgentTimedOut. Arm B's implementation is at least as correct and its coverage materially better: it explicitly exercises modeled and unmodeled streams beyond idle_timeout, while Arm A's three 20ms delays keep the whole turn below idle_timeout and do not validate the requirement that ongoing activity prevents timeout. That is a real requirement-coverage gap a reviewer would ask Arm A to fix. Arm B adds comments and a helper, but this remains scoped to the requested "
+ },
+ "tokens_used": 24793
+}

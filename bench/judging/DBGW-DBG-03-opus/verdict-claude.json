@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Both arms remove the collision at the root via a single ordered pass: collect all param (name, def_byte, fact) tuples first, attach each fact by def_byte, then bind ALL names in one enumerate-based loop so ordinal=index (0,1,2,...) matches parent 48f15d9. Both add the required ordinal-preservation test (params get distinct ordinals 0/1, not both 0) and the same-rib duplicate-local ambiguity test (lookup returns None). Both fixes are inert for the core bug. Difference in blast radius: Arm A introduces a new add_local_bindings helper and leaves add_locals's signature and all 5 other call sites (let/closure/for/match/if-while) completely untouched. Arm B changes add_locals's fact parameter to Option<LocalFact>, forcing edits to those same 5 unrelated, already-correct call sites just to keep them compiling. Both remain functionally inert, but B's change has a larger, unnecessary footprint.",
+  "rationale": "Both fixes are functionally identical and correct: collect param facts by def_byte, then bind all names in ONE ordered pass so ordinals stay 0,1,2,.... Both add an ordinal-preservation test and a same-rib ambiguity test; coverage is equivalent (A also asserts a.scope==b.scope; B also filters by NS_VALUE \u2014 neither is materially stronger). The deciding factor is blast radius: Arm A adds a new add_local_bindings helper, leaving add_locals's signature and all 5 unrelated call sites (let/closure/for/match/if-while) untouched. Arm B instead changes add_locals's fact param to Option<LocalFact>, forcing edits to those same 5 already-correct sites purely to keep them compiling. Both remain inert and correct, but Arm A's fix is more surgical and lower-risk, better matching the task's explicit scope-discipline instruction."
+ },
+ "cost_usd": 0.4327392
+}

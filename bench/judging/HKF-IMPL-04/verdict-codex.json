@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": false,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Arm A tests would fail on pre-change code: the parse test cannot access WorkflowNodeToml.retry, and the graph mapping test would fail because WorkflowNode.retry stayed None. Strongest: workflow_node_retry_maps_into_graph, because it drives RegistryConfig::load_workflows and asserts the real WorkflowGraph field. Weakest: workflow_node_retry_parses, because it only proves TOML deserialization. A also adds useful edge/negative coverage for absent retry defaulting to None end-to-end and missing max_attempts failing parse. Arm B tests would also fail on pre-change code for the same reasons, and its strongest/weakest tests are the same: maps_into_graph is strongest, parses is weakest. B asserts backoff_cap_ms defaults to None, but it lacks Arm A's absent-default and missing-required-field negative coverage.",
+  "rationale": "WRONG: Arm B violates the task scope by editing crates/bridge-workflow/src/graph.rs even though T3 is config-only and the brief explicitly says to implement only this task. The code change appears behavior-equivalent, but it is still unrelated churn outside the requested file. No concrete functional WRONG finding for Arm A. Both arms implement RetryToml, WorkflowNodeToml.retry, and the load_workflows mapping correctly. Arm A is materially better because it stays within scope and has stronger tests, including the mandatory real graph-build test plus extra default/negative parse coverage. Arm B is functionally complete for T3 but weaker due to out-of-scope modification and narrower test coverage."
+ },
+ "tokens_used": 20348
+}

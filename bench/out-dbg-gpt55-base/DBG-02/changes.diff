@@ -1,0 +1,542 @@
+# git -C /private/tmp/dbg-g5-ws/DBG-02 status --short
+ M src/ast.rs
+ M src/call_graph.rs
+ M src/cpg_cache.rs
+ M src/resolution.rs
+ M src/resolution_disproof.rs
+ M tests/lang/python/typed_receiver_test.rs
+ M tests/lang/typescript/typed_receiver_test.rs
+ M tests/name_resolution/consumer_test.rs
+ M tests/navigation/scoped_calls_test.rs
+?? VERIFICATION.md
+
+# git -C /private/tmp/dbg-g5-ws/DBG-02 diff
+diff --git a/src/ast.rs b/src/ast.rs
+index 1656cef..f3f5963 100644
+--- a/src/ast.rs
++++ b/src/ast.rs
+@@ -417,6 +417,7 @@ impl ParsedFile {
+         func_node: &Node<'_>,
+         receiver: &str,
+         call_line: usize,
++        call_start_byte: usize,
+         recover_var: bool,
+     ) -> Option<(String, crate::resolution::ReceiverRecovery)> {
+         use crate::languages::Language;
+@@ -512,6 +513,7 @@ impl ParsedFile {
+             true,
+             receiver,
+             call_line,
++            call_start_byte,
+             &mut found,
+             &mut bindings,
+             recover_var,
+@@ -4028,6 +4030,7 @@ impl ParsedFile {
+         is_root: bool,
+         receiver: &str,
+         call_line: usize,
++        call_start_byte: usize,
+         found: &mut Option<(String, crate::resolution::ReceiverRecovery)>,
+         bindings: &mut usize,
+         recover_var: bool,
+@@ -4035,12 +4038,24 @@ impl ParsedFile {
+         use crate::languages::Language;
+         use crate::resolution::ReceiverRecovery;
+ 
+-        if node.start_position().row + 1 > call_line {
++        if node.start_position().row + 1 > call_line || node.start_byte() >= call_start_byte {
+             return;
+         }
+         if !is_root && self.language.function_node_types().contains(&node.kind()) {
+             return;
+         }
++        if !is_root
++            && matches!(
++                self.language,
++                Language::Python | Language::JavaScript | Language::TypeScript | Language::Tsx
++            )
++            && matches!(
++                node.kind(),
++                "class_definition" | "class_declaration" | "class"
++            )
++        {
++            return;
++        }
+ 
+         match (self.language, node.kind()) {
+             (Language::Rust, "let_declaration") => {
+@@ -4204,6 +4219,7 @@ impl ParsedFile {
+                 false,
+                 receiver,
+                 call_line,
++                call_start_byte,
+                 found,
+                 bindings,
+                 recover_var,
+diff --git a/src/call_graph.rs b/src/call_graph.rs
+index 05faf2d..17d2fdf 100644
+--- a/src/call_graph.rs
++++ b/src/call_graph.rs
+@@ -68,6 +68,10 @@ pub struct CallSite {
+     /// derived from the same scan as receiver_type.
+     #[serde(default)]
+     pub receiver_recovery: Option<crate::resolution::ReceiverRecovery>,
++    /// True when receiver recovery found a local receiver binding, even if the
++    /// recovered type was skipped as imported/wildcard-poisoned.
++    #[serde(default)]
++    pub receiver_materialized: bool,
+     /// Number of arguments at the call site. `None` = not captured / unknown
+     /// (the arity-disambiguation filter treats `None` as "keep").
+     /// Excluded from cmp_key — positional data, not part of logical identity.
+@@ -371,6 +375,7 @@ impl CallGraph {
+                         ),
+                         receiver_type: None,
+                         receiver_recovery: None,
++                        receiver_materialized: false,
+                         arg_count: None,
+                         arg_spread: false,
+                         receiver_outcome: None,
+@@ -640,10 +645,12 @@ impl CallGraph {
+                             qualifier: qualifier.as_deref(),
+                             fn_node: func_node,
+                             call_line: line,
++                            call_start_byte: start_byte,
+                             parsed,
+                             recv_var: recv_var.as_deref(),
+                             file_imports: file_imports_ref,
+                         });
++                        let recovered_receiver = recovered.recovered.as_ref();
+                         let site = CallSite {
+                             caller: caller_id.clone(),
+                             callee_name,
+@@ -652,8 +659,9 @@ impl CallGraph {
+                             start_byte,
+                             end_byte,
+                             qualifier,
+-                            receiver_type: recovered.as_ref().map(|r| r.static_type.clone()),
+-                            receiver_recovery: recovered.as_ref().map(|r| r.recovery),
++                            receiver_type: recovered_receiver.map(|r| r.static_type.clone()),
++                            receiver_recovery: recovered_receiver.map(|r| r.recovery),
++                            receiver_materialized: recovered.materialized,
+                             arg_count,
+                             arg_spread,
+                             receiver_outcome: None,
+@@ -737,6 +745,7 @@ impl CallGraph {
+                                 qualifier: None,
+                                 receiver_type: None,
+                                 receiver_recovery: None,
++                                receiver_materialized: false,
+                                 arg_count: None,
+                                 arg_spread: false,
+                                 receiver_outcome: None,
+@@ -771,6 +780,7 @@ impl CallGraph {
+                                 qualifier: None,
+                                 receiver_type: None,
+                                 receiver_recovery: None,
++                                receiver_materialized: false,
+                                 arg_count: None,
+                                 arg_spread: false,
+                                 receiver_outcome: None,
+@@ -858,6 +868,7 @@ impl CallGraph {
+                                     qualifier: None,
+                                     receiver_type: None,
+                                     receiver_recovery: None,
++                                    receiver_materialized: false,
+                                     arg_count: None,
+                                     arg_spread: false,
+                                     receiver_outcome: None,
+@@ -955,6 +966,7 @@ impl CallGraph {
+                                         qualifier: None,
+                                         receiver_type: None,
+                                         receiver_recovery: None,
++                                        receiver_materialized: false,
+                                         arg_count: None,
+                                         arg_spread: false,
+                                         receiver_outcome: None,
+@@ -982,6 +994,7 @@ impl CallGraph {
+                                             qualifier: None,
+                                             receiver_type: None,
+                                             receiver_recovery: None,
++                                            receiver_materialized: false,
+                                             arg_count: None,
+                                             arg_spread: false,
+                                             receiver_outcome: None,
+@@ -1615,10 +1628,12 @@ impl CallGraph {
+                         qualifier: qualifier.as_deref(),
+                         fn_node: func_node,
+                         call_line: line,
++                        call_start_byte: start_byte,
+                         parsed,
+                         recv_var: recv_var.as_deref(),
+                         file_imports: file_imports_ref,
+                     });
++                    let recovered_receiver = recovered.recovered.as_ref();
+                     let site = CallSite {
+                         caller: caller_id.clone(),
+                         callee_name: callee_name.clone(),
+@@ -1627,8 +1642,9 @@ impl CallGraph {
+                         start_byte,
+                         end_byte,
+                         qualifier,
+-                        receiver_type: recovered.as_ref().map(|r| r.static_type.clone()),
+-                        receiver_recovery: recovered.as_ref().map(|r| r.recovery),
++                        receiver_type: recovered_receiver.map(|r| r.static_type.clone()),
++                        receiver_recovery: recovered_receiver.map(|r| r.recovery),
++                        receiver_materialized: recovered.materialized,
+                         arg_count,
+                         arg_spread,
+                         receiver_outcome: None,
+diff --git a/src/cpg_cache.rs b/src/cpg_cache.rs
+index 6effcc0..0c78776 100644
+--- a/src/cpg_cache.rs
++++ b/src/cpg_cache.rs
+@@ -66,7 +66,8 @@ use std::path::{Path, PathBuf};
+ /// - v22: method_class_span_ambiguous for fail-open line-id collisions.
+ /// - v23: wrapper-canonical decorated extraction.
+ /// - v24: Python/JS/TS typed-receiver recovery behavior.
+-const CACHE_VERSION: u32 = 24; // 24: Python/JS/TS typed-receiver recovery behavior.
++/// - v25: CallSite.receiver_materialized for poisoned receiver suppression.
++const CACHE_VERSION: u32 = 25; // 25: CallSite.receiver_materialized.
+ 
+ pub const SKIP_POLICY_VERSION: u32 = 1;
+ 
+@@ -571,9 +572,9 @@ mod tests {
+     }
+ 
+     #[test]
+-    fn cache_version_is_24_for_python_js_typed_receiver_recovery() {
+-        // v24: Python/JS/TS typed-receiver recovery changes resolution behavior.
+-        assert_eq!(super::CACHE_VERSION, 24);
++    fn cache_version_is_25_for_receiver_materialized_callsite_field() {
++        // v25: CallSite.receiver_materialized changes serialized CallGraph shape.
++        assert_eq!(super::CACHE_VERSION, 25);
+     }
+ 
+     #[test]
+diff --git a/src/resolution.rs b/src/resolution.rs
+index 5f98f16..85bcd88 100644
+--- a/src/resolution.rs
++++ b/src/resolution.rs
+@@ -234,6 +234,37 @@ pub struct RecoveredReceiver {
+     pub recovery: ReceiverRecovery,
+ }
+ 
++/// Receiver classification keeps materialization separate from successful type
++/// recovery so poisoned local receiver bindings can still pre-empt R3/R3b.
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub struct ReceiverClassification {
++    pub recovered: Option<RecoveredReceiver>,
++    pub materialized: bool,
++}
++
++impl ReceiverClassification {
++    fn none() -> Self {
++        Self {
++            recovered: None,
++            materialized: false,
++        }
++    }
++
++    fn materialized_none() -> Self {
++        Self {
++            recovered: None,
++            materialized: true,
++        }
++    }
++
++    fn recovered(recovered: RecoveredReceiver) -> Self {
++        Self {
++            recovered: Some(recovered),
++            materialized: true,
++        }
++    }
++}
++
+ /// Inputs a `ReceiverClassifier` needs to recover a receiver's static type. Borrows
+ /// from the ParsedFile/tree of the call's enclosing function. Carries `recv_var` +
+ /// `file_imports` because the legacy gate tests `is_recv`/`is_import`
+@@ -249,6 +280,9 @@ pub struct ReceiverCtx<'a> {
+     pub fn_node: tree_sitter::Node<'a>,
+     /// 1-indexed call line.
+     pub call_line: usize,
++    /// Start byte of the call expression. Used to reject same-line bindings that
++    /// occur after the call.
++    pub call_start_byte: usize,
+     /// For node_text + the legacy `receiver_type_in_fn` scan.
+     pub parsed: &'a crate::ast::ParsedFile,
+     /// Go receiver variable of the enclosing method (legacy gate: `is_recv`).
+@@ -260,7 +294,7 @@ pub struct ReceiverCtx<'a> {
+ /// Swappable receiver-recovery strategy (strangler seam, spec §2). `Sync` because
+ /// the CPG build extracts call sites with rayon (`call_graph.rs` par_iter).
+ pub trait ReceiverClassifier: Sync {
+-    fn classify(&self, ctx: ReceiverCtx<'_>) -> Option<RecoveredReceiver>;
++    fn classify(&self, ctx: ReceiverCtx<'_>) -> ReceiverClassification;
+ }
+ 
+ /// Receiver-recovery mode (spec §13.3). `Expanded` (default) turns the implemented
+@@ -315,7 +349,7 @@ impl ReceiverRecoveryConfig {
+ /// Runs the qualifier/keyword/recv-var/import gate, then the typed-param /
+ /// constructor-local scan (and optionally `var` declarations when `recover_var`
+ /// is true), peeled + owner-keyed.
+-fn recover_simple_ident(ctx: &ReceiverCtx<'_>, recover_var: bool) -> Option<RecoveredReceiver> {
++fn recover_simple_ident(ctx: &ReceiverCtx<'_>, recover_var: bool) -> ReceiverClassification {
+     use crate::languages::Language;
+     if !matches!(
+         ctx.parsed.language,
+@@ -326,30 +360,40 @@ fn recover_simple_ident(ctx: &ReceiverCtx<'_>, recover_var: bool) -> Option<Reco
+             | Language::TypeScript
+             | Language::Tsx
+     ) {
+-        return None;
++        return ReceiverClassification::none();
+     }
+-    let q = ctx.qualifier?;
++    let Some(q) = ctx.qualifier else {
++        return ReceiverClassification::none();
++    };
+     let simple = !q.is_empty() && q.chars().all(|c| c.is_alphanumeric() || c == '_');
+     let is_kw = matches!(q, "self" | "this" | "cls");
+     let is_recv = ctx.recv_var == Some(q);
+     let is_import = ctx.file_imports.map(|m| m.contains_key(q)).unwrap_or(false);
+-    if !(simple && !is_kw && !is_recv && !is_import) {
+-        return None;
+-    }
+-    let (ty, how) = ctx
+-        .parsed
+-        .receiver_type_in_fn(&ctx.fn_node, q, ctx.call_line, recover_var)?;
+-    let static_type = owner_key(&peel_type(&ty));
+-    if matches!(
++    let py_js_ts = matches!(
+         ctx.parsed.language,
+         Language::Python | Language::JavaScript | Language::TypeScript | Language::Tsx
+-    ) && ctx
+-        .file_imports
+-        .is_some_and(|m| m.contains_key(&static_type) || m.contains_key("*"))
++    );
++    if !(simple && !is_kw && !is_recv) || (is_import && !py_js_ts) {
++        return ReceiverClassification::none();
++    }
++    let Some((ty, how)) = ctx.parsed.receiver_type_in_fn(
++        &ctx.fn_node,
++        q,
++        ctx.call_line,
++        ctx.call_start_byte,
++        recover_var,
++    ) else {
++        return ReceiverClassification::none();
++    };
++    let static_type = owner_key(&peel_type(&ty));
++    if py_js_ts
++        && ctx
++            .file_imports
++            .is_some_and(|m| m.contains_key(&static_type) || m.contains_key("*"))
+     {
+-        return None;
++        return ReceiverClassification::materialized_none();
+     }
+-    Some(RecoveredReceiver {
++    ReceiverClassification::recovered(RecoveredReceiver {
+         static_type,
+         recovery: how,
+     })
+@@ -360,14 +404,14 @@ fn recover_simple_ident(ctx: &ReceiverCtx<'_>, recover_var: bool) -> Option<Reco
+ /// the typed-param / constructor-local scan, peeled + owner-keyed).
+ /// Byte-identical to PR-1: `recover_var = false`.
+ pub fn legacy_recover(ctx: &ReceiverCtx<'_>) -> Option<RecoveredReceiver> {
+-    recover_simple_ident(ctx, false)
++    recover_simple_ident(ctx, false).recovered
+ }
+ 
+ /// `legacy` — PR-1 behavior, no new forms.
+ pub struct LegacyClassifier;
+ impl ReceiverClassifier for LegacyClassifier {
+-    fn classify(&self, ctx: ReceiverCtx<'_>) -> Option<RecoveredReceiver> {
+-        legacy_recover(&ctx)
++    fn classify(&self, ctx: ReceiverCtx<'_>) -> ReceiverClassification {
++        recover_simple_ident(&ctx, false)
+     }
+ }
+ 
+@@ -377,16 +421,17 @@ pub struct ExpandedClassifier {
+     pub var_local: bool,
+ }
+ impl ReceiverClassifier for ExpandedClassifier {
+-    fn classify(&self, ctx: ReceiverCtx<'_>) -> Option<RecoveredReceiver> {
+-        if let Some(r) = recover_simple_ident(&ctx, self.var_local) {
+-            return Some(r);
++    fn classify(&self, ctx: ReceiverCtx<'_>) -> ReceiverClassification {
++        let recovered = recover_simple_ident(&ctx, self.var_local);
++        if recovered.materialized || recovered.recovered.is_some() {
++            return recovered;
+         }
+         if self.type_assertion {
+             if let Some(r) = recover_type_assertion(&ctx) {
+-                return Some(r);
++                return ReceiverClassification::recovered(r);
+             }
+         }
+-        None
++        ReceiverClassification::none()
+     }
+ }
+ 
+@@ -1015,7 +1060,7 @@ impl CallGraph {
+                             | crate::languages::Language::TypeScript
+                             | crate::languages::Language::Tsx
+                     )
+-                ) && site.receiver_type.is_some();
++                ) && site.receiver_materialized;
+                 let recv_materialized = rust_recv_materialized || recovered_recv_materialized;
+ 
+                 // R3: imported-module qualifier. If an import matches, the
+@@ -2138,6 +2183,7 @@ mod scope_resolution_predicate_tests {
+             qualifier: None,
+             receiver_type: None,
+             receiver_recovery: None,
++            receiver_materialized: false,
+             arg_count: None,
+             arg_spread: false,
+             receiver_outcome: None,
+diff --git a/src/resolution_disproof.rs b/src/resolution_disproof.rs
+index 0724bf3..c100aa2 100644
+--- a/src/resolution_disproof.rs
++++ b/src/resolution_disproof.rs
+@@ -95,6 +95,7 @@ mod tests {
+             qualifier: None,
+             receiver_type: None,
+             receiver_recovery: None,
++            receiver_materialized: false,
+             arg_count: None,
+             arg_spread: false,
+             receiver_outcome: None,
+diff --git a/tests/lang/python/typed_receiver_test.rs b/tests/lang/python/typed_receiver_test.rs
+index ec612c4..ff162d1 100644
+--- a/tests/lang/python/typed_receiver_test.rs
++++ b/tests/lang/python/typed_receiver_test.rs
+@@ -115,3 +115,49 @@ fn test_python_r3b_collision_and_local_miss_fallthrough() {
+     assert_eq!(annotated_out.drop, plain_out.drop);
+     assert_ne!(annotated_out.drop, Some(DropReason::ExternalReceiver));
+ }
++
++#[test]
++fn test_python_import_poisoned_typed_param_suppresses_qualifier_owner() {
++    let cg = graph(&[(
++        "svc.py",
++        "from ext import Foo\nclass x:\n    def m(self):\n        pass\ndef run(x: Foo):\n    x.m()\n",
++    )]);
++    let s = site(&cg, "run", "m");
++    assert_eq!(s.receiver_type, None);
++
++    let resolved = cg.resolve_call_site(&s);
++    assert!(resolved.iter().all(|candidate| {
++        !(candidate.kind == ResolutionKind::QualifierOwner
++            && candidate.confidence == ResolutionConfidence::Exact)
++    }));
++}
++
++#[test]
++fn test_python_nested_class_body_assignment_does_not_recover_outer_local() {
++    let cg = graph(&[(
++        "svc.py",
++        "class Foo:\n    def m(self):\n        pass\ndef run():\n    class C:\n        x = Foo()\n    x.m()\n",
++    )]);
++    let s = site(&cg, "run", "m");
++
++    assert_eq!(s.receiver_type, None);
++    assert!(cg.resolve_call_site(&s).iter().all(|candidate| {
++        candidate.kind != ResolutionKind::ConstructorLocal
++            && candidate.kind != ResolutionKind::TypedParam
++    }));
++}
++
++#[test]
++fn test_python_same_line_after_call_assignment_does_not_recover() {
++    let cg = graph(&[(
++        "svc.py",
++        "class Foo:\n    def m(self):\n        pass\ndef run():\n    x.m(); x = Foo()\n",
++    )]);
++    let s = site(&cg, "run", "m");
++
++    assert_eq!(s.receiver_type, None);
++    assert!(cg.resolve_call_site(&s).iter().all(|candidate| {
++        candidate.kind != ResolutionKind::ConstructorLocal
++            && candidate.kind != ResolutionKind::TypedParam
++    }));
++}
+diff --git a/tests/lang/typescript/typed_receiver_test.rs b/tests/lang/typescript/typed_receiver_test.rs
+index 77b4b71..4ce55cc 100644
+--- a/tests/lang/typescript/typed_receiver_test.rs
++++ b/tests/lang/typescript/typed_receiver_test.rs
+@@ -5,10 +5,19 @@ use prism::resolution::{ReceiverRecovery, ResolutionKind};
+ use std::collections::BTreeMap;
+ 
+ fn graph(src: &str) -> CallGraph {
+-    let files = BTreeMap::from([(
+-        "svc.ts".to_string(),
+-        ParsedFile::parse("svc.ts", src, Language::TypeScript).expect("parse ts"),
+-    )]);
++    graph_files(&[("svc.ts", src)])
++}
++
++fn graph_files(srcs: &[(&str, &str)]) -> CallGraph {
++    let files: BTreeMap<_, _> = srcs
++        .iter()
++        .map(|(path, src)| {
++            (
++                (*path).to_string(),
++                ParsedFile::parse(path, src, Language::TypeScript).expect("parse ts"),
++            )
++        })
++        .collect();
+     CallGraph::build(&files)
+ }
+ 
+@@ -53,3 +62,23 @@ fn test_typescript_bare_factory_call_does_not_recover() {
+     assert_eq!(s.receiver_type, None);
+     assert!(cg.resolve_call_site(&s).is_empty());
+ }
++
++#[test]
++fn test_typescript_import_poisoned_typed_param_suppresses_import_qualified() {
++    let cg = graph_files(&[
++        (
++            "svc.ts",
++            "import api from './api';\nclass Foo { m() {} }\nfunction run(api: Foo) { api.m(); }\n",
++        ),
++        ("api.ts", "export function m() {}\n"),
++    ]);
++    let s = site(&cg, "run", "m");
++    assert_eq!(s.receiver_type.as_deref(), Some("Foo"));
++
++    let resolved = cg.resolve_call_site(&s);
++    assert!(resolved
++        .iter()
++        .all(|candidate| { candidate.kind != ResolutionKind::ImportQualified }));
++    assert_eq!(resolved.len(), 1);
++    assert_eq!(resolved[0].kind, ResolutionKind::TypedParam);
++}
+diff --git a/tests/name_resolution/consumer_test.rs b/tests/name_resolution/consumer_test.rs
+index 7cff2c3..dfc8a6d 100644
+--- a/tests/name_resolution/consumer_test.rs
++++ b/tests/name_resolution/consumer_test.rs
+@@ -103,6 +103,7 @@ fn call_site(file: &str, name: &str, byte: usize) -> CallSite {
+         qualifier: None,
+         receiver_type: None,
+         receiver_recovery: None,
++        receiver_materialized: false,
+         arg_count: None,
+         arg_spread: false,
+         receiver_outcome: None,
+diff --git a/tests/navigation/scoped_calls_test.rs b/tests/navigation/scoped_calls_test.rs
+index eb133c1..0af2749 100644
+--- a/tests/navigation/scoped_calls_test.rs
++++ b/tests/navigation/scoped_calls_test.rs
+@@ -56,6 +56,7 @@ fn resolved_targets(
+                 qualifier: qualifier.map(str::to_string),
+                 receiver_type: None,
+                 receiver_recovery: None,
++                receiver_materialized: false,
+                 arg_count: None,
+                 arg_spread: false,
+                 receiver_outcome: None,
+

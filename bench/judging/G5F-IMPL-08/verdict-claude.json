@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms implement byte-for-byte identical logic in resolution.rs (free-fn guard, owner-prune, fail-open routing, owner_method_key) \u2014 Arm A only adds verbose doc comments. The differentiator is tests. Arm B includes all 8 brief-mandated fixtures; Arm A omits the explicitly required 'mixed-edition keep-all' test entirely (never uses build_rust_complete or flips edition_uniform=false), so Arm A's suite does not exercise that failure mode at all. For the shared tests: the two-crate collision, inherent+trait-demote, and pending-import-alias tests are genuine RED-on-pre-change tests (pre-Task-5 code would yield wrong counts/confidence/drop) and pin non-vacuous pools via explicit collision assertions \u2014 real edge-case coverage, not trivial passes. Strongest test in both arms: pending_import_alias_over_colliding_pool \u2014 it specifically discriminates a correct call-site-rib oracle from a plausible-but-wrong global-search oracle and pins the pool size so it can't go vacuous. Weakest test in both arms: macro_wildcard_shadow_keeps_all \u2014 it asserts only `out.resolved.iter().all(...NameOnly)` with no length/non-emptiness check, so it would pass vacuously if resolution wrongly produced zero candidates. Arm B's unique mixed_edition test is well-constructed (real edition_uniform=false negative case, asserts len==2 and NameOnly) and is the strongest evidence of Arm B's more faithful test-plan coverage.",
+  "rationale": "WRONG: Arm A's test suite is missing the explicitly brief-mandated 'mixed-edition keep-all' fixture (Arm B has scope_graph_mixed_edition_keeps_full_pool_not_drop using build_rust_complete + edition_uniform=false); this is a concrete, named deliverable Arm A did not produce, not a stylistic gap. Implementation code (resolution.rs logic) is functionally identical between arms \u2014 same control flow, same helper functions, same free-fn guard and owner-prune wiring \u2014 differing only in comment verbosity. SMELL (shared, non-differentiating): both arms' macro_wildcard_shadow test lacks a length/non-emptiness assertion, so it could pass vacuously; equally present in both, not a basis for preferring one arm. Net: parity on implementation, Arm B ahead on required test completeness."
+ },
+ "cost_usd": 0.4709805
+}

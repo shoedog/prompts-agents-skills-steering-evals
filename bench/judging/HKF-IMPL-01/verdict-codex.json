@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": false,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Arm A's suite would fail on pre-change code as a suite via watchdog_cancels_a_hung_turn_as_timed_out, which expects AgentTimedOut where the old code would not produce that terminal. Its negative tests assert real behavior, but active/unmodeled and no-config mostly validate behavior that could already pass pre-change. Strongest A test: watchdog_cancels_a_hung_turn_as_timed_out, because it checks the new terminal error and cancel notification. Weakest A test: no_watchdog_config_is_byte_identical, because it is a bounded pending assertion and cannot directly prove no task was spawned.\n\nArm B's tests are stronger overall and would fail on pre-change code through the hung timeout, idle-after-activity timeout, and PFIX-F honored-cancel-after-timeout cases. They cover more edge behavior and assert stream outcomes rather than trivial state. Strongest B test: watchdog_fired_cancel_honored_within_grace_is_still_timed_out, because it directly catches the key forbidden bug of propagating the inner cancel result. Weakest B test: no_watchdog_config_is_byte_identical, because it only checks pending for a short bound and does not release the turn to confirm normal completion.",
+  "rationale": "Arm A is materially better because it follows the binding more closely. It arms the watchdog only when configured, uses a Pending disabled select arm, uses tokio::time::Instant::from_std, computes la_instant with saturating_sub(1), discards the inner cancel result in the watchdog arm, maps that path to AgentTimedOut, and drops the done sender during teardown.\n\nSMELL in Arm A: test coverage misses a direct PFIX-F honored-cancel-after-timeout case and does not positively prove idle timeout after first activity goes silent.\n\nSMELL/scope issue in Arm B: when last_activity_ms == 0, the approved algorithm says the idle deadline is the wall deadline. Arm B changes that to Instant::now() + idle_timeout, adding periodic wakeups and a test for behavior outside the binding. That may be a reasonable l"
+ },
+ "tokens_used": 34863
+}

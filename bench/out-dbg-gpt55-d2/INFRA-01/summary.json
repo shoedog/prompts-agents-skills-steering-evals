@@ -1,0 +1,59 @@
+{
+  "id": "INFRA-01",
+  "ws": "/private/tmp/dbg-g5d2-ws/INFRA-01",
+  "dry_run": false,
+  "model": "claude-fable-5",
+  "replay_preface": "Replay note: you are working in /private/tmp/dbg-g5d2-ws/INFRA-01 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged.",
+  "run_status": "ok",
+  "subtype": "success",
+  "api_error_status": null,
+  "returncode": 0,
+  "session_id": null,
+  "duration_ms": 268662,
+  "num_turns": null,
+  "usage": {
+    "tokens_used": 126351
+  },
+  "total_cost_usd": null,
+  "stop_reason": null,
+  "is_error": false,
+  "result_text": "Done. I added `VERIFICATION.md` at the repo root and updated the regression coverage.\n\nChanged files:\n- [scripts/test-db/select_db_host.sh](/private/tmp/dbg-g5d2-ws/INFRA-01/scripts/test-db/select_db_host.sh:14): renamed awk variables from `load`/`cpus` to `load_avg`/`cpu_count`.\n- [test/mocha/scripts/selectDbHost.test.js](/private/tmp/dbg-g5d2-ws/INFRA-01/test/mocha/scripts/selectDbHost.test.js:25): added a regression test that would fail on the pre-change `awk -v load=...` code, plus an all-hosts-fail fallback edge case.\n- [VERIFICATION.md](/private/tmp/dbg-g5d2-ws/INFRA-01/VERIFICATION.md:1): recorded exact commands, verified behavior, and unverified scope.\n\nVerification totals:\n- `bash -n`: passed\n- `node --check`: passed\n- `git diff --check`: passed\n- manual script regression: 2 script scenarios passed\n- full suite `npm test`: 0 tests run, blocked before Mocha because `cross-env` is missing and `node_modules` is not installed in this clone.",
+  "timed_out": false,
+  "parse_error": null,
+  "terminal_reason": null,
+  "tests_passed_guess": "pass",
+  "evidence_summary": [
+    {
+      "cmd": "bash -n scripts/test-db/select_db_host.sh",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    }
+  ],
+  "scaffold": {
+    "tracked_scaffold_paths": [],
+    "missing_on_disk_after_checkout": [],
+    "has_CLAUDE_md": false,
+    "has_dot_claude_dir": false,
+    "has_AGENTS_md": false,
+    "agents_md_shimmed": false,
+    "global_hooks_present": true,
+    "shim": {
+      "present": false,
+      "sha256_at_write": null,
+      "sha256_after_run": null,
+      "changed": false
+    }
+  },
+  "shim": {
+    "present": false,
+    "changed": false,
+    "sha256_at_write": null,
+    "sha256_after_run": null
+  },
+  "source_repo_touched": false,
+  "transcript_lookup_note": "matched codex rollout by cwd (1 candidate(s))",
+  "transcript_path": "bench/out-dbg-gpt55-d2/INFRA-01/transcript.jsonl"
+}

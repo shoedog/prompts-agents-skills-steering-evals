@@ -1,0 +1,34 @@
+{
+ "type": "object",
+ "additionalProperties": false,
+ "properties": {
+  "root_cause_match": {
+   "type": "boolean"
+  },
+  "fmt_issue_identified": {
+   "type": "boolean"
+  },
+  "fix_attempted": {
+   "type": "boolean"
+  },
+  "fix_shape_match": {
+   "type": "boolean"
+  },
+  "probe_answer": {
+   "type": "string",
+   "maxLength": 1000
+  },
+  "rationale": {
+   "type": "string",
+   "maxLength": 600
+  }
+ },
+ "required": [
+  "root_cause_match",
+  "fmt_issue_identified",
+  "fix_attempted",
+  "fix_shape_match",
+  "probe_answer",
+  "rationale"
+ ]
+}

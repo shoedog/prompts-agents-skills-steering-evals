@@ -1,0 +1,88 @@
+{
+  "harness": {
+    "argv_redacted": [
+      "/Users/wesleyjinks/.local/bin/claude",
+      "-p",
+      "<task_prompt omitted here \u2014 see the task yaml>",
+      "--model",
+      "claude-opus-4-8",
+      "--output-format",
+      "json",
+      "--dangerously-skip-permissions"
+    ],
+    "cwd": "/private/tmp/dbg-opus-ws/DBG-02",
+    "model": "claude-opus-4-8",
+    "timeout_sec": 4500,
+    "started_at": "2026-07-05T05:20:49+00:00",
+    "ended_at": "2026-07-05T05:54:41+00:00",
+    "wall_sec": 2032.139,
+    "timed_out": false,
+    "returncode": 0
+  },
+  "cli_result": {
+    "type": "result",
+    "subtype": "success",
+    "is_error": false,
+    "api_error_status": null,
+    "duration_ms": 2031142,
+    "duration_api_ms": 1498309,
+    "ttft_ms": 10579,
+    "ttft_stream_ms": 1095,
+    "time_to_request_ms": 10,
+    "num_turns": 97,
+    "result": "All verification-gate requirements are satisfied. Final state:\n\n## Verification complete\n\n**Full suites (final, fmt-clean state):**\n- `cargo test` \u2192 **28 binaries, 2492 passed, 0 failed**\n- `cargo test --features mcp` \u2192 **30 binaries, 2585 passed, 0 failed**\n- `cargo fmt --check` \u2192 clean\n- `uv run tier-a --matrix-only --allow-stale-sut` \u2192 **EXIT 0, 40 ok / 2 pre-existing expected_gap / 0 regressions** (Rust 22 ok, Go 11 ok \u2192 byte-identical)\n\n**RED-before/GREEN-after** was proven rigorously by reverting *only* `src/` (`git stash push -- src/`, keeping the new tests): all 5 new behavioral tests FAILED on pre-change code and the positive control stayed `ok`; all pass after restore.\n\n**Added per the gate:** a missing negative case for the wildcard sub-path of the `Materialized` branch (`test_python_wildcard_poisoned_param_suppresses_r3b_owner_collision`) \u2014 distinct trigger (`\"*\"` sentinel) from the named-import case, RED-verified.\n\n**VERIFICATION.md** at repo root documents: exact commands + pass totals, a `## Verified` section (every new code path \u2192 its RED-verified test), a `## Not verified` section (honestly: the JS/TS `class_node_types` entries are defensive symmetry with no independent RED test since JS/TS class fields are `field_definition` nodes the scan arms don't match; full-corpus/LSP Tier-A tiers are human-triggered and not run; end-to-end v24\u2192v25 warm-cache migration not driven), and an out-of-scope-failures section (none \u2014 nothing re-baselined).\n\n**Working tree:** 10 modified source/test files + untracked `VERIFICATION.md`; `eval/` clean. Committing is left to the orchestrator per the task rules.",
+    "stop_reason": "end_turn",
+    "session_id": "2edb6c7c-6477-4c3e-89e7-576f769b2567",
+    "total_cost_usd": 11.6529855,
+    "usage": {
+      "input_tokens": 31852,
+      "cache_creation_input_tokens": 213981,
+      "cache_read_input_tokens": 13496231,
+      "output_tokens": 104232,
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 213981,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "not_available",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 1241,
+          "cache_read_input_tokens": 228259,
+          "cache_creation_input_tokens": 801,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 801
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard"
+    },
+    "modelUsage": {
+      "claude-opus-4-8": {
+        "inputTokens": 31852,
+        "outputTokens": 104232,
+        "cacheReadInputTokens": 13496231,
+        "cacheCreationInputTokens": 213981,
+        "webSearchRequests": 0,
+        "costUSD": 11.6529855,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000
+      }
+    },
+    "permission_denials": [],
+    "terminal_reason": "completed",
+    "fast_mode_state": "off",
+    "uuid": "b2cda2fc-56d7-4d09-98d6-934e2c434e37"
+  },
+  "stdout_tail": null,
+  "stderr_tail": "",
+  "parse_error": null,
+  "replay_preface": "Replay note: you are working in /private/tmp/dbg-opus-ws/DBG-02 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged."
+}

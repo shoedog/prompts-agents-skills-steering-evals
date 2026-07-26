@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms ship byte-identical test suites (7 new tests, verbatim from the plan), so rigor is equal. All assert concrete confidence/kind/file values, and most pin the underlying pool-collision size (e.g. `cg.methods.get(...).len()==2`) so a future fixture/extraction change can't make the assertion vacuous \u2014 pending_import_alias and unresolved_owner_path both guard against a singleton-pool false pass. These fail on pre-Task-5 code: two_crate_owner_collision would stay 2xNameOnly (not single Exact) and inherent_plus_trait would drop (not demote) under the old direct-graph-resolution branch. Strongest: scope_graph_pending_import_alias_over_colliding_pool_keeps_all \u2014 isolates the call-site-rib-directness oracle from a plausible buggy 'chase the import to its definition' oracle, with an explicit collision pin, catching a subtly-wrong (B)-implementation, not just a missing one. Also strong: scope_graph_free_fn_path_not_misrouted_to_colliding_method_pool, which pins the cross-module collision and fails without the free-fn guard. Weakest: scope_graph_macro_wildcard_shadow_keeps_all \u2014 unlike siblings it never pins the colliding-pool size or asserts resolved.len(), only that entries are NameOnly, so it's more vulnerable to going vacuous if the fixture drifts.",
+  "rationale": "Diffs are near-identical (same structure, same 7 tests verbatim) except one predicate: rust_graph_qualified_target_is_free_fn. The brief's literal spec: 'a non-empty id-set all NOT in method_owners.' Arm B implements this exactly (`!ids.is_empty() && ids.iter().all(...)`). Arm A instead uses `!ids.iter().any(|fid| method_owners.contains_key(fid))`, which is also true for an EMPTY id-set (any() over empty is false) \u2014 Arm A's own doc comment acknowledges this and intentionally routes empty-id qualified targets to the drop-capable graph-resolution branch instead of the recall-safe owner-prune/fail-open path both diffs otherwise rely on. Concretely: a T::m() site with a colliding bare pool whose qualified target resolves to an empty id-set (e.g. an unimplemented trait method via UFCS, per Arm A's own comment) gets dropped in Arm A but reaches the owner-prune/fail-open in Arm B \u2014 matching the stated 'never drop a real edge when a bare pool exists' invariant and the plan's literal wording. Untested by either arm's suite, but provable from the code."
+ },
+ "cost_usd": 0.9740618999999998
+}

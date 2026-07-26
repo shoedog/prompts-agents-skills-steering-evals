@@ -1,0 +1,1 @@
+mc-08 archived out of the live taskset 2026-07-25 (dropped from manifest per owner decision, base rate 0.714; full rationale: ../mechanism-claims-v0/PROBE.md Resolution section). Item + witnesses preserved here for provenance.

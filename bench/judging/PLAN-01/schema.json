@@ -1,0 +1,38 @@
+{
+ "type": "object",
+ "additionalProperties": false,
+ "properties": {
+  "verdict_matches_vindicated": {
+   "type": "boolean"
+  },
+  "true_bottleneck_identified": {
+   "type": "boolean"
+  },
+  "premise_challenged": {
+   "type": "boolean"
+  },
+  "buy_estimate_consistent_with_measured": {
+   "type": "boolean"
+  },
+  "would_have_prevented_wasted_work": {
+   "type": "boolean"
+  },
+  "probe_answer": {
+   "type": "string",
+   "maxLength": 1200
+  },
+  "rationale": {
+   "type": "string",
+   "maxLength": 800
+  }
+ },
+ "required": [
+  "verdict_matches_vindicated",
+  "true_bottleneck_identified",
+  "premise_challenged",
+  "buy_estimate_consistent_with_measured",
+  "would_have_prevented_wasted_work",
+  "probe_answer",
+  "rationale"
+ ]
+}

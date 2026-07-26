@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Arm A: the hung-turn test would fail on pre-change code because the stream would stay pending instead of yielding AgentTimedOut; it is the strongest test, and it also checks the cancel target. The active/unmodeled and no-config tests are mostly negative guards and would largely pass pre-change, but they assert real stream behavior and no spurious cancels. Weakest: no_watchdog_config_is_byte_identical, because it proves bounded non-resolution plus normal release, not literal byte identity or task absence. Arm B: the hung-turn test also fails pre-change and is its strongest test, but it only checks that some cancel was observed, not the exact target. The active/unmodeled and no-config tests assert real Done/chunk behavior, but they do not assert no cancel side effects; weakest is watchdog_does_not_trip_active_or_unmodeled_turn for that reason. Both arms miss a direct PFIX-F test where the agent honors watchdog cancel with Done(cancelled) and the driver must still emit AgentTimedOut.",
+  "rationale": "WRONG: none identified in either implementation. Both implement the enabled-only watchdog task, Pending disabled arm, std-to-tokio Instant conversion, PFIX-L last-activity math, teardown via done_tx drop, and AgentTimedOut terminal mapping. SMELL: both test suites miss the honored-cancel-after-timeout edge case. SMELL: Arm B's tests are less rigorous because negative cases do not assert absence of cancels and the hung case does not verify the cancel target. Arm B's extracted helper is cleaner structurally, but Arm A has materially stronger behavioral coverage with otherwise equivalent implementation scope."
+ },
+ "tokens_used": 52093
+}

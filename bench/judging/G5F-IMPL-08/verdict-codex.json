@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A: the main recovery/fail-open/free-fn tests should fail on the pre-change branch, and most assert real behavior with pool-size guards plus concrete target/confidence checks. Strongest test: scope_graph_free_fn_path_not_misrouted_to_colliding_method_pool, because it pins the colliding method bucket and asserts the resolved file is the module free function. Weakest test: scope_graph_macro_wildcard_shadow_keeps_all, because it does not assert a non-empty or >=2 result, so the confidence check could be vacuous if an empty hit were returned. Arm A also misses the required mixed-edition keep-all fixture. Arm B: same core tests should fail on pre-change, and it adds the mixed-edition keep-all case, so coverage is closer to the brief. Strongest test: scope_graph_free_fn_path_not_misrouted_to_colliding_method_pool, for the same concrete misroute assertion; the mixed-edition test is also valuable because it exercises a separate fail-open edge. Weakest test: scope_graph_macro_wildcard_shadow_keeps_all, for the same vacuous all() risk.",
+  "rationale": "Both arms implement the same narrowly scoped resolution integration: free-function guard, owner-method prune via ScopeResolution, and fail-open only through owner_lookup_in_modules. I do not see an implementation difference that makes one code path materially safer. The material difference is test completeness. WRONG: Arm A omits the task-required mixed-edition keep-all fixture, so it is not complete against the stated integration test list. SMELL: both arms' macro wildcard test should assert the retained pool size, not only all confidences. Arm B covers the mixed-edition negative path and stays within the requested files, making it materially better overall."
+ },
+ "tokens_used": 34206
+}

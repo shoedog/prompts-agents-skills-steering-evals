@@ -1,0 +1,88 @@
+{
+  "harness": {
+    "argv_redacted": [
+      "/Users/wesleyjinks/.local/bin/claude",
+      "-p",
+      "<task_prompt omitted here \u2014 see the task yaml>",
+      "--model",
+      "claude-sonnet-5",
+      "--output-format",
+      "json",
+      "--dangerously-skip-permissions"
+    ],
+    "cwd": "/private/tmp/sonnet-hook-ws/IMPL-06",
+    "model": "claude-sonnet-5",
+    "timeout_sec": 4500,
+    "started_at": "2026-07-04T23:47:33+00:00",
+    "ended_at": "2026-07-05T00:01:02+00:00",
+    "wall_sec": 808.106,
+    "timed_out": false,
+    "returncode": 0
+  },
+  "cli_result": {
+    "type": "result",
+    "subtype": "success",
+    "is_error": false,
+    "api_error_status": null,
+    "duration_ms": 806949,
+    "duration_api_ms": 679692,
+    "ttft_ms": 1478,
+    "ttft_stream_ms": 774,
+    "time_to_request_ms": 21,
+    "num_turns": 96,
+    "result": "## Verification gate complete\n\nI ran the full verification gate requested:\n\n**1. Full test suite (not just task-named tests):**\n- `cargo test --workspace` \u2192 **1087 passed, 0 failed**, 12 ignored (pre-existing, credential-gated live-agent tests unrelated to this change).\n- `cargo test -p bridge-a2a-inbound` \u2192 222 passed (unittests) + 47 passed (`workflow_producer.rs`), 0 failed.\n- `cargo fmt --all --check` and `cargo clippy --workspace --all-targets -- -D warnings` \u2192 both clean.\n\n**2. Added missing tests for every new code path** (the initial pass only covered the base+update merge case):\n- `rich_snapshot_folds_orphan_toolcall_update` \u2014 the `had_base == false` branch (no prior `ToolCall`).\n- `rich_snapshot_keeps_latest_plan_only` \u2014 `Plan` complete-replace, previously untested at all.\n- `rich_snapshot_frames_cursor_excludes_covered_rich_frame` \u2014 cursor applied once on the *merged* list (negative/edge case: a cursor sitting exactly at a rich frame's seq must exclude it).\n- `subscribe_terminal_task_includes_rich_toolcall_frame` and `subscribe_working_snapshot_includes_rich_toolcall_frame` \u2014 end-to-end tests through the real `subscribe_to_task` handler for **both** reattach call sites, not just the helper function in isolation. These fail on pre-change code both because it doesn't compile (`FoldedSnapshot`/`rich_snapshot_frames` didn't exist) and logically (the old call sites used `snapshot_frames` on node-only state, which structurally can't see rich events).\n- `subscribe_working_snapshot_includes_rich_toolcall_frame` also incidentally covers the base-only `ToolCall` fold (no update) branch.\n\n**3. `VERIFICATION.md`** written at the repo root with exact commands, pass totals, a `## Verified` list, and a `## Not verified` list (live-agent/credential-gated tests, SQLite-store-specific coverage, live-gate against a real ACP agent, concurrent-writer barrier \u2014 all out of this task's scope).\n\n**4. No out-of-scope failures found** \u2014 the full workspace suite is green; nothing to report.\n\nWork remains uncommitted (`crates/bridge-a2a-inbound/src/{server,reattach}.rs` modified, `VERIFICATION.md` added), per the original task instructions.",
+    "stop_reason": "end_turn",
+    "session_id": "1eb560b2-5658-46ed-9a53-ffe773805dd2",
+    "total_cost_usd": 5.880705000000001,
+    "usage": {
+      "input_tokens": 181,
+      "cache_creation_input_tokens": 184645,
+      "cache_read_input_tokens": 12612190,
+      "output_tokens": 65909,
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 184645,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "not_available",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 1105,
+          "cache_read_input_tokens": 207652,
+          "cache_creation_input_tokens": 194,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 194
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard"
+    },
+    "modelUsage": {
+      "claude-sonnet-5": {
+        "inputTokens": 181,
+        "outputTokens": 65909,
+        "cacheReadInputTokens": 12612190,
+        "cacheCreationInputTokens": 184645,
+        "webSearchRequests": 0,
+        "costUSD": 5.880705000000001,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000
+      }
+    },
+    "permission_denials": [],
+    "terminal_reason": "completed",
+    "fast_mode_state": "off",
+    "uuid": "1884ffbe-d46d-4aee-95ed-e12e96eaf48e"
+  },
+  "stdout_tail": null,
+  "stderr_tail": "",
+  "parse_error": null,
+  "replay_preface": "Replay note: you are working in /private/tmp/sonnet-hook-ws/IMPL-06 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged."
+}

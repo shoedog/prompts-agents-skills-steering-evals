@@ -1,0 +1,52 @@
+=== mc-07 witness run: 2026-07-25T15:39:49Z ===
+item dir : /Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/witnesses/mc-07/../../items/mc-07
+build dir: /private/tmp/claude-501/-Users-wesleyjinks/782c0297-efe4-408f-9b1a-07346a6a6c30/scratchpad/mcv/mc-07
+toolchain: cargo 1.94.0 (85eff7c80 2026-01-15); git version 2.50.1 (Apple Git-155); patch: patch 2.0-12u11-Apple
+
+--- step 1: materialize shim base files ---
+base files:
+./Cargo.toml
+./docs/RESUME-archive.md
+./src/main.rs
+
+--- step 2: git apply --check ---
+exit=0
+--- step 2b: patch -p1 --dry-run (cross-check; offset vs. reconstructed base is expected) ---
+patching file 'src/main.rs'
+No such line 95 in input file, ignoring
+patching file 'docs/RESUME-archive.md'
+exit=0
+--- step 2c: apply for real (git apply) ---
+exit=0
+
+--- step 3: cargo build (compile check of the patched tree) ---
+   Compiling backfill v0.1.0 (/private/tmp/claude-501/-Users-wesleyjinks/782c0297-efe4-408f-9b1a-07346a6a6c30/scratchpad/mcv/mc-07)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+exit=0
+
+--- step 3b: unintended-defect sweep: cargo clippy (advisory, not -D) ---
+exit=0
+
+--- step 4: run the RESUME doc's documented next step verbatim ---
+command documented in docs/RESUME-archive.md 'Next step (runnable now)': backfill verify-archive --rebuild-index
+expectation (clean hypothesis): exit 0, verify_archive rebuild_index=true; falsifier: Config error
+verify_archive: dry_run=false rebuild_index=true
+exit=0
+
+--- step 5: cross-probes of both guards (documented acceptance rules) ---
+[probe A] backfill adjudicate-canonical --rebuild-index  (NOT accept-listed; expect Config error)
+error: config error: --rebuild-index is accepted only by verify-archive and load-canonical
+exit=2
+[probe B] backfill verify-archive --emit-report out/report.json  (NOT accept-listed for --emit-report; expect Config error)
+error: config error: --emit-report is accepted only by load-canonical and adjudicate-canonical
+exit=2
+[probe C] backfill load-canonical --rebuild-index --emit-report out/report.json  (both accept-listed; expect exit 0)
+load_canonical: dry_run=false rebuild_index=true emit_report=Some("out/report.json")
+exit=0
+[probe D] backfill adjudicate-canonical --emit-report out/report.json  (accept-listed; expect exit 0)
+adjudicate_canonical: dry_run=false emit_report=Some("out/report.json")
+exit=0
+[probe E] backfill bogus-subcommand --rebuild-index  (defect hunt: guard runs before dispatch, so the
+          flag error is reported instead of 'unknown subcommand' -- an error either way; expect exit 2)
+error: config error: --rebuild-index is accepted only by verify-archive and load-canonical
+exit=2

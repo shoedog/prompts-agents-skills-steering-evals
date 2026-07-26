@@ -1,0 +1,79 @@
+{
+  "id": "IMPL-05",
+  "ws": "/private/tmp/gpt55-ws/IMPL-05",
+  "dry_run": false,
+  "model": "gpt-5.5 (codex exec; the summary model field default is vestigial)",
+  "replay_preface": "Replay note: you are working in /private/tmp/gpt55-ws/IMPL-05 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged.",
+  "run_status": "ok",
+  "subtype": "success",
+  "api_error_status": null,
+  "returncode": 0,
+  "session_id": null,
+  "duration_ms": 229154,
+  "num_turns": null,
+  "usage": {
+    "tokens_used": 59720
+  },
+  "total_cost_usd": null,
+  "stop_reason": null,
+  "is_error": false,
+  "result_text": "Implemented Task 10. No commit was made.\n\nModified files:\n- [implement.rs](/private/tmp/gpt55-ws/IMPL-05/bin/a2a-bridge/src/implement.rs): added `CommitSource`, new 4-arg `commit_message` precedence, comment stripping, tests.\n- [main.rs](/private/tmp/gpt55-ws/IMPL-05/bin/a2a-bridge/src/main.rs): passes typed `Commit Message`, file message, title, and task; warning now fires only for `Derived`.\n- [merge.rs](/private/tmp/gpt55-ws/IMPL-05/bin/a2a-bridge/src/merge.rs): treats persisted `original_message` as highest-precedence typed input.\n\nTest result: PASS  \nRan exactly: `cargo test -p a2a-bridge commit_precedence 2>&1 | tail -20`\n\n",
+  "timed_out": false,
+  "parse_error": null,
+  "terminal_reason": null,
+  "tests_passed_guess": "pass",
+  "evidence_summary": [
+    {
+      "cmd": "cargo test -p a2a-bridge commit_precedence_and_comment_only_falls_back_to_title",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": 1,
+      "matched_tests": 1,
+      "min_tests_satisfied": true
+    },
+    {
+      "cmd": "cargo build --workspace",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo test -p a2a-bridge",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    }
+  ],
+  "scaffold": {
+    "tracked_scaffold_paths": [
+      "AGENTS.md"
+    ],
+    "missing_on_disk_after_checkout": [],
+    "has_CLAUDE_md": false,
+    "has_dot_claude_dir": false,
+    "has_AGENTS_md": true,
+    "agents_md_shimmed": true,
+    "global_hooks_present": true,
+    "shim": {
+      "present": true,
+      "sha256_at_write": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53",
+      "sha256_after_run": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53",
+      "changed": false
+    }
+  },
+  "shim": {
+    "present": true,
+    "changed": false,
+    "sha256_at_write": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53",
+    "sha256_after_run": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53"
+  },
+  "source_repo_touched": false,
+  "transcript_lookup_note": "matched codex rollout by cwd (1 candidate(s))",
+  "transcript_path": "bench/out-gpt55/IMPL-05/transcript.jsonl",
+  "executor": "codex",
+  "codex_effort": "high"
+}

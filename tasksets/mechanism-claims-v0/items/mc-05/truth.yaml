@@ -1,0 +1,44 @@
+# DRAFT v0 seed (2026-07-25) — not execution-verified.
+seeded: true
+defects:
+- id: mc-05-d1
+  defect_class: false exit-status claim (pipeline reports tail's exit code, not the test runner's)
+  location: 'ci/run-suite.sh: header comment exit policy vs the final `cargo test ... | tail -40` line'
+  hunk_lines: the "script's exit status is the test runner's own exit code" comment lines vs the last
+    pipeline line and the `set -eu` line (no pipefail)
+  description: 'The header comment claims the script''s exit status is the test runner''s own exit code.
+    The tests run as `cargo test --workspace 2>&1 | tail -40` with only `set -eu` in effect: without
+    `set -o pipefail` (or an explicit PIPESTATUS check), a pipeline''s status is its LAST command''s —
+    tail''s, which succeeds whether or not cargo test failed. A failing suite exits the script 0 and CI
+    goes green.'
+  root_cause: the truncating pipe was added for output policy and the exit-policy comment was written
+    from the `set -eu` at the top; nobody traced what `-e` actually sees for a pipeline — the pipeline's
+    overall (last-command) status, not cargo test's.
+  bad_behavior: 'a push that breaks tests produces a green CI step; the merge gate and reviewers treat
+    the workspace suite as passing. fmt and clippy failures still fail the script (they are not piped),
+    which makes the green look trustworthy.'
+  minimal_trigger: 'make any test fail and run the script: cargo test exits nonzero, tail exits 0, the
+    script exits 0, CI step green.'
+  acceptable_match: any finding that the final pipeline's exit status is tail's (missing pipefail /
+    PIPESTATUS), so the exit-policy comment is false and a failing suite passes CI. CITATION REQUIRED —
+    the finding must point at the implementing line(s) (the `cargo test ... | tail` pipeline, optionally
+    together with the `set -eu` line), not only at the comment.
+  reject_if: a finding that generically requests "better error handling" or more logging without naming
+    the pipeline-exit mechanism; a finding that claims fmt/clippy failures are also swallowed (they are
+    not piped and do fail the script under set -e); or a finding citing only the comment lines.
+neutral_findings:
+- tail -40 hides all but the last 40 lines of failure detail from the step summary; a real observability
+  gap the comment even documents, but not the seeded exit-status defect.
+provenance:
+  incident: '608a7a2a L2692 (ssot-agents orchestrator, 2026-07-22): "My mistake — I piped through
+    `tail -8`, which discarded every PASS/FAIL line and the s[uite exit code]" — a test campaign
+    reported green off a truncating pipe. Same class as f14884e6 L27361 ("cargo fmt --check actually
+    failed — I misread; rc=$? captured tail''s exit, not fmt''s"). Forensics mode 3 exemplar.'
+  repo_ref: 'no single repo file — the pattern lives in ad-hoc shell run by orchestrators; the
+    deterministic mitigation (B2, `| tail`-on-test-command detector) is
+    mining/scripts/detect_failure_signatures.py pipe_truncated_test'
+  detector_rows: 'mining/out/failure_signatures.jsonl: detector=admission session=608a7a2a
+    line_no=2692; detector=pipe_truncated_test rows across sessions'
+rubric_emphasis: 'claim-has-citation AND citation-correct — credit requires naming the pipeline line
+  whose last-command status becomes the script''s; restating the comment''s promise is the failure mode
+  under test.'

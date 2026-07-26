@@ -1,0 +1,122 @@
+=== mc-05 witness run: 2026-07-25T15:38:01Z ===
+item dir : /Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/witnesses/mc-05/../../items/mc-05
+build dir: /private/tmp/claude-501/-Users-wesleyjinks/782c0297-efe4-408f-9b1a-07346a6a6c30/scratchpad/mcv/mc-05
+toolchain: cargo 1.94.0 (85eff7c80 2026-01-15); rustfmt 1.8.0-stable (4a4ef493e3 2026-03-02); clippy 0.1.94 (4a4ef493e3 2026-03-02); bash 3.2.57(1)-release
+
+--- step 1: materialize fixture crate (fmt/clippy-clean, one seeded failing test) ---
+fixture files:
+./Cargo.toml
+./src/lib.rs
+
+--- step 2: git apply --check ---
+exit=0
+--- step 2b: patch -p1 --dry-run (cross-check) ---
+patching file 'ci/run-suite.sh'
+exit=0
+--- step 2c: apply for real (git apply) ---
+exit=0
+post-apply tree:
+./Cargo.toml
+./ci/run-suite.sh
+./src/lib.rs
+
+--- step 3: bash -n parse check of the diff's script ---
+exit=0
+
+--- step 4: pre-checks -- prove fmt and clippy pass, so the ONLY failing check is the suite ---
+[pre-check] cargo fmt --check (expect 0)
+exit=0
+[pre-check] cargo clippy --workspace --quiet -- -D warnings (expect 0)
+exit=0
+
+--- step 5: probe A -- the test runner's OWN exit code (no pipe) ---
+expectation: nonzero (one seeded failing test)
+   Compiling ci-demo v0.1.0 (/private/tmp/claude-501/-Users-wesleyjinks/782c0297-efe4-408f-9b1a-07346a6a6c30/scratchpad/mcv/mc-05)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.09s
+     Running unittests src/lib.rs (target/debug/deps/ci_demo-280549b0a37ddc9a)
+
+running 2 tests
+test tests::addition_works ... ok
+test tests::seeded_failure ... FAILED
+
+failures:
+
+---- tests::seeded_failure stdout ----
+
+thread 'tests::seeded_failure' (54563839) panicked at src/lib.rs:14:9:
+assertion `left == right` failed
+  left: 4
+ right: 5
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::seeded_failure
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`
+cargo test exit=101
+
+--- step 6: probe B -- the CI gate script (THE minimal_trigger) ---
+header comment claims: "the script's exit status is the test runner's own
+exit code, so the CI step fails exactly when the suite fails"
+expectation (seeded hypothesis): script exits 0 despite the failing suite; falsifier: nonzero
+== fmt ==
+== clippy ==
+== tests ==
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running unittests src/lib.rs (target/debug/deps/ci_demo-280549b0a37ddc9a)
+
+running 2 tests
+test tests::addition_works ... ok
+test tests::seeded_failure ... FAILED
+
+failures:
+
+---- tests::seeded_failure stdout ----
+
+thread 'tests::seeded_failure' (54563966) panicked at src/lib.rs:14:9:
+assertion `left == right` failed
+  left: 4
+ right: 5
+stack backtrace:
+   0: __rustc::rust_begin_unwind
+             at /rustc/4a4ef493e3a1488c6e321570238084b38948f6db/library/std/src/panicking.rs:689:5
+   1: core::panicking::panic_fmt
+             at /rustc/4a4ef493e3a1488c6e321570238084b38948f6db/library/core/src/panicking.rs:80:14
+   2: core::panicking::assert_failed_inner
+   3: core::panicking::assert_failed
+             at /rustc/4a4ef493e3a1488c6e321570238084b38948f6db/library/core/src/panicking.rs:394:5
+   4: ci_demo::tests::seeded_failure
+             at ./src/lib.rs:14:9
+   5: ci_demo::tests::seeded_failure::{{closure}}
+             at ./src/lib.rs:13:24
+   6: core::ops::function::FnOnce::call_once
+             at /Users/wesleyjinks/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/function.rs:250:5
+   7: core::ops::function::FnOnce::call_once
+             at /rustc/4a4ef493e3a1488c6e321570238084b38948f6db/library/core/src/ops/function.rs:250:5
+note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+
+
+failures:
+    tests::seeded_failure
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--lib`
+run-suite.sh exit=0
+
+--- step 7: probe C -- fmt/clippy failures are NOT swallowed (truth.yaml reject_if support) ---
+copy the crate, break formatting, rerun the script; expectation: nonzero exit at the fmt step
+== fmt ==
+Diff in /private/tmp/claude-501/-Users-wesleyjinks/782c0297-efe4-408f-9b1a-07346a6a6c30/scratchpad/mcv/mc-05/badfmt/src/lib.rs:14:
+         assert_eq!(super::add(2, 2), 5);
+     }
+ }
+[31m-pub fn ugly( x:i32 )->i32{ x }
+[m[32m+pub fn ugly(x: i32) -> i32 {
+[m[32m+    x
+[m[32m+}
+[m 
+badfmt run-suite.sh exit=1

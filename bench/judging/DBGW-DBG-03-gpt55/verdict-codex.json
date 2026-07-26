@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": false,
+  "probe_answer": "Both arms remove the per-param ordinal collision at the root by restoring a single ordered add_locals pass for parameters, and both add an ordinal regression that would fail on the buggy per-param implementation. Arm A's ordinal test is closer to the acceptance text because it asserts directly against scope-graph binding records. Arm B's implementation carries per-binding LocalFact through add_locals more cleanly, but it changes the add_locals API and rewrites more call sites. Both appear inert beyond the repair if the rewritten call sites are exhaustive and preserve existing ordering.",
+  "rationale": "No WRONG finding from the diffs alone. SMELL: Arm A passes a dummy Param LocalFact into add_locals and then writes the real per-param facts by def_byte afterward; this is likely final-state equivalent, but less clean and depends on add_local_fact overwriting by key. SMELL: Arm B makes broader API churn in add_locals and all local binding call sites, which increases review surface, though the visible transformations preserve the same ordered enumerate behavior for lets/patterns/closures. Tests: Arm A is stronger on the blocker because it inspects BindingRef ordinals directly in the scope graph and asserts distinct refs; Arm B's ambiguity test is closer to the exact requested `let x; let x;` case. Overall this is parity: Arm A has the more targeted inertness regression, Arm B has the cleaner"
+ },
+ "tokens_used": 27405
+}

@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "verdict_matches_vindicated": true,
+  "ordered_collect_serial_apply": true,
+  "cache_byte_parity_point": true,
+  "would_have_prevented_wasted_work": true,
+  "probe_answer": "The analysis correctly reaches GO on parallelizing Step 7, matching the vindicated outcome (fd81e49/ec84e21/3cb0182). It specifies exactly the design that landed: parallel per-file collection preserving files-BTreeMap-order \u00d7 walk-order via indexed rayon collect, followed by a serial apply that creates nodes/stmt_index/location_index in that fixed order to guarantee identical NodeIndex assignment. Crucially, it identifies that CpgNode::PartialEq ignores byte-span fields and explicitly mandates that parity be proven via Debug-dump/cache-byte comparison rather than semantic equality \u2014 precisely the load-bearing correctness point from the settled outcome. It also correctly derives that stmt_index/location_index/Step-8 CFG edges are all downstream functions of node-insertion order, so the single invariant to prove is the add_node sequence, which is exactly the shape of the reference design (extract + serial-reference parity oracle, ordered par_iter collect -> serial create, non-vacuity guards).",
+  "rationale": "All four grading fields are satisfied: verdict is GO, design is ordered-collect/serial-apply, cache-byte (not semantic) parity is explicitly called out as the correct proof method with the PartialEq trap named, and the enumerated failure modes plus concrete test harness (frozen oracle, thread-count/cache-blob test, real-corpus cmp) would have caught a reorder bug before it reached cache, preventing wasted work."
+ },
+ "cost_usd": 0.14840730000000002
+}

@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "root_cause_match": true,
+  "fmt_issue_identified": true,
+  "fix_attempted": false,
+  "fix_shape_match": false,
+  "probe_answer": "The diagnosis matches both known failures, but this was investigation-only with no code change, so fix_shape_match is false by rubric.",
+  "rationale": "The report correctly identifies the non-glob workspace member drop mechanism: workspace_members was narrowed to successfully parsed package manifests, causing malformed declared member bad to be omitted. It also separately identifies the rustfmt-only format failure. The engineer explicitly says they did not edit files, and the prompt confirms no code changes, so no fix was attempted. Although the recommended fix describes the correct union shape, the rubric sets fix_shape_match to false when no fix was attempted."
+ },
+ "tokens_used": 15964
+}

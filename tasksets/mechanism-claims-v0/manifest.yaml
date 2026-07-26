@@ -1,0 +1,42 @@
+# DRAFT (2026-07-25) — v0 SEED taskset, NOT execution-verified. Pending owner review.
+#
+# Purpose: mechanism-claim review items for exp-w3a-cite-or-label (Wave-3 steering
+# validation; forensics 4-B1). Every item embeds a written mechanism claim (doc
+# comment / format doc / CHANGELOG / handoff-RESUME hunk) INSIDE the diff. Seeded
+# items: the claim is contradicted by the implementing lines in the same diff —
+# catching it requires tracing code, not trusting prose. Clean items: the claim is
+# accurate, with surface signals that tempt a contradiction call.
+#
+# Items are distilled from real 2026-07 incidents (session basename + line refs in
+# each item's truth.yaml `provenance` key; sources: mining/out/failure_signatures.jsonl
+# and ~/Documents/agent-failure-modes-2026-07-25.md section 1). Where the incident's
+# repo code matters, provenance references the repo path + symbol; item code is a
+# small self-contained reconstruction, NOT a copy.
+#
+# v0 -> v1 promotion checklist (per review-hard convention, d49c319):
+#   [x] execution-verify every diff (compiles/parses; seeded misbehavior demonstrable;
+#       clean items genuinely defect-free) — see VERIFICATION.md, 2026-07-25
+#   [x] hunk-header arithmetic audit — see VERIFICATION.md, 2026-07-25
+#   [ ] fresh-model probe: each seeded defect findable, each clean item survivable
+#   [ ] owner sign-off on acceptable_match/reject_if citation bars
+taskset: mechanism-claims-v0
+task_family: review
+status: v0-seed-unverified
+# mc-08 DROPPED from v0 (owner decision 2026-07-25): post-repair it sits at the APPROVE/REJECT
+# boundary for defensible reviews (see PROBE.md) — item dir + witnesses retained; a hardened
+# replacement twin is queued for v1. Base rate is now 5/7 = 0.714 (was 5/8 = 0.625).
+items:
+- id: mc-01
+  seeded: true
+- id: mc-02
+  seeded: true
+- id: mc-03
+  seeded: true
+- id: mc-04
+  seeded: true
+- id: mc-05
+  seeded: true
+- id: mc-06
+  seeded: false
+- id: mc-07
+  seeded: false

@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "root_cause_match": true,
+  "fmt_issue_identified": true,
+  "fix_attempted": true,
+  "fix_shape_match": true,
+  "probe_answer": "The report identifies the parsed-package-only workspace member regression, the separate rustfmt failure, and applies the correct union-style fix preserving glob expansion while restoring declared non-glob members.",
+  "rationale": "Root cause matches: it says 04c6b0b changed workspace_members to successfully parsed package dirs, so malformed concrete/non-glob members vanish. The rustfmt issue is separately called out as an unformatted assert chain. The diff changes src/repo_loader.rs and adds a regression test, so a fix was attempted. The fix shape matches the landed fix: it inserts concrete declared workspace members while skipping glob patterns, leaving glob expansion via parsed package dirs intact."
+ },
+ "tokens_used": 17249
+}

@@ -1,0 +1,139 @@
+diff --git a/src/name_resolution/binding_lookup.rs b/src/name_resolution/binding_lookup.rs
+index d86d7c65..429067f6 100644
+--- a/src/name_resolution/binding_lookup.rs
++++ b/src/name_resolution/binding_lookup.rs
+@@ -155,4 +155,29 @@ mod tests {
+             Some(InitExpr::Ctor(s)) if s == "X::new()"
+         ));
+     }
++
++    #[test]
++    fn lookup_visible_binding_returns_none_for_duplicate_same_rib_local() {
++        let src = "struct X;\nimpl X { fn new() -> Self { X } fn m(&self) {} }\nfn f(){ let x = X::new(); let x = X::new(); x.m(); }\n";
++        let mut files = std::collections::BTreeMap::new();
++        files.insert(
++            "a.rs".to_string(),
++            ParsedFile::parse("a.rs", src, Rust).unwrap(),
++        );
++        let mut inputs = ScopeGraphBuildInputs::from_files_convention(&files);
++        inputs.cfg = RustCrateConfig {
++            crate_roots: files.keys().cloned().collect(),
++            ..RustCrateConfig::default()
++        };
++        let cg = CallGraph::build_with_scope_graph_inputs(&files, Some(&inputs));
++        let graph = cg.scope_graph.as_ref().expect("scope graph");
++        let file = graph.file_paths["a.rs"];
++        let call_byte = src.rfind("x.m()").unwrap();
++
++        assert_eq!(
++            lookup_visible_binding(graph, file, call_byte, "x"),
++            None,
++            "same-rib duplicate locals must fall through instead of choosing one"
++        );
++    }
+ }
+diff --git a/src/name_resolution/rust_populator/walk/items.rs b/src/name_resolution/rust_populator/walk/items.rs
+index f55a1dd7..ceddc6b1 100644
+--- a/src/name_resolution/rust_populator/walk/items.rs
++++ b/src/name_resolution/rust_populator/walk/items.rs
+@@ -342,9 +342,10 @@ fn bind_params(
+                 if let Some(p) = c.child_by_field_name("pattern") {
+                     let mut names = Vec::new();
+                     pattern_idents(pf, &p, &mut names);
+-                    for name in names {
++                    for (name, def_byte) in names {
+                         out.push((
+                             name,
++                            def_byte,
+                             LocalFact {
+                                 kind: BindingKind::Param,
+                                 annotation: annotation.clone(),
+@@ -357,7 +358,26 @@ fn bind_params(
+         }
+         out
+     });
+-    for (name, fact) in facts {
+-        add_locals(b, body_scope, file, body_end, &[name], fact);
++    if facts.is_empty() {
++        return;
++    }
++    let names: Vec<(String, usize)> = facts
++        .iter()
++        .map(|(name, def_byte, _)| (name.clone(), *def_byte))
++        .collect();
++    add_locals(
++        b,
++        body_scope,
++        file,
++        body_end,
++        &names,
++        LocalFact {
++            kind: BindingKind::Param,
++            annotation: None,
++            init: None,
++        },
++    );
++    for (_, def_byte, fact) in facts {
++        b.add_local_fact(file, def_byte, fact);
+     }
+ }
+diff --git a/tests/name_resolution/rust_populate_test.rs b/tests/name_resolution/rust_populate_test.rs
+index a3c26e9c..69c7e4de 100644
+--- a/tests/name_resolution/rust_populate_test.rs
++++ b/tests/name_resolution/rust_populate_test.rs
+@@ -21,7 +21,8 @@ use prism::name_resolution::rust_populator::{
+     enclosing_scope, file_id, populate_rust, RustCrateConfig,
+ };
+ use prism::name_resolution::types::{
+-    Anchor, NamespaceId, RawPath, ResStatus, Resolution, ResolveQuery, SourceLoc, Target,
++    Anchor, BindTarget, BindingRef, NamespaceId, RawPath, ResStatus, Resolution, ResolveQuery,
++    SourceLoc, Target,
+ };
+ 
+ // ── fixture + query helpers ───────────────────────────────────────────────────
+@@ -154,6 +155,24 @@ fn assert_local(res: &Resolution) {
+     );
+ }
+ 
++fn local_ref_at_def(g: &ScopeGraph, name: &str, def_byte: usize) -> BindingRef {
++    let binding = g
++        .bindings
++        .iter()
++        .find(|binding| {
++            binding.name == name
++                && binding
++                    .vis_extents
++                    .iter()
++                    .any(|span| span.lo.byte == def_byte)
++        })
++        .unwrap_or_else(|| panic!("missing local binding {name:?} at byte {def_byte}"));
++    match &binding.target {
++        BindTarget::Resolved(Target::Local(local_ref)) => local_ref.clone(),
++        other => panic!("expected local binding target for {name:?}, got {other:?}"),
++    }
++}
++
+ /// Convention-fallback config (no manifest): edition 2015, conventional roots.
+ fn convention(fs: &BTreeMap<String, ParsedFile>) -> RustCrateConfig {
+     RustCrateConfig::from_convention(fs)
+@@ -343,6 +362,20 @@ fn test_local_param_shadows_free_fn() {
+     assert_local(&res);
+ }
+ 
++#[test]
++fn test_param_binding_refs_preserve_source_order_ordinals() {
++    let src = "fn f(a: i32, b: i32) { let _ = (a, b); }\n";
++    let fs = files(&[("src/lib.rs", src)]);
++    let g = populate_rust(&fs, &convention(&fs), None);
++    let a = local_ref_at_def(&g, "a", byte_of(src, "a: i32"));
++    let b = local_ref_at_def(&g, "b", byte_of(src, "b: i32"));
++
++    assert_eq!(a.scope, b.scope, "params must bind in the same body scope");
++    assert_eq!(a.ordinal, 0, "first param ordinal changed");
++    assert_eq!(b.ordinal, 1, "second param ordinal changed");
++    assert_ne!(a, b, "distinct params must not share one BindingRef");
++}
++
+ #[test]
+ fn test_local_closure_arg_shadows_free_fn() {
+     let src = "pub fn f(){}\nfn host(){ let c = |f| { let _z = f; }; }\n";

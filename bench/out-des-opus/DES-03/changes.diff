@@ -1,0 +1,5 @@
+# git -C /private/tmp/des-opus-ws/DES-03 status --short
+?? MEMO-slice3-free-multi-import-scoping.md
+
+# git -C /private/tmp/des-opus-ws/DES-03 diff
+

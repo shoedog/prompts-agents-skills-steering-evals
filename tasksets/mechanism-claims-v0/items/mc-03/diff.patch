@@ -1,0 +1,50 @@
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -118,14 +118,31 @@ fn run(cmd: String, mut args: env::Args) -> Result<(), CliError> {
+     let mut dry_run = false;
++    let mut spinoff_binding: Option<PathBuf> = None;
+     while let Some(arg) = args.next() {
+         match arg.as_str() {
+             "--dry-run" => dry_run = true,
++            "--spinoff-binding" => {
++                spinoff_binding = Some(PathBuf::from(next_value(&mut args, &arg)?));
++            }
+             other => return Err(CliError::Config(format!("unknown flag {other}"))),
+         }
+     }
++    // --spinoff-binding is an input to the *load*: it reconstructs the frozen
++    // spinoff-ratio inputs a candidate revision loaded with. Replay-only
++    // subcommands never load, so they must refuse it rather than silently
++    // ignore it.
++    if !matches!(cmd.as_str(), "load-canonical" | "adjudicate-canonical")
++        && spinoff_binding.is_some()
++    {
++        return Err(CliError::Config(
++            "--spinoff-binding is accepted only by load-canonical and adjudicate-canonical"
++                .to_string(),
++        ));
++    }
+     let opts = Opts { dry_run };
+     match cmd.as_str() {
+-        "load-canonical" => load_canonical(&opts),
++        "load-canonical" => load_canonical(&opts, spinoff_binding.as_deref()),
+-        "adjudicate-canonical" => adjudicate_canonical(&opts),
++        "adjudicate-canonical" => adjudicate_canonical(&opts, spinoff_binding.as_deref()),
++        "audit-canonical" => audit_canonical(&opts),
+         other => Err(CliError::Config(format!("unknown subcommand {other}"))),
+     }
+ }
+--- a/docs/RESUME-g4c.md
++++ b/docs/RESUME-g4c.md
+@@ -4,4 +4,11 @@
+ Rev 9 failed with 1.13M incomplete rows; its spinoff-ratio bindings were
+ regenerated this session and written to `out/rev9-bindings.json`.
+ 
+ ## Next step (runnable now)
++
++Replay the failed candidate against the audit path with its frozen
++spinoff-ratio inputs supplied explicitly:
++
++    backfill audit-canonical --spinoff-binding out/rev9-bindings.json
++
++This reproduces rev 9's inputs bit-for-bit before any new load is attempted.

@@ -1,0 +1,38 @@
+[bench] running 4 task(s): ['DBG-01', 'DBG-02', 'DBG-03', 'INFRA-01']
+
+[bench] === DBG-01 === ws=/private/tmp/dbg-opus-ws/DBG-01 dry_run=False model=claude-opus-4-8
+[bench] git clone --local /Users/wesleyjinks/code/slicing /private/tmp/dbg-opus-ws/DBG-01
+[bench] git -C /private/tmp/dbg-opus-ws/DBG-01 checkout bench/DBG-01-pre
+[bench] git -C /private/tmp/dbg-opus-ws/DBG-01 remote remove origin
+[bench] evidence: cargo fmt --all --check
+[bench] evidence: cargo test malformed_member_manifest
+[bench] evidence: cargo test
+[bench] transcript: /Users/wesleyjinks/.claude/projects/-private-tmp-dbg-opus-ws-DBG-01/43d831a9-1590-4cf5-ab86-e8b523d46df7.jsonl -> bench/out-dbg-opus-base/DBG-01/transcript.jsonl
+[bench] DBG-01: dry_run=False tests_passed_guess='pass' cost=$6.862078500000001 out=bench/out-dbg-opus-base/DBG-01
+
+[bench] === DBG-02 === ws=/private/tmp/dbg-opus-ws/DBG-02 dry_run=False model=claude-opus-4-8
+[bench] git clone --local /Users/wesleyjinks/code/slicing /private/tmp/dbg-opus-ws/DBG-02
+[bench] git -C /private/tmp/dbg-opus-ws/DBG-02 checkout bench/DBG-02-pre
+[bench] git -C /private/tmp/dbg-opus-ws/DBG-02 remote remove origin
+[bench] evidence: cargo fmt --check
+[bench] evidence: cargo test
+[bench] transcript: /Users/wesleyjinks/.claude/projects/-private-tmp-dbg-opus-ws-DBG-02/2edb6c7c-6477-4c3e-89e7-576f769b2567.jsonl -> bench/out-dbg-opus-base/DBG-02/transcript.jsonl
+[bench] DBG-02: dry_run=False tests_passed_guess='pass' cost=$11.6529855 out=bench/out-dbg-opus-base/DBG-02
+
+[bench] === DBG-03 === ws=/private/tmp/dbg-opus-ws/DBG-03 dry_run=False model=claude-opus-4-8
+[bench] git clone --local /Users/wesleyjinks/code/slicing /private/tmp/dbg-opus-ws/DBG-03
+[bench] git -C /private/tmp/dbg-opus-ws/DBG-03 checkout bench/DBG-03-pre
+[bench] git -C /private/tmp/dbg-opus-ws/DBG-03 remote remove origin
+[bench] evidence: cargo test --lib binding_lookup
+[bench] evidence: cargo test
+[bench] evidence: cargo build
+[bench] transcript: /Users/wesleyjinks/.claude/projects/-private-tmp-dbg-opus-ws-DBG-03/c6a7f0af-abf8-45da-88e0-697c0e0cef14.jsonl -> bench/out-dbg-opus-base/DBG-03/transcript.jsonl
+[bench] DBG-03: dry_run=False tests_passed_guess='pass' cost=$3.7599110000000002 out=bench/out-dbg-opus-base/DBG-03
+
+[bench] === INFRA-01 === ws=/private/tmp/dbg-opus-ws/INFRA-01 dry_run=False model=claude-opus-4-8
+[bench] git clone --local /Users/wesleyjinks/code/automation-api-server /private/tmp/dbg-opus-ws/INFRA-01
+[bench] git -C /private/tmp/dbg-opus-ws/INFRA-01 checkout bench/INFRA-01-pre
+[bench] git -C /private/tmp/dbg-opus-ws/INFRA-01 remote remove origin
+[bench] evidence: bash -n scripts/test-db/select_db_host.sh
+[bench] transcript: /Users/wesleyjinks/.claude/projects/-private-tmp-dbg-opus-ws-INFRA-01/0b646ec9-858e-46a7-9a42-bfd9dc9600b1.jsonl -> bench/out-dbg-opus-base/INFRA-01/transcript.jsonl
+[bench] INFRA-01: dry_run=False tests_passed_guess='pass' cost=$1.793189 out=bench/out-dbg-opus-base/INFRA-01

@@ -1,0 +1,84 @@
+=== mc-08 witness run: 2026-07-25T16:07:58Z ===
+item dir : /Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/witnesses/mc-08/../../items/mc-08
+build dir: /private/tmp/claude-501/-Users-wesleyjinks/782c0297-efe4-408f-9b1a-07346a6a6c30/scratchpad/mc08-build
+toolchain: cargo 1.94.0 (85eff7c80 2026-01-15); git version 2.50.1 (Apple Git-155); patch: patch 2.0-12u11-Apple
+
+--- step 1: materialize shim base files (identical to the mc-02 witness base) ---
+base files (replay_spool.rs 145 lines, driver.rs 172 lines):
+./Cargo.toml
+./src/bin/driver.rs
+./src/replay_spool.rs
+
+--- step 2: git apply --check ---
+exit=0
+--- step 2b: patch -p1 --dry-run (cross-check; offset vs. reconstructed base is expected) ---
+patching file 'src/replay_spool.rs'
+No such line 203 in input file, ignoring
+exit=0
+--- step 2c: apply for real (git apply) ---
+exit=0
+
+--- step 3: cargo build (compile check) ---
+   Compiling mc08 v0.1.0 (/private/tmp/claude-501/-Users-wesleyjinks/782c0297-efe4-408f-9b1a-07346a6a6c30/scratchpad/mc08-build)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.26s
+exit=0
+
+--- step 3b: unintended-defect sweep: cargo clippy (advisory, not -D) ---
+exit=0
+
+--- step 4: measurement run (claims a/b/c) ---
+Doc claims: intermediate peak ~ dataset + one merge group; seal peak ~2x
+dataset (all remaining runs + full sealed output simultaneously); fsync
+of every merged/sealed output happens while its inputs still exist.
+dataset: 20 runs, 2001000 bytes total (29000 records); MERGE_FANIN=8
+one merge group ~= 800400 bytes; dataset + one group ~= 2801400 bytes
+-- compact_runs() --
+[scratch-meter] merge_sorted done: 8 inputs -> merge-00000000000000000021.run: dir_bytes=2801400
+[fsync] merge-00000000000000000021.run durable; files present at fsync time: merge-00000000000000000021.run, spill-00000000000000000001.run, spill-00000000000000000002.run, spill-00000000000000000003.run, spill-00000000000000000004.run, spill-00000000000000000005.run, spill-00000000000000000006.run, spill-00000000000000000007.run, spill-00000000000000000008.run, spill-00000000000000000009.run, spill-00000000000000000010.run, spill-00000000000000000011.run, spill-00000000000000000012.run, spill-00000000000000000013.run, spill-00000000000000000014.run, spill-00000000000000000015.run, spill-00000000000000000016.run, spill-00000000000000000017.run, spill-00000000000000000018.run, spill-00000000000000000019.run, spill-00000000000000000020.run
+[scratch-meter] merge_sorted done: 8 inputs -> merge-00000000000000000022.run: dir_bytes=2801400
+[fsync] merge-00000000000000000022.run durable; files present at fsync time: merge-00000000000000000021.run, merge-00000000000000000022.run, spill-00000000000000000009.run, spill-00000000000000000010.run, spill-00000000000000000011.run, spill-00000000000000000012.run, spill-00000000000000000013.run, spill-00000000000000000014.run, spill-00000000000000000015.run, spill-00000000000000000016.run, spill-00000000000000000017.run, spill-00000000000000000018.run, spill-00000000000000000019.run, spill-00000000000000000020.run
+compact_runs OK; runs now: 6; peak scratch so far: 2801400 bytes = 1.40x dataset (dataset + one group = 2801400 bytes)
+-- seal() --
+[scratch-meter] merge_sorted done: 6 inputs -> sealed.run: dir_bytes=4002000
+[fsync] sealed.run durable; files present at fsync time: merge-00000000000000000021.run, merge-00000000000000000022.run, sealed.run, spill-00000000000000000017.run, spill-00000000000000000018.run, spill-00000000000000000019.run, spill-00000000000000000020.run
+sealed: /private/tmp/claude-501/-Users-wesleyjinks/782c0297-efe4-408f-9b1a-07346a6a6c30/scratchpad/mc08-build/scratch-measure/sealed.run
+sealed.run integrity: 29000 records (input records: 29000, match: true)
+OVERALL peak scratch: 4002000 bytes = 2.00x dataset; final scratch after seal: 2001000 bytes
+exit=0
+
+--- step 4b: fault-injection witness for the compact_runs error path (curation fix 2026-07-25) ---
+Claim (d): with a 1.0x-dataset quota failing the first compaction merge
+mid-compaction, the repaired code must keep self.runs consistent -- no run
+dropped from tracking, no dangling entry -- and a quota-lifted retry seal()
+must emit every input record. (Control arm showing the pre-fix silent data
+loss under this same fault: witnesses/mc-02/, step 6.)
+dataset: 20 runs, 2001000 bytes total (29000 records); MERGE_FANIN=8
+one merge group ~= 800400 bytes; dataset + one group ~= 2801400 bytes
+fault injection: quota 2001000 bytes (= 1.0x dataset) fails the first compaction merge mid-compaction
+tracked before compact_runs: 20 runs
+-- compact_runs() [failure expected mid-compaction] --
+[scratch-meter] merge_sorted done: 8 inputs -> merge-00000000000000000021.run: dir_bytes=2801400
+compact_runs failed as injected: scratch volume full: 2801400 bytes on a 2001000-byte volume (ENOSPC)
+tracking after failed compact: 20 runs tracked; dropped from tracking: 0; tracked but missing on disk: 0
+untracked files left in scratch dir: merge-00000000000000000021.run
+records reachable via self.runs: 29000 / 29000 (all data still tracked: true)
+-- retry: quota lifted; seal() must emit every input record --
+[scratch-meter] merge_sorted done: 8 inputs -> merge-00000000000000000022.run: dir_bytes=3601800
+[fsync] merge-00000000000000000022.run durable; files present at fsync time: merge-00000000000000000021.run, merge-00000000000000000022.run, spill-00000000000000000001.run, spill-00000000000000000002.run, spill-00000000000000000003.run, spill-00000000000000000004.run, spill-00000000000000000005.run, spill-00000000000000000006.run, spill-00000000000000000007.run, spill-00000000000000000008.run, spill-00000000000000000009.run, spill-00000000000000000010.run, spill-00000000000000000011.run, spill-00000000000000000012.run, spill-00000000000000000013.run, spill-00000000000000000014.run, spill-00000000000000000015.run, spill-00000000000000000016.run, spill-00000000000000000017.run, spill-00000000000000000018.run, spill-00000000000000000019.run, spill-00000000000000000020.run
+[scratch-meter] merge_sorted done: 8 inputs -> merge-00000000000000000023.run: dir_bytes=3601800
+[fsync] merge-00000000000000000023.run durable; files present at fsync time: merge-00000000000000000021.run, merge-00000000000000000022.run, merge-00000000000000000023.run, spill-00000000000000000009.run, spill-00000000000000000010.run, spill-00000000000000000011.run, spill-00000000000000000012.run, spill-00000000000000000013.run, spill-00000000000000000014.run, spill-00000000000000000015.run, spill-00000000000000000016.run, spill-00000000000000000017.run, spill-00000000000000000018.run, spill-00000000000000000019.run, spill-00000000000000000020.run
+[scratch-meter] merge_sorted done: 6 inputs -> sealed.run: dir_bytes=4802400
+[fsync] sealed.run durable; files present at fsync time: merge-00000000000000000021.run, merge-00000000000000000022.run, merge-00000000000000000023.run, sealed.run, spill-00000000000000000017.run, spill-00000000000000000018.run, spill-00000000000000000019.run, spill-00000000000000000020.run
+sealed after retry: 29000 records (input records: 29000, match: true)
+FAULT-PATH RESULT: CONSISTENT -- no run orphaned from tracking, no record lost
+exit=0 (expected 0 = FAULT-PATH RESULT: CONSISTENT)
+
+--- step 5: pair cross-check -- mc-02 vs mc-08 executable code identical modulo prose ---
+patching file 'src/replay_spool.rs'
+No such line 203 in input file, ignoring
+patching file CHANGELOG.md
+mc-02 apply exit=0
+patching file 'src/replay_spool.rs'
+No such line 203 in input file, ignoring
+mc-08 apply exit=0
+PAIR CHECK: executable code identical after stripping /// doc comments and blanks

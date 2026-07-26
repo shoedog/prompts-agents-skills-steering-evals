@@ -1,0 +1,88 @@
+{
+  "harness": {
+    "argv_redacted": [
+      "/Users/wesleyjinks/.local/bin/claude",
+      "-p",
+      "<task_prompt omitted here \u2014 see the task yaml>",
+      "--model",
+      "claude-sonnet-5",
+      "--output-format",
+      "json",
+      "--dangerously-skip-permissions"
+    ],
+    "cwd": "/private/tmp/dbg-base-ws/DBG-02",
+    "model": "claude-sonnet-5",
+    "timeout_sec": 4500,
+    "started_at": "2026-07-05T05:10:36+00:00",
+    "ended_at": "2026-07-05T05:47:25+00:00",
+    "wall_sec": 2208.867,
+    "timed_out": false,
+    "returncode": 0
+  },
+  "cli_result": {
+    "type": "result",
+    "subtype": "success",
+    "is_error": false,
+    "api_error_status": null,
+    "duration_ms": 2207847,
+    "duration_api_ms": 1369599,
+    "ttft_ms": 5269,
+    "ttft_stream_ms": 1308,
+    "time_to_request_ms": 31,
+    "num_turns": 163,
+    "result": "Verification complete \u2014 all green, no out-of-scope failures found.\n\n**Summary:**\n- `cargo fmt --check`: clean\n- `cargo test`: 2494 passed, 0 failed, 1 ignored (28 test binaries)\n- `cargo test --features mcp`: 2587 passed, 0 failed\n- Tier-A `--matrix-only --allow-stale-sut`: 40 ok + 2 pre-existing `expected_gap`, exit 0, matches committed baseline\n\nAdded 3 new negative/edge-case tests beyond the original 5 repro tests, to cover the \"false\" branch of every new code path:\n- `test_python_outer_binding_still_recovered_despite_nested_class_shadow` \u2014 proved this fails without the class-scope-skip fix by temporarily reverting it, reran, confirmed both it and the original repro test failed with the expected wrong values, then restored the fix.\n- `test_python_same_line_before_call_assignment_still_recovered` \u2014 confirms the byte check doesn't over-prune legitimate before-call bindings.\n- `test_python_unshadowed_import_qualifier_still_resolves_import_qualified` \u2014 confirms the new materialized signal doesn't over-suppress R3 for genuine unshadowed imports.\n\nWrote `VERIFICATION.md` at the repo root with exact commands, totals, and Verified/Not-verified sections. No out-of-scope failures were found, so nothing needed to be flagged or re-baselined. Nothing committed \u2014 per the task's instructions, the orchestrator commits.",
+    "stop_reason": "end_turn",
+    "session_id": "a01942e8-360b-47ff-8dce-c0e1e944b3f0",
+    "total_cost_usd": 12.565250099999997,
+    "usage": {
+      "input_tokens": 316,
+      "cache_creation_input_tokens": 265030,
+      "cache_read_input_tokens": 30830257,
+      "output_tokens": 115003,
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 265030,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "not_available",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 590,
+          "cache_read_input_tokens": 286406,
+          "cache_creation_input_tokens": 1825,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 1825
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard"
+    },
+    "modelUsage": {
+      "claude-sonnet-5": {
+        "inputTokens": 316,
+        "outputTokens": 115003,
+        "cacheReadInputTokens": 30830257,
+        "cacheCreationInputTokens": 265030,
+        "webSearchRequests": 0,
+        "costUSD": 12.565250099999997,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000
+      }
+    },
+    "permission_denials": [],
+    "terminal_reason": "completed",
+    "fast_mode_state": "off",
+    "uuid": "4316285d-a729-445e-b47a-bcb3671dda4e"
+  },
+  "stdout_tail": null,
+  "stderr_tail": "",
+  "parse_error": null,
+  "replay_preface": "Replay note: you are working in /private/tmp/dbg-base-ws/DBG-02 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged."
+}

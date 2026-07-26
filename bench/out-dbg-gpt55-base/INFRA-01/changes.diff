@@ -1,0 +1,20 @@
+# git -C /private/tmp/dbg-g5-ws/INFRA-01 status --short
+ M scripts/test-db/select_db_host.sh
+?? VERIFICATION.md
+?? test/mocha/scripts/
+
+# git -C /private/tmp/dbg-g5-ws/INFRA-01 diff
+diff --git a/scripts/test-db/select_db_host.sh b/scripts/test-db/select_db_host.sh
+index f8f80bd8..1918aceb 100755
+--- a/scripts/test-db/select_db_host.sh
++++ b/scripts/test-db/select_db_host.sh
+@@ -11,7 +11,7 @@ for HOST in $DB_HOSTS; do
+   LOAD=$($SSH_CMD "awk '{printf \"%.2f\", \$1}' /proc/loadavg" 2>/dev/null) || continue
+   CPUS=$($SSH_CMD "nproc" 2>/dev/null) || continue
+   # Use awk for float comparison
+-  NORMALIZED=$(awk -v load="$LOAD" -v cpus="$CPUS" 'BEGIN {printf "%.2f", load / cpus}')
++  NORMALIZED=$(awk -v host_load="$LOAD" -v cpus="$CPUS" 'BEGIN {printf "%.2f", host_load / cpus}')
+   echo "[select_db_host.sh] $HOST: load=$LOAD cpus=$CPUS normalized=$NORMALIZED" >&2
+ 
+   if awk -v normalized="$NORMALIZED" -v best_load="$BEST_LOAD" 'BEGIN {exit !(normalized < best_load)}'; then
+

@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": false,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both suites share 7 near-identical tests (verified all RED on pre-Task-5 code by re-derivation of the branch logic; e.g. two_crate_owner_collision would stay 2xNameOnly pre-change). Strongest shared test: pending_import_alias_over_colliding_pool_keeps_all \u2014 deliberately built to fail if the (plausible but wrong) global-search directness oracle were used instead of call-site-rib inspection; a real adversarial negative case. Weakest shared: macro_wildcard_shadow_keeps_all \u2014 structurally redundant with block_local_glob_shadow (same NameOnly/keep-all assertion, different trigger). Arm B adds scope_graph_singleton_unresolved_owner_recovers_to_exact_not_drop, explicitly filling a gap its sibling test's own comment flags (a singleton bare pool can't test the Exact-recovery branch, only collision->demote) \u2014 this is Arm B's strongest test and a genuine coverage gain. Critically, I empirically ran both arms' actual code (built in isolated worktrees off the same base commit): for `trait Shape { fn area(&self)->f64; } impl Shape for Circle {...} fn drive(c:&Circle){ Shape::area(c) }`, rust_graph_qualified_target_is_free_fn resolves to a Some(target) with an EMPTY id-set. Arm A's `!ids.iter().any(...)` is vacuously true for empty ids, misrouting to the shipped resolve-or-drop path, which drops the call (out.drop=Some(UnknownName)) \u2014 a real, unambiguous UFCS call silently lost. Arm B's `!ids.is_empty() && ids.iter().all(...)` returns false, correctly falling through to the owner-prune, resolving Exact to Circle::area. Neither arm's own tests catch this, but Arm B's formula is byte-for-byte identical to the actual host-accepted ground-truth commit (63c52c5) in this repo; Arm A's is a silent rewrite that violates the task brief's explicit 'non-empty id-set' wording and the spec's 'never a real-edge drop' invariant.",
+  "rationale": "Both diffs are near-identical restructurings of resolve_call_site_full matching the plan almost verbatim, and both pass their full test suites (lib 332, integration 213-214) plus fmt. The decisive difference is one line: rust_graph_qualified_target_is_free_fn's empty-id-set handling. Arm B's formula exactly matches the real, TDD-verified, host-committed implementation of this exact task in the actual repo history. Arm A's differs and, confirmed by running both builds against a concrete fixture (trait method called via UFCS through a single impl), silently drops a real, unambiguous call edge that Arm B resolves correctly to Exact. This is a genuine WRONG, not a style nitpick \u2014 it directly regresses the recall guarantee that is the entire point of Task 5. Both arms are also missing the plan-required 'mixed-edition keep-all' test (scope_graph_non_uniform_edition_keeps_all in the real commit), a shared gap. Arm B additionally ships one more legitimate edge-case test Arm A lacks."
+ },
+ "cost_usd": 4.1795547
+}

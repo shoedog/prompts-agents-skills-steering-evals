@@ -1,0 +1,88 @@
+{
+  "harness": {
+    "argv_redacted": [
+      "/Users/wesleyjinks/.local/bin/claude",
+      "-p",
+      "<task_prompt omitted here \u2014 see the task yaml>",
+      "--model",
+      "claude-sonnet-5",
+      "--output-format",
+      "json",
+      "--dangerously-skip-permissions"
+    ],
+    "cwd": "/private/tmp/dbg-d2h-ws/DBG-02",
+    "model": "claude-sonnet-5",
+    "timeout_sec": 4500,
+    "started_at": "2026-07-05T04:57:55+00:00",
+    "ended_at": "2026-07-05T05:35:05+00:00",
+    "wall_sec": 2229.892,
+    "timed_out": false,
+    "returncode": 0
+  },
+  "cli_result": {
+    "type": "result",
+    "subtype": "success",
+    "is_error": false,
+    "api_error_status": null,
+    "duration_ms": 2228845,
+    "duration_api_ms": 1514965,
+    "ttft_ms": 5332,
+    "ttft_stream_ms": 2015,
+    "time_to_request_ms": 12,
+    "num_turns": 174,
+    "result": "Everything is confirmed clean. Summary of the verification-gate work completed:\n\n**Gap found and closed:** the original 5 repro tests covered the fix but not the \"else\" branch of each new code path. Added 3 more tests:\n- `test_python_same_line_before_call_assignment_still_recovers` \u2014 proves the byte cutoff isn't overly aggressive\n- `test_python_plain_import_qualifier_still_resolves_r3` / `test_typescript_plain_import_qualifier_no_shadow_still_resolves_r3` \u2014 prove the scan-first restructure doesn't disable R3 when there's no local shadowing\n\n**Cross-check:** stashed only the 4 `src/` files (keeping test edits) and reran all 8 typed-receiver tests against pre-fix source \u2014 the 5 original repros failed (red, as before), the 3 new edge-case tests passed (confirming they're genuine non-regression guards, not tautological). Restored the fix via `git stash pop`.\n\n**Full suite totals:** `cargo test` \u2192 2494 passed, 0 failed, 1 ignored (pre-existing, unrelated); `cargo test --features mcp` \u2192 2587 passed, 0 failed. `cargo fmt --check` clean. Tier-A `--matrix-only` exit 0, zero regressions (run twice, byte-identical). No failures found outside scope.\n\nWrote `VERIFICATION.md` at the repo root with exact commands, totals, `## Verified`/`## Not verified` sections (notably: JS/TS class-body skip is defensive/untested-by-repro since JS/TS class fields use a node kind the walk doesn't match anyway; no live-corpus or `--quick` Tier-A run; no commit made per the task's rules).",
+    "stop_reason": "end_turn",
+    "session_id": "767ae9c1-a699-49d2-bd6c-7d369f964290",
+    "total_cost_usd": 15.553783499999993,
+    "usage": {
+      "input_tokens": 342,
+      "cache_creation_input_tokens": 462435,
+      "cache_read_input_tokens": 36206725,
+      "output_tokens": 127742,
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 462435,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "not_available",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 581,
+          "cache_read_input_tokens": 317491,
+          "cache_creation_input_tokens": 385,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 385
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard"
+    },
+    "modelUsage": {
+      "claude-sonnet-5": {
+        "inputTokens": 342,
+        "outputTokens": 127742,
+        "cacheReadInputTokens": 36206725,
+        "cacheCreationInputTokens": 462435,
+        "webSearchRequests": 0,
+        "costUSD": 15.553783499999993,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000
+      }
+    },
+    "permission_denials": [],
+    "terminal_reason": "completed",
+    "fast_mode_state": "off",
+    "uuid": "27b5f74e-d99d-41bb-aa9a-22bf6a24940a"
+  },
+  "stdout_tail": null,
+  "stderr_tail": "",
+  "parse_error": null,
+  "replay_preface": "Replay note: you are working in /private/tmp/dbg-d2h-ws/DBG-02 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged."
+}

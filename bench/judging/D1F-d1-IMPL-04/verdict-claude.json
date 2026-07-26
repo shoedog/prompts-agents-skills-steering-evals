@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": false,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms add the same two tests: workflow_node_retry_parses and workflow_node_retry_maps_into_graph (satisfying mandatory PR-FIX-9 by driving RegistryConfig::parse + load_workflows and asserting WorkflowGraph.nodes[0].retry == Some(RetryPolicy{...})). Both would genuinely FAIL on pre-change code: WorkflowNodeToml had no retry field (compile failure) and the graph-build site hardcoded retry: None (assertion failure), so both are real regression tests, not tautologies. Neither arm adds negative/edge-case coverage beyond the happy path \u2014 no test for an explicit backoff_cap_ms value, no multi-node workflow, no malformed retry table. Arm A's parses test is marginally stronger: it adds assert_eq!(r.backoff_cap_ms, None), confirming the #[serde(default)] path explicitly; Arm B omits that check. Strongest test in each arm: the graph-mapping test (fulfills PR-FIX-9, the one test explicitly required to prove real behavior). Weakest in each arm: the TOML-only parses test, since it duplicates coverage already implied by the graph test and (in B's case) skips the cap-default check.",
+  "rationale": "Core deliverable is essentially identical: same RetryToml struct, same field addition, same graph-mapping code, same two tests with near-identical bodies. Arm A adds one extra assertion (backoff_cap_ms default) \u2014 a minor, non-decisive rigor edge. However Arm A also edits crates/bridge-workflow/src/graph.rs (backoff_for's checked_mul->saturating_mul), a file/crate outside T3's stated scope ('Touches bin/a2a-bridge/src/config.rs') and outside prior-task (T2) territory that the operating rules explicitly forbid touching ('implement ONLY what the task below the marker specifies... no more'). The edit is functionally harmless but is unrequested rework of already-approved code in a multi-task pipeline, which is exactly the kind of scope creep the task's Scope discipline rule exists to prevent. Arm B stays strictly within config.rs. Given technical parity plus B's clean scope adherence versus A's rule violation, B is materially better."
+ },
+ "cost_usd": 0.3061665
+}

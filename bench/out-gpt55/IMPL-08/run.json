@@ -1,0 +1,36 @@
+{
+  "harness": {
+    "executor": "codex",
+    "effort": "high",
+    "cwd": "/private/tmp/gpt55-ws/IMPL-08",
+    "argv": [
+      "/opt/homebrew/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "-o",
+      "/private/tmp/gpt55-ws/IMPL-08/.codex-final-message.md",
+      "-"
+    ],
+    "started_at": "2026-07-04T23:43:33+00:00",
+    "returncode": 0,
+    "timed_out": false,
+    "timeout_sec": 4500,
+    "stderr_tail": "solve_call_site_full(&site_in(&cg, \"drive\", \"Foo::m\"));\n+    assert_eq!(out.drop, None);\n+    assert!(\n+        out.resolved\n+            .iter()\n+            .all(|c| c.confidence == ResolutionConfidence::NameOnly),\n+        \"a covering macro wildcard keeps the full pool at NameOnly\"\n+    );\n+}\n+\n+#[test]\n+fn scope_graph_pending_import_alias_over_colliding_pool_keeps_all() {\n+    use prism::languages::Language::Rust;\n+    let sources = [\n+        (\n+            \"src/lib.rs\",\n+            \"mod a;\\nmod b;\\nuse crate::a::Foo;\\npub fn drive() {\\n    Foo::m();\\n}\\n\",\n+            Rust,\n+        ),\n+        (\n+            \"src/a.rs\",\n+            \"pub struct Foo;\\nimpl Foo {\\n    pub fn m(&self) {}\\n}\\n\",\n+            Rust,\n+        ),\n+        (\n+            \"src/b.rs\",\n+            \"pub struct Foo;\\nimpl Foo {\\n    pub fn m(&self) {}\\n}\\n\",\n+            Rust,\n+        ),\n+    ];\n+    let (cg, _) = build(&sources);\n+    assert_eq!(\n+        cg.methods\n+            .get(&(\"Foo\".to_string(), \"m\".to_string()))\n+            .map(|v| v.len()),\n+        Some(2),\n+        \"the bare owner key must collide across a::Foo and b::Foo\",\n+    );\n+    let out = cg.resolve_call_site_full(&site_in(&cg, \"drive\", \"Foo::m\"));\n+    assert_eq!(out.drop, None, \"a Pending import alias must not drop\");\n+    assert!(\n+        out.resolved.len() == 2\n+            && out\n+                .resolved\n+                .iter()\n+                .all(|c| c.confidence == ResolutionConfidence::NameOnly),\n+        \"Pending import alias keeps the full colliding pool at NameOnly\",\n+    );\n+}\n+\n+#[test]\n+fn scope_graph_mixed_edition_keeps_full_pool_not_drop() {\n+    let sources = [\n+        (\n+            \"src/lib.rs\",\n+            \"mod a;\\nmod b;\\npub struct Foo;\\npub fn drive() {\\n    Foo::m();\\n}\\n\",\n+        ),\n+        (\n+            \"src/a.rs\",\n+            \"pub struct Foo;\\nimpl Foo {\\n    pub fn m(&self) {}\\n}\\n\",\n+        ),\n+        (\n+            \"src/b.rs\",\n+            \"pub struct Foo;\\nimpl Foo {\\n    pub fn m(&self) {}\\n}\\n\",\n+        ),\n+    ];\n+    let (mut cg, _) = build_rust_complete(&sources);\n+    cg.scope_graph\n+        .as_mut()\n+        .expect(\"scope graph\")\n+        .edition_uniform = false;\n+\n+    let out = cg.resolve_call_site_full(&site_in(&cg, \"drive\", \"Foo::m\"));\n+    assert_eq!(out.drop, None, \"non-uniform edition must keep all\");\n+    assert_eq!(out.resolved.len(), 2, \"both colliding defs are kept\");\n+    assert!(out\n+        .resolved\n+        .iter()\n+        .all(|c| c.confidence == ResolutionConfidence::NameOnly));\n+}\n+\n+#[test]\n+fn scope_graph_free_fn_path_not_misrouted_to_colliding_method_pool() {\n+    use prism::languages::Language::Rust;\n+    let sources = [\n+        (\n+            \"src/lib.rs\",\n+            \"mod m;\\nmod other;\\npub fn drive() {\\n    crate::m::f();\\n}\\n\",\n+            Rust,\n+        ),\n+        (\"src/m.rs\", \"pub fn f() {}\\n\", Rust),\n+        (\n+            \"src/other.rs\",\n+            \"pub struct m;\\nimpl m {\\n    pub fn f(&self) {}\\n}\\n\",\n+            Rust,\n+        ),\n+    ];\n+    let (cg, _) = build(&sources);\n+    assert_eq!(\n+        cg.methods\n+            .get(&(\"m\".to_string(), \"f\".to_string()))\n+            .map(|v| v.len()),\n+        Some(1),\n+        \"the cross-module struct `m::f` must populate the colliding method bucket\",\n+    );\n+    let out = cg.resolve_call_site_full(&site_in(&cg, \"drive\", \"crate::m::f\"));\n+    assert_eq!(out.drop, None, \"the free-fn `::` path resolves, not drops\");\n+    assert_eq!(\n+        out.resolved.len(),\n+        1,\n+        \"the module free fn is the single resolved target\"\n+    );\n+    assert_eq!(\n+        out.resolved[0].target.file, \"src/m.rs\",\n+        \"must resolve to the module free fn, never the cross-module method pool\",\n+    );\n+    assert_eq!(out.resolved[0].confidence, ResolutionConfidence::Exact);\n+}\n+\n+#[test]\n fn non_rust_resolution_is_unchanged_with_scope_graph_present() {\n     use prism::languages::Language::Python;\n     let sources = [\n\ntokens used\n95,402\n"
+  },
+  "cli_result": {
+    "subtype": "success",
+    "is_error": false,
+    "num_turns": null,
+    "usage": {
+      "tokens_used": 95402
+    },
+    "total_cost_usd": null,
+    "result": "Implemented Task 5 only, left edits uncommitted, and did not run git.\n\nModified files:\n- [src/resolution.rs](/private/tmp/gpt55-ws/IMPL-08/src/resolution.rs:562)\n- [tests/integration/resolution_test.rs](/private/tmp/gpt55-ws/IMPL-08/tests/integration/resolution_test.rs:1692)\n\nWhat changed:\n- Wired Rust `resolve_call_site_full` owner-method `::` sites through `ScopeResolution` prune.\n- Added the free-function guard, #120-only owner fail-open, `rust_scope_prune_owner`, and `owner_method_key`.\n- Added the Task 5 integration fixtures, including the replay-requested mixed-edition keep-all fixture.\n\nRED -> GREEN evidence:\n- `scope_graph_two_crate_owner_collision_recovers_to_single_exact`: already PASS at RED, PASS after implementation.\n- `scope_graph_free_fn_path_not_misrouted_to_colliding_method_pool`: already PASS at RED, PASS after implementation.\n- `scope_graph_inherent_plus_trait_owner_demotes_not_drops`: RED dropped `UnknownName`, GREEN PASS.\n- `scope_graph_unresolved_owner_path_keeps_full_pool_not_drop`: RED dropped `UnknownName`, GREEN PASS.\n- `scope_graph_block_local_glob_shadow_keeps_all`: RED failed keep-all NameOnly assertion, GREEN PASS.\n- `scope_graph_macro_wildcard_shadow_keeps_all`: RED failed keep-all NameOnly assertion, GREEN PASS.\n- `scope_graph_pending_import_alias_over_colliding_pool_keeps_all`: RED failed keep-all NameOnly assertion, GREEN PASS.\n- `scope_graph_mixed_edition_keeps_full_pool_not_drop`: RED dropped `UnknownName`, GREEN PASS.\n\nValidation:\n- `cargo fmt`: PASS\n- `cargo test --test integration resolution_test::scope_graph_`: PASS, 8 passed\n- Three drop invariants: all PASS\n- `cargo test --test integration resolution_test::`: PASS, 132 passed, 1 ignored\n- `cargo test --test integration`: PASS, 214 passed, 1 ignored\n- `cargo test --lib`: PASS, 332 passed\n- `cargo build --release`: PASS\n\nDeviation: I did not run Tier-A because the task explicitly said not to touch `eval/`. No `eval/` files were touched.",
+    "session_id": null,
+    "duration_ms": 300480
+  },
+  "replay_preface": "Replay note: you are working in /private/tmp/gpt55-ws/IMPL-08 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged."
+}

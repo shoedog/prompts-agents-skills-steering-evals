@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms' commit_precedence tests assert concrete values, not vacuous checks, and would fail against a naive precedence impl (e.g. missing Typed tier or missing comment-strip). Arm A covers Typed>File>Title>Derived + comment-only-typed\u2192Title, but has zero coverage of the '64 KiB bound' requirement. I ran both arms' real code: Arm A's own bounding is broken \u2014 commit_message(Some(\"x\".repeat(65537)), None, \"My Title\", \"task\") truncates to 64KiB of 'x's tagged CommitSource::Typed instead of falling back to Title (verified via cargo test). Arm B added exactly this oversize case to its suite; it passes against Arm B's reject-on-oversize impl, and fails against Arm A's \u2014 proof it's a genuine regression-catching test, not a formality, and it matches the actual merged reference implementation's semantics. Strongest test A: comment-only-typed\u2192Title. Weakest spot in A: no test exercises bounding at all, which is exactly where its bug hides. Strongest test B: the oversize\u2192Title case. Weakest test B: 'no typed/no file\u2192title' \u2014 correct but trivial.",
+  "rationale": "Both implement identical signatures/enum/precedence/call-site threading (main.rs, merge.rs) and correctly avoid rippling into decide()/tweak.rs per the brief. The decisive difference is the 64 KiB bound: the task says to 'mirror read_commit_msg_file's bounding', which rejects (returns None) oversized content. Arm B's commit_candidate does this (reject); Arm A's sanitize_commit_candidate instead truncates oversized input and still returns it as present. I confirmed empirically (via cargo test against each arm's actual code) that Arm A returns a 64KiB garbage commit message tagged Typed for an oversized typed candidate, where spec/reference/Arm B correctly fall back to Title. Arm B also added a test covering this exact case; Arm A did not, and lacking it let the bug ship untested."
+ },
+ "cost_usd": 1.1942481
+}

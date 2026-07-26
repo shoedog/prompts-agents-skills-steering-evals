@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms add a materialized/recovered split, thread call_start_byte through receiver_type_in_fn/walk_receiver_bindings, skip nested class-body scopes, bump CACHE_VERSION to 25, and gate strictly to Python/JS/TS (Rust predicate unchanged: `rust_recv_materialized || recovered_recv_materialized` where the latter is language-gated). Both add regression tests for the Python (import Foo/class x/def run(x:Foo)) and TS (import api/param api:Foo) false-Exact repros plus the nested-class-body and same-line-after-call cases; these fail pre-fix (old gate excluded is_import unconditionally, no byte-based cutoff, no class-body skip) and pass post-fix. The decisive difference: Arm A's `receiver_type_in_fn` is left structurally unchanged \u2014 it still collapses `found` to None whenever `bindings > 1` (shadow-bail), and Arm A derives `materialized` solely from whether that function returns Some. So a typed param from a poisoned import that gets rebound before the call (e.g. `def run(x: Foo): x = f(); x.m()`) produces bindings=2 -> found=None -> materialized=false, and R3/R3b are NOT suppressed \u2014 reintroducing the exact false-Exact class this fix targets. Arm B threads a `materialized: &mut bool` through the whole recursive walk and explicitly returns it even across the `bindings > 1` early-return (`return (None, materialized)`), so the same rebinding scenario correctly stays suppressed. Arm B also adds a standalone Python positive-control test (non-poisoned typed param resolves Exact) per the task's explicit ask, which Arm A only covers implicitly bundled into its TS test.",
+  "rationale": "WRONG (concrete scenario): Arm A conflates 'a binding exists' with 'receiver_type_in_fn returned Some', so the pre-existing bindings>1 shadow-bail path silently drops the materialized signal, letting R3/R3b fire again for a realistic rebind-before-call pattern \u2014 the fix isn't fully root-caused. Arm B tracks materialized independently through the whole walk (including the shadow branches) and preserves it across the bail, matching the task's ask to make 'binding found' a state fully distinct from 'type resolved'. Both pass the literal required repro tests and stay properly scoped to Python/JS/TS with Rust/Go untouched. Arm B's test suite is also more complete (explicit positive control). Net: B is materially better on root-cause correctness, not just style."
+ },
+ "cost_usd": 0.7527342
+}

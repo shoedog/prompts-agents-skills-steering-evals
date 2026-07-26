@@ -1,0 +1,6 @@
+POST-RUN evidence (workspace after the Fable session)
+=====================================================
+
+$ bash -n scripts/test-db/select_db_host.sh
+  # shell syntax gate - WEAK oracle. Real judging is post-hoc diff vs 09e26f00 (gawk 'load' builtin collision -> rename; test/hooks.js untouched = scope discipline)
+  [exit 0, 0.002s]

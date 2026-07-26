@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": false,
+  "probe_answer": "Both arms remove the collision at the root the same way: they extract the ordinal-assigning loop out of add_locals into a new add_local_bindings(b, scope, file, scope_end, names) that binds ALL names from one ordered slice via enumerate(), and rewrite bind_params to collect every parameter's (name, def_byte, fact) first, call add_local_bindings ONCE with the full ordered name slice, and attach each LocalFact separately via add_local_fact keyed by def_byte (not by the per-call slice index). This restores ordinals 0,1,2,... matching parent 48f15d9. Both add a param-ordinal regression that fails pre-fix (old per-param add_locals calls each restarted enumerate() at 0, so a and b both got ordinal 0; both tests assert a.ordinal=0, b.ordinal=1, distinct) plus a same-rib duplicate-local ambiguity test asserting lookup_visible_binding returns None. Neither touches other add_locals call sites (lets/patterns), which already batched full slices in one call and were never broken, so both fixes are inert beyond the repair. B's ambiguity test is more rigorous: it first asserts the pre-shadow lookup DOES resolve to the correct first `x` (proving the None afterward isn't vacuous), and B adds a second ordinal regression at the populate_rust/rust_populator integration layer (tests/name_resolution/rust_populate_test.rs) with a uniqueness check (exactly one Value-ns local binding per name), giving broader coverage than A's single CallGraph-level test file.",
+  "rationale": "Both arms implement the identical root-cause fix (extract a single ordered add_local_bindings pass; attach per-param facts by def_byte instead of via per-name add_locals calls) and both satisfy the two required regressions with tests that genuinely fail on the pre-fix code. No demonstrated incorrect behavior (WRONG) distinguishes them \u2014 the gap is purely test rigor (SMELL-level): B's ambiguity test proves non-vacuousness and B adds a second ordinal regression at the populate_rust integration layer, which is a real but modest quality edge, not a correctness deficiency in A. Given the severity-discipline rule that a finding needs a concrete failure scenario to count as more than a smell, I call this parity on 'materially better' while flagging B's stronger tests as a tiebreaker note."
+ },
+ "cost_usd": 0.42552840000000003
+}

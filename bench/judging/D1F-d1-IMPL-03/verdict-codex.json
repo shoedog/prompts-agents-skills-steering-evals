@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A's tests would fail on pre-change code because sqlite batch schema/method overrides were missing and claim_batch_child would not persist/query a claimed child correctly. Strongest A test: sqlite_claim_is_atomic_single_runner, since it asserts Created then ExistingWorking and one child row. Weakest A test: sqlite_migration_idempotent_and_batch_roundtrip, since it only checks total after reopen and misses status/items/error, task metadata, CAS, active/list, fail, and terminal paths. Arm B's tests would also fail pre-change and are stronger: they assert batch fields, duplicate create failure, task batch_id/item_id round-trip, cancel/settle CAS including no-op, active_batches, fail_batch_if_status error persistence/no-op, list_batches, child identity/item_id, and terminal re-claim. Strongest B test: sqlite_migration_idempotent_and_batch_roundtrip because it covers most new sqlite batch paths and negative/CAS behavior. Weakest B test: sqlite_claim_is_atomic_single_runner only because it is sequential rather than a true concurrent race, though it still asserts real behavior.",
+  "rationale": "No WRONG implementation difference separates the arms. Both implement the requested migration, task batch_id/item_id round-trip, and all nine SqliteStore batch methods including fail_batch_if_status. SMELL in both: claim_batch_child selects only status rather than the specified id,status, but this does not change the required return behavior. Scope is clean for both. Arm B is materially better because the code is at parity while its tests cover substantially more of the new behavior and edge/CAS paths."
+ },
+ "tokens_used": 37281
+}

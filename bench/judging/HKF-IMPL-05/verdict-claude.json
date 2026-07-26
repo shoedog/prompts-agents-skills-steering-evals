@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms' tests require the new 4-arg signature, so trivially fail to compile pre-change \u2014 not a differentiator. Edge-case coverage differs: Arm A (5 tests) adds dedicated tests for NUL-stripping (commit_candidate_nul_bytes_stripped_not_rejected: \"go\\0od\"->\"good\") and for a comment embedded inside real content (commit_candidate_strips_partial_comment_not_absent: distinguishes 'strip the comment' from 'reject the whole candidate'), plus an explicit 64KiB-truncation test \u2014 each asserting concrete transformed output, not trivial. Arm B (2 tests) covers precedence + comment-only->Title + one oversize case in a single compact test, but never separately exercises NUL-stripping or partial-in-content comments despite implementing both, leaving those code paths untested. Arm A strongest test: commit_candidate_strips_partial_comment_not_absent (real behavioral assertion on exact stripped output). Arm A weakest: the ported commit_message_file_else_fallback (mostly mechanical signature update). Arm B strongest: commit_precedence_and_comment_only_falls_back_to_title (compact, asserts full (msg,source) tuples across 5 scenarios). Arm B weakest: that same test's oversize assertion \u2014 it locks in 'oversize typed -> ABSENT/Title', a debatable reading of the spec that may enshrine a bug rather than catch one.",
+  "rationale": "Both correctly add CommitSource, the 4-arg precedence function, comment-stripping, and update all three call sites (main.rs, merge.rs; tweak.rs correctly left untouched) plus the required precedence test. Two real divergences. (1) Oversize (>64KiB) handling: A truncates/bounds and keeps the candidate present; B rejects it as ABSENT. The brief's 'bound to 64 KiB (reuse/mirror read_commit_msg_file's bounding)' is ambiguous, but read_commit_msg_file itself is documented to return None (absent) on oversize, and the brief deliberately contrasts 'NUL-strip' (new behavior) against 'mirror...bounding' (existing behavior) \u2014 so B's reject-as-absent reading is defensible and arguably closer to the cited function. (2) main.rs's decide() call: A computes commit_source, uses it correctly for the warning, then discards it and hardcodes decide(..., (commit_msg, false)) instead of passing commit_source==Derived \u2014 a visible, unexplained regression from the prior single-source-of-truth boolean threaded into decide(). B recomputes and threads the correct boolean, exactly preserving prior semantics. A has notably stronger tests, but B's implementation is the more careful and defensible one at the two points that matter, so B edges out overall."
+ },
+ "cost_usd": 0.9618291
+}

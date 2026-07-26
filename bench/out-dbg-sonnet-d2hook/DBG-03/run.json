@@ -1,0 +1,88 @@
+{
+  "harness": {
+    "argv_redacted": [
+      "/Users/wesleyjinks/.local/bin/claude",
+      "-p",
+      "<task_prompt omitted here \u2014 see the task yaml>",
+      "--model",
+      "claude-sonnet-5",
+      "--output-format",
+      "json",
+      "--dangerously-skip-permissions"
+    ],
+    "cwd": "/private/tmp/dbg-d2h-ws/DBG-03",
+    "model": "claude-sonnet-5",
+    "timeout_sec": 4500,
+    "started_at": "2026-07-05T05:35:52+00:00",
+    "ended_at": "2026-07-05T05:45:23+00:00",
+    "wall_sec": 571.124,
+    "timed_out": false,
+    "returncode": 0
+  },
+  "cli_result": {
+    "type": "result",
+    "subtype": "success",
+    "is_error": false,
+    "api_error_status": null,
+    "duration_ms": 564799,
+    "duration_api_ms": 395341,
+    "ttft_ms": 2568,
+    "ttft_stream_ms": 1135,
+    "time_to_request_ms": 15,
+    "num_turns": 65,
+    "result": "I'll stop here and wait for the background test run to complete.",
+    "stop_reason": "end_turn",
+    "session_id": "bbbda0ea-445b-4666-a432-3580971f34f0",
+    "total_cost_usd": 2.6470142999999995,
+    "usage": {
+      "input_tokens": 123,
+      "cache_creation_input_tokens": 96738,
+      "cache_read_input_tokens": 5362291,
+      "output_tokens": 30502,
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 96738,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "not_available",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 81,
+          "cache_read_input_tokens": 119670,
+          "cache_creation_input_tokens": 269,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 269
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard"
+    },
+    "modelUsage": {
+      "claude-sonnet-5": {
+        "inputTokens": 123,
+        "outputTokens": 30502,
+        "cacheReadInputTokens": 5362291,
+        "cacheCreationInputTokens": 96738,
+        "webSearchRequests": 0,
+        "costUSD": 2.6470142999999995,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000
+      }
+    },
+    "permission_denials": [],
+    "terminal_reason": "completed",
+    "fast_mode_state": "off",
+    "uuid": "91e0781a-8ff9-4342-b85c-87a7cb65d2a6"
+  },
+  "stdout_tail": null,
+  "stderr_tail": "",
+  "parse_error": null,
+  "replay_preface": "Replay note: you are working in /private/tmp/dbg-d2h-ws/DBG-03 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged."
+}

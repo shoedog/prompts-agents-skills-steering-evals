@@ -1,0 +1,127 @@
+{
+  "id": "IMPL-04",
+  "ws": "/private/tmp/sonnet-hook-ws/IMPL-04",
+  "dry_run": false,
+  "model": "claude-sonnet-5",
+  "replay_preface": "Replay note: you are working in /private/tmp/sonnet-hook-ws/IMPL-04 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged.",
+  "run_status": "ok",
+  "subtype": "success",
+  "api_error_status": null,
+  "returncode": 0,
+  "session_id": "de7b715c-dc67-45e0-bbaf-6c716a37cdb7",
+  "duration_ms": 396847,
+  "num_turns": 47,
+  "usage": {
+    "input_tokens": 88,
+    "cache_creation_input_tokens": 86176,
+    "cache_read_input_tokens": 3453796,
+    "output_tokens": 19021,
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 86176,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 414,
+        "cache_read_input_tokens": 107048,
+        "cache_creation_input_tokens": 2329,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2329
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "total_cost_usd": 1.8387738000000002,
+  "stop_reason": "end_turn",
+  "is_error": false,
+  "result_text": "Verification gate complete. Summary:\n\n- Added 2 more tests (4 total, up from 2) covering the missing edge/negative cases: retry-absent defaults to `None` end-to-end, and malformed retry TOML (missing required `max_attempts`) fails to parse \u2014 the latter verified non-vacuous by a temporary break-and-confirm-fail-then-revert.\n- Full suite: `cargo test --workspace --all-targets` \u2192 **1235 passed, 0 failed, 12 ignored** across 42 binaries.\n- `cargo build --workspace` clean, `cargo fmt --all --check` clean.\n- `cargo clippy --workspace --all-targets -- -D warnings` **fails**, but on a pre-existing lint in `crates/bridge-workflow/src/graph.rs:43` from T2 (commit `a7cb683`), confirmed via `git stash` to exist with zero of this task's changes applied \u2014 out of this task's scope (`config.rs` only), not fixed, recorded in `VERIFICATION.md` rather than silently patched.\n- Wrote `VERIFICATION.md` at repo root with exact commands, totals, `## Verified`/`## Not verified` sections.\n- Nothing committed, per instructions.",
+  "timed_out": false,
+  "parse_error": null,
+  "terminal_reason": "completed",
+  "tests_passed_guess": "fail",
+  "evidence_summary": [
+    {
+      "cmd": "cargo test -p a2a-bridge workflow_node_retry",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo build --workspace",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo test --workspace --all-targets",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo fmt --all --check",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo clippy --workspace --all-targets -- -D warnings",
+      "returncode": 101,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    }
+  ],
+  "scaffold": {
+    "tracked_scaffold_paths": [
+      "AGENTS.md"
+    ],
+    "missing_on_disk_after_checkout": [],
+    "has_CLAUDE_md": false,
+    "has_dot_claude_dir": false,
+    "has_AGENTS_md": true,
+    "agents_md_shimmed": true,
+    "global_hooks_present": true,
+    "shim": {
+      "present": true,
+      "sha256_at_write": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53",
+      "sha256_after_run": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53",
+      "changed": false
+    },
+    "injected": {
+      "from": "bench/hooks-d1",
+      "files": [
+        ".claude/hooks/verify_gate.sh",
+        ".claude/settings.json"
+      ]
+    }
+  },
+  "shim": {
+    "present": true,
+    "changed": false,
+    "sha256_at_write": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53",
+    "sha256_after_run": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53"
+  },
+  "source_repo_touched": false,
+  "transcript_lookup_note": null,
+  "transcript_path": "bench/out-sonnet-d1hook/IMPL-04/transcript.jsonl"
+}

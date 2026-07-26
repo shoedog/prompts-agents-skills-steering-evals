@@ -1,0 +1,80 @@
+{
+  "id": "DBG-01",
+  "ws": "/private/tmp/dbg-g5-ws/DBG-01",
+  "dry_run": false,
+  "model": "claude-fable-5",
+  "replay_preface": "Replay note: you are working in /private/tmp/dbg-g5-ws/DBG-01 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged.",
+  "run_status": "ok",
+  "subtype": "success",
+  "api_error_status": null,
+  "returncode": 0,
+  "session_id": null,
+  "duration_ms": 200729,
+  "num_turns": null,
+  "usage": {
+    "tokens_used": 50230
+  },
+  "total_cost_usd": null,
+  "stop_reason": null,
+  "is_error": false,
+  "result_text": "Investigated. I did not modify the worktree; `git status --short` is clean.\n\nRoot cause: [src/repo_loader.rs](/private/tmp/dbg-g5-ws/DBG-01/src/repo_loader.rs:407) now records `workspace_members` only from successfully parsed `[package]` manifests. That fixes glob workspaces because `crates/*` becomes concrete dirs like `crates/a`, but it drops non-glob declared members whose manifests are malformed. The failing test expects the root `[workspace] members = [\"good\", \"bad\"]` to survive even though `bad/Cargo.toml` is malformed.\n\nReproduced failures:\n\n- `cargo fmt --all -- --check` fails on rustfmt reflow in [src/repo_loader.rs](/private/tmp/dbg-g5-ws/DBG-01/src/repo_loader.rs:1035).\n- `cargo test --test name_resolution malformed_member_manifest_does_not_discard_valid_sibling_manifest -- --nocapture` fails at [tests/name_resolution/build_wiring_test.rs](/private/tmp/dbg-g5-ws/DBG-01/tests/name_resolution/build_wiring_test.rs:384):\n  `left: [\"good\"]`, `right: [\"bad\", \"good\"]`.\n- `cargo test -p prism repo_loader::tests::glob_workspace_members_expand_to_concrete_dirs -- --nocapture` passes, confirming the new glob behavior itself is valid.\n\nThe focused fix should be: keep parsed `[package]` dirs for glob safety, and also add declared `[workspace].members` entries that are non-glob, never raw `*` patterns. Then run `cargo fmt --all`, `cargo fmt --all -- --check`, the failing malformed-member test, and the glob regression test.\n\nGitHub note: current PR #124 is merged and latest visible checks are green at a later head SHA, while this isolated clone is at the failing pre-fix SHA `04c6b0b`.\n\n",
+  "timed_out": false,
+  "parse_error": null,
+  "terminal_reason": null,
+  "tests_passed_guess": "fail",
+  "evidence_summary": [
+    {
+      "cmd": "cargo fmt --all --check",
+      "returncode": 1,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo test malformed_member_manifest",
+      "returncode": 101,
+      "timed_out": false,
+      "expect_min_tests": 1,
+      "matched_tests": 0,
+      "min_tests_satisfied": false
+    },
+    {
+      "cmd": "cargo test",
+      "returncode": 101,
+      "timed_out": false,
+      "expect_min_tests": 2000,
+      "matched_tests": 2318,
+      "min_tests_satisfied": true
+    }
+  ],
+  "scaffold": {
+    "tracked_scaffold_paths": [
+      ".claude-plugin/marketplace.json",
+      ".claude-plugin/plugin.json",
+      "AGENTS.md",
+      "CLAUDE.md"
+    ],
+    "missing_on_disk_after_checkout": [],
+    "has_CLAUDE_md": true,
+    "has_dot_claude_dir": false,
+    "has_AGENTS_md": true,
+    "agents_md_shimmed": false,
+    "global_hooks_present": true,
+    "shim": {
+      "present": false,
+      "sha256_at_write": null,
+      "sha256_after_run": null,
+      "changed": false
+    }
+  },
+  "shim": {
+    "present": false,
+    "changed": false,
+    "sha256_at_write": null,
+    "sha256_after_run": null
+  },
+  "source_repo_touched": false,
+  "transcript_lookup_note": "matched codex rollout by cwd (1 candidate(s))",
+  "transcript_path": "bench/out-dbg-gpt55-base/DBG-01/transcript.jsonl"
+}

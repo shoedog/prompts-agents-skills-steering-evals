@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": false,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": false,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Arm A: yes on design; lookup scans and returns the Binding itself and facts are keyed by def_byte, and params are added in one add_locals call. Its tests exercise same-rib relet containment, but they do not directly assert distinct BindingRefs for fn f(a, b), so the exact per-param ordinal collision would not be caught. Arm B: no; although lookup/facts do not need to dereference BindingRef, bind_params calls add_locals once per parameter, reintroducing the ordinal-0 collision in the graph. Its tests would not catch it because they cover only a single let/shadow case and no multi-param or multi-binding identity assertions.",
+  "rationale": "Arm A implements the requested lookup and local_facts table with much stronger recall-safety coverage: same-scope relet nearest-def behavior, inner/outer shadowing, use-before-def fallthrough, macro/glob poisoning, import decoys, ambiguity, and fact shape tests. Arm B has material correctness gaps: lookup filters to Resolved(Local) bindings, so an inner import/item can be ignored and an outer local can be returned wrongly; same-rib relets become ambiguous instead of nearest-def; destructured lets/params can get unsafe annotation/init facts; method calls can be misclassified as plain calls; and bind_params reintroduces the exact add_locals-per-param BindingRef collision, violating the inert/no-behavior-change requirement. A is materially better."
+ },
+ "tokens_used": 39270
+}

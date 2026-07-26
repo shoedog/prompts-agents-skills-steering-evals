@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both correctly identify the root cause: per-param add_locals calls restarted the enumerate-based ordinal at 0 each call. (a) Both restore a single ordered pass: Arm A adds add_locals_with_facts(names, facts) called once from bind_params; Arm B adds a pure add_local_bindings(names) for the ordinal pass and attaches facts separately via b.add_local_fact keyed by def_byte (matching the task's literal 'facts attach by def_byte, NOT via a per-name add_locals call'). Both give ordinals 0,1,... again. (b) Both add fn f(a,b) tests asserting a.ordinal=0, b.ordinal=1 and distinct BindingRefs - genuinely fails on the buggy code (both would be 0). (c) Both are minimal/inert: add_locals's original single-fact signature is preserved unchanged for other let/pattern callers via delegation, so no other call sites are affected; neither leaves add_locals as dead code. For the ambiguity regression, Arm B writes a real duplicate `let x=1; let x=2;` in one block (exercising the actual populator path, plus a pre-second-let visibility sanity check), while Arm A fabricates ambiguity by cloning one resolved binding in-memory and pushing it into graph.bindings - it only exercises lookup's tie-break, never the real duplicate-declaration path the task described.",
+  "rationale": "No WRONG-level defect in either arm - both correctly remove the ordinal bug with an inert, backward-compatible design and a valid ordinal-regression test that fails pre-fix. Arm B is modestly stronger: its fix decouples fact-population (direct b.add_local_fact by def_byte) from the ordinal-assigning binding pass exactly as the task prescribed, versus Arm A's more general add_locals_with_facts combinator that still routes facts through an add_locals-family call. More concretely, Arm B's ambiguity test uses an actual duplicate `let x` in one block as the task literally specified, exercising the real population code path, whereas Arm A synthesizes the ambiguous state by hand-cloning a binding, which only tests the lookup's arbitration logic and never confirms the populator itself produces the ambiguous pair for real duplicate declarations. This is a completeness/rigor gap against the stated acceptance criteria, not a bug, but enough to call B materially better."
+ },
+ "cost_usd": 0.5890298999999999
+}

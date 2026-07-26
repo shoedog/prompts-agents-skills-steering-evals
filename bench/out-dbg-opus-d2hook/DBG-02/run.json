@@ -1,0 +1,88 @@
+{
+  "harness": {
+    "argv_redacted": [
+      "/Users/wesleyjinks/.local/bin/claude",
+      "-p",
+      "<task_prompt omitted here \u2014 see the task yaml>",
+      "--model",
+      "claude-opus-4-8",
+      "--output-format",
+      "json",
+      "--dangerously-skip-permissions"
+    ],
+    "cwd": "/private/tmp/dbg-opusd2-ws/DBG-02",
+    "model": "claude-opus-4-8",
+    "timeout_sec": 4500,
+    "started_at": "2026-07-05T06:47:52+00:00",
+    "ended_at": "2026-07-05T07:24:27+00:00",
+    "wall_sec": 2195.413,
+    "timed_out": false,
+    "returncode": 0
+  },
+  "cli_result": {
+    "type": "result",
+    "subtype": "success",
+    "is_error": false,
+    "api_error_status": null,
+    "duration_ms": 2194362,
+    "duration_api_ms": 1585387,
+    "ttft_ms": 11498,
+    "ttft_stream_ms": 1008,
+    "time_to_request_ms": 18,
+    "num_turns": 113,
+    "result": "The verification gate is complete. Summary of what the stop hook required:\n\n**(1) Full suite run with totals:**\n- `cargo test` (default, all 28 binaries): **2493 passed, 0 failed**\n- `cargo test --features mcp` (all 30 binaries): **2586 passed, 0 failed**\n- `cargo test --doc`: 0 tests\n- Rust/Go non-regression: `lang_rust` 28/28, `lang_go` 41/41\n- Tier-A `--matrix-only`: EXIT=0, 40 ok, 2 pre-existing `expected_gap`, 0 regressions\n\n**(2) Every fixed behavior has a pre-change-failing test + a per-path edge/negative case.** The three primary repros (B1, B2, MAJOR\u00d72) were observed RED before and GREEN after. I added two missing per-path cases:\n- `test_python_wildcard_poison_suppresses_r3b_owner_key` \u2014 exercises the wildcard `\"*\"` sentinel branch; **RED confirmed** on pre-change code in a throwaway HEAD worktree (`Exact QualifierOwner`).\n- `test_typescript_import_qualifier_without_binding_still_resolves_r3` \u2014 boundary guard proving the dropped `is_import(q)` gate didn't break real module calls (green both ways by design).\n\n**(3) VERIFICATION.md** written at repo root with the exact commands + pass totals, a `## Verified` section, and a `## Not verified` section (full multi-corpus Tier-A and the pydantic/fastapi call-stats \"buy\" are orchestrator-run; JS has no RED test because JS class fields don't parse into the recovery arms).\n\n**(4) No out-of-scope failures.** The only non-`ok` Tier-A entries are two documented `expected_gap` cases (spec \u00a72.4), not regressions \u2014 recorded in VERIFICATION.md, not re-baselined or silently touched.\n\nWorking tree: 9 source/test files + VERIFICATION.md staged (explicit `git add`, no `-a`); `eval/` untouched and unstaged. Not committed \u2014 per the task rules the orchestrator commits (trailer `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`).",
+    "stop_reason": "end_turn",
+    "session_id": "6669c0f8-834e-450a-bf04-f71a9caf0ccb",
+    "total_cost_usd": 12.767600500000002,
+    "usage": {
+      "input_tokens": 28698,
+      "cache_creation_input_tokens": 209023,
+      "cache_read_input_tokens": 15752661,
+      "output_tokens": 106302,
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 209023,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "not_available",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 764,
+          "cache_read_input_tokens": 223409,
+          "cache_creation_input_tokens": 693,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 693
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard"
+    },
+    "modelUsage": {
+      "claude-opus-4-8": {
+        "inputTokens": 28698,
+        "outputTokens": 106302,
+        "cacheReadInputTokens": 15752661,
+        "cacheCreationInputTokens": 209023,
+        "webSearchRequests": 0,
+        "costUSD": 12.767600500000002,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000
+      }
+    },
+    "permission_denials": [],
+    "terminal_reason": "completed",
+    "fast_mode_state": "off",
+    "uuid": "042441d5-bb88-4816-86b0-763cce1b5437"
+  },
+  "stdout_tail": null,
+  "stderr_tail": "",
+  "parse_error": null,
+  "replay_preface": "Replay note: you are working in /private/tmp/dbg-opusd2-ws/DBG-02 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged."
+}

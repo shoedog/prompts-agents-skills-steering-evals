@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Both arms' 2 baseline tests (migration-idempotent-roundtrip, claim-atomic) hit real SQL against a fresh/reopened DB and would fail on pre-change code (no batch table/columns, batch methods unimplemented) \u2014 not trivial. Coverage diverges sharply beyond that. Arm A adds 7 more tests spanning all 9 methods: duplicate-id INSERT rejection, list_batches ordering, active_batches WHERE-IN filtering, claim's ExistingTerminal branch (never hit by the required test, which only produces Created/ExistingWorking), full CAS semantics for cancel/settle/fail (mismatch-is-noop AND success-updates-state, plus error preserved on repeat fail), and batch_id/item_id round-trip via the plain create()/get()/list() path \u2014 a spec requirement distinct from claim's own insert. Arm B ships cancel_batch_if_working, settle_batch_if_status, fail_batch_if_status, list_batches, and active_batches with zero direct tests, and never exercises ExistingTerminal \u2014 real risk since these are hand-written CAS/filter SQL with no other test suite touching them. Arm A strongest test: sqlite_batch_cas_transitions (asserts a CAS miss leaves status/ts untouched AND a CAS hit updates both). Arm A weakest: sqlite_get_batch_missing_is_none (thin). Arm B strongest: sqlite_claim_is_atomic_single_runner. Arm B weakest/gap: no test for any CAS transition method at all.",
+  "rationale": "Functionally the implementations are near-identical: same schema, same 9 method bodies, same CAS semantics, same idempotent migration placement (both correct, just in different helper functions). Verified rusqlite APIs used by each (Transaction::new_unchecked in A; transaction_with_behavior on a `mut` guard in B) both exist and are valid, so neither has a compile-correctness gap. Scope is identical and clean (Cargo.toml/lock + sqlite.rs only). The decisive difference is test rigor: Arm A adds 7 tests beyond the 2 required, covering CAS-mismatch/CAS-success pairs, the otherwise-untested ExistingTerminal claim branch, list/active filtering, duplicate-id rejection, and the batch_id/item_id round-trip via the ordinary create()/get() path. Arm B leaves 5 of 9 methods completely untested. Minor SMELL (not a demonstrated bug): Arm A's claim_batch_child inserts rec.status verbatim rather than the spec's literal status='working', a latent deviation that isn't exercised by any test since callers always pass Working."
+ },
+ "cost_usd": 0.9620434
+}

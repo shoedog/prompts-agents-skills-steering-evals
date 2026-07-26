@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A: its suite would fail on pre-change code via create_batch/claim paths and it covers real negative/edge behavior: duplicate batch ids, active filtering, ExistingTerminal, CAS miss/success, fail_batch_if_status no-overwrite, and task batch_id/item_id round-trip. Strongest test: sqlite_batch_cas_transitions, with sqlite_fail_batch_if_status close behind. Weakest test: sqlite_get_batch_missing_is_none, which is low-signal and may match a trivial default. Arm B: its two tests would also fail on pre-change code and assert real behavior, but they cover only the happy-path batch round-trip and duplicate claim. Strongest test: sqlite_claim_is_atomic_single_runner. Weakest test: sqlite_migration_idempotent_and_batch_roundtrip, because it only checks total and not the full BatchRecord or edge cases.",
+  "rationale": "WRONG(A): claim_batch_child inserts rec.status.as_str() for new children. If the caller passes a TaskRecord with status Completed or Failed, Arm A creates a non-working child while returning Created, but the task explicitly requires inserting status='working'. Arm B hardcodes 'working' on insert and matches that requirement. SMELL(B): test coverage is thin and omits fail_batch_if_status, CAS miss cases, active/list filtering, ExistingTerminal, and plain task batch field round-trip. SMELL(A): tests are substantially better, but they miss the status-forcing edge that exposes Arm A's implementation bug. Both arms stay within task scope."
+ },
+ "tokens_used": 34996
+}

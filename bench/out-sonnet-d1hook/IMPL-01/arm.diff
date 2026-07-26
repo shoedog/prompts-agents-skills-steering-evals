@@ -1,0 +1,422 @@
+diff --git a/crates/bridge-acp/src/acp_backend.rs b/crates/bridge-acp/src/acp_backend.rs
+index 1fa600e..add3471 100644
+--- a/crates/bridge-acp/src/acp_backend.rs
++++ b/crates/bridge-acp/src/acp_backend.rs
+@@ -1992,6 +1992,70 @@ impl AcpBackend {
+             );
+         }
+ 
++        // Per-turn watchdog: a `'static` task that only SIGNALS `watchdog_fired`
++        // on idle/wall-clock timeout — it never touches `self`/`cx`; the DRIVER
++        // (below) owns the terminal decision. `None` when disabled (`watch` is
++        // `None`): no task is spawned, so the driver's select! arm on it (below)
++        // never fires — byte-identical to today.
++        let watchdog_fired = watch.as_ref().map(|_| Arc::new(tokio::sync::Notify::new()));
++        let mut watchdog_done_tx = None;
++        if let (Some(watch_arc), Some(fired), Some(wd_cfg)) = (
++            &watch,
++            &watchdog_fired,
++            self.config.as_ref().and_then(|c| c.watchdog.as_ref()),
++        ) {
++            let (done_tx, mut done_rx) = oneshot::channel::<()>();
++            watchdog_done_tx = Some(done_tx);
++            let watch_arc = Arc::clone(watch_arc);
++            let fired = Arc::clone(fired);
++            let idle_timeout = wd_cfg.idle_timeout;
++            let hard_wall_clock = wd_cfg.hard_wall_clock;
++            tokio::spawn(async move {
++                loop {
++                    let la = watch_arc.last_activity_ms.load(Ordering::Relaxed);
++                    let wall_deadline = watch_arc.turn_start + hard_wall_clock;
++                    let idle_deadline = if la != 0 {
++                        let la_instant = watch_arc.turn_start
++                            + std::time::Duration::from_millis(la.saturating_sub(1));
++                        la_instant + idle_timeout
++                    } else {
++                        // No activity yet: still bound this sleep to at most
++                        // `idle_timeout` (anchored to NOW, not `turn_start` —
++                        // avoids re-deriving an already-past deadline and
++                        // spinning) so the watchdog re-derives periodically
++                        // instead of committing to `wall_deadline`. Without
++                        // this, the FIRST iteration — where `la` is virtually
++                        // ALWAYS still 0, since the prompt hasn't even been
++                        // sent yet when this task starts — would sleep the
++                        // FULL wall-clock and never notice activity that
++                        // starts, then goes silent, well before it elapses.
++                        Instant::now() + idle_timeout
++                    };
++                    let deadline = std::cmp::min(wall_deadline, idle_deadline);
++                    tokio::select! {
++                        _ = tokio::time::sleep_until(tokio::time::Instant::from_std(deadline)) => {}
++                        _ = &mut done_rx => return,
++                    }
++
++                    // Re-derive against the FRESH activity: the handler may have
++                    // bumped it while we slept (FIX-5: saturating, no underflow).
++                    let la = watch_arc.last_activity_ms.load(Ordering::Relaxed);
++                    let wall_hit = watch_arc.turn_start.elapsed() >= hard_wall_clock;
++                    let idle_hit = la != 0 && {
++                        let la_instant = watch_arc.turn_start
++                            + std::time::Duration::from_millis(la.saturating_sub(1));
++                        Instant::now().saturating_duration_since(la_instant) >= idle_timeout
++                    };
++                    if wall_hit || idle_hit {
++                        fired.notify_one();
++                        return;
++                    }
++                    // Else: activity advanced since the deadline was computed —
++                    // loop and re-derive a fresh deadline.
++                }
++            });
++        }
++
+         let cx = self.cx()?.clone();
+         let req = Self::prompt_request(agent_id.clone(), &parts);
+ 
+@@ -2011,6 +2075,8 @@ impl AcpBackend {
+         let reaped_for_driver = Arc::clone(&self.reaped);
+         let kill_slot = Arc::clone(&entry.turn_kill);
+         let grace = self.cancel_grace();
++        let watchdog_fired_for_driver = watchdog_fired;
++        let watchdog_done_tx_for_driver = watchdog_done_tx;
+         tokio::spawn(async move {
+             // Hold the turn lock for the entire turn.
+             let _turn = turn_guard;
+@@ -2023,7 +2089,13 @@ impl AcpBackend {
+             //     turn lock; or
+             //   * the external cancel grace-watcher firing the kill switch (a hung
+             //     agent that ignored `session/cancel` past grace) — we abandon the
+-            //     await so the lock releases and the caller's stream ends.
++            //     await so the lock releases and the caller's stream ends; or
++            //   * the per-turn WATCHDOG firing (idle/wall-clock timeout) — same
++            //     bounded cancel as the stream-drop arm below, but the outcome is
++            //     UNCONDITIONALLY a timeout (PFIX-F): even an agent that honors
++            //     the cancel and returns within grace is reported AgentTimedOut,
++            //     not a clean/cancelled completion.
++            let mut timed_out_local = false;
+             let prompt_fut = cx.send_request(req).block_task();
+             tokio::pin!(prompt_fut);
+             let outcome: Result<_, ()> = tokio::select! {
+@@ -2053,6 +2125,33 @@ impl AcpBackend {
+                         }
+                     }
+                 }
++                _ = async {
++                    match &watchdog_fired_for_driver {
++                        Some(n) => n.notified().await,
++                        None => std::future::pending::<()>().await,
++                    }
++                } => {
++                    // SAME bounded cancel the stream-drop arm above runs (graceful
++                    // `session/cancel` first; escalate only past grace) — but its
++                    // inner outcome is DISCARDED: this arm always yields Err(())
++                    // with `timed_out_local = true` (the KEYSTONE, PFIX-F).
++                    let _ = cx.send_notification(CancelNotification::new(
++                        agent_id_for_driver.clone(),
++                    ));
++                    tokio::select! {
++                        _ = &mut prompt_fut => {}
++                        _ = kill.notified() => {}
++                        _ = tokio::time::sleep(grace) => {
++                            AcpBackend::escalate_terminate(
++                                &supervised_for_driver,
++                                &container_for_driver,
++                                &reaped_for_driver,
++                            );
++                        }
++                    }
++                    timed_out_local = true;
++                    Err(())
++                }
+             };
+ 
+             // Unregister this turn's sender FIRST so no late chunk is routed
+@@ -2065,12 +2164,27 @@ impl AcpBackend {
+             if let Ok(mut slot) = kill_slot.lock() {
+                 *slot = None;
+             }
++            // Tear down the per-turn watchdog task (FIX-8): dropping its `done_tx`
++            // resolves the watchdog's `done_rx`, so it exits promptly instead of
++            // sleeping out its full deadline. `None` (disabled) is a no-op drop.
++            drop(watchdog_done_tx_for_driver);
+             let event = match outcome {
+                 // Turn COMPLETED (incl. a real StopReason::Cancelled, which maps
+-                // to Done{"cancelled"} — NOT an error). Emit the mapped Done.
++                // to Done{"cancelled"} — NOT an error). Emit the mapped Done. A
++                // natural completion is NEVER relabeled AgentTimedOut: the outer
++                // select! above picked `prompt_fut`, not the watchdog arm.
+                 Ok(resp) => TurnEvent::Done(Update::Done {
+                     stop_reason: AcpBackend::stop_reason_str(resp.stop_reason),
+                 }),
++                // The watchdog fired (idle/wall-clock) → a DISTINCT timeout outcome
++                // (never retried as transient; see `BridgeError::AgentTimedOut`).
++                Err(()) if timed_out_local => {
++                    tracing::warn!(
++                        session = ?agent_id_for_driver,
++                        "session/prompt watchdog fired: surfacing AgentTimedOut"
++                    );
++                    TurnEvent::Failed(BridgeError::AgentTimedOut)
++                }
+                 // A transport/agent error (agent crash / mid-turn transport
+                 // failure), OR a kill-switch/grace escalation, FAILED the turn:
+                 // surface a terminal Err on the stream so downstream reports the
+@@ -3030,6 +3144,12 @@ mod tests {
+         /// Tests assert against this to verify `ensure_session` passed the correct
+         /// cwd down to the wire (stashed SessionSpec.cwd vs static AcpConfig.cwd).
+         new_session_cwd: Arc<Mutex<Option<std::path::PathBuf>>>,
++
++        // ── Task 5 (watchdog): pace scripted updates to exercise idle timing ──
++        /// When set, `emit_updates` sleeps this long after EACH scripted update
++        /// (instead of emitting the whole burst instantly), so a watchdog test
++        /// can assert idle/wall-clock behavior against real elapsed time.
++        update_interval: Arc<Mutex<Option<Duration>>>,
+     }
+ 
+     impl Recorder {
+@@ -3100,6 +3220,7 @@ mod tests {
+                 set_models: Arc::new(Mutex::new(Vec::new())),
+                 set_model_seen: Arc::new(Notify::new()),
+                 new_session_cwd: Arc::new(Mutex::new(None)),
++                update_interval: Arc::new(Mutex::new(None)),
+             }
+         }
+ 
+@@ -3189,6 +3310,12 @@ mod tests {
+             *self.prompt_updates.lock().await = updates;
+         }
+ 
++        /// Space each scripted update this far apart (instead of an instant
++        /// burst), so a watchdog test can exercise idle/wall-clock timing.
++        async fn set_update_interval(&self, d: Duration) {
++            *self.update_interval.lock().await = Some(d);
++        }
++
+         /// Set the `StopReason` the prompt turn returns.
+         async fn set_stop_reason(&self, sr: StopReason) {
+             *self.stop_reason.lock().await = sr;
+@@ -3444,6 +3571,9 @@ mod tests {
+                                             sid.clone(),
+                                             update,
+                                         ))?;
++                                        if let Some(d) = *r2.update_interval.lock().await {
++                                            tokio::time::sleep(d).await;
++                                        }
+                                     }
+                                     Ok::<(), agent_client_protocol::Error>(())
+                                 };
+@@ -4250,6 +4380,215 @@ mod tests {
+         );
+     }
+ 
++    #[tokio::test]
++    async fn watchdog_cancels_a_hung_turn_as_timed_out() {
++        // A fake agent that ACCEPTS the prompt, emits NOTHING, and never
++        // responds (even after the watchdog's own cancel arrives) models a
++        // genuinely hung turn. A short hard_wall_clock must trip the
++        // watchdog, which runs the SAME bounded cancel the driver already
++        // has for `done_sender.closed()`, and the terminal item must be the
++        // DISTINCT AgentTimedOut — not the generic AgentCrashed a plain
++        // kill-switch escalation yields.
++        let rec = Recorder::new("agent-sess-WD-HUNG");
++        rec.wait_cancel_before_respond.store(true, Ordering::SeqCst);
++        rec.hang_after_cancel.store(true, Ordering::SeqCst);
++        let cfg = AcpConfig {
++            watchdog: Some(bridge_core::domain::WatchdogConfig {
++                idle_timeout: Duration::from_secs(10),
++                hard_wall_clock: Duration::from_millis(50),
++            }),
++            cancel_grace: Duration::from_millis(150),
++            ..test_config()
++        };
++        let be = connect_recording_with(rec.clone(), cfg).await;
++        let key = bkey("bridge-WD-HUNG");
++
++        let mut s = be.prompt(&key, vec![]).await.unwrap();
++        match tokio::time::timeout(Duration::from_secs(2), s.next())
++            .await
++            .expect("watchdog must terminate the hung turn, not hang")
++        {
++            Some(Err(BridgeError::AgentTimedOut)) => {}
++            other => panic!("hung turn must surface AgentTimedOut, got {other:?}"),
++        }
++        assert!(
++            s.next().await.is_none(),
++            "stream terminates after the timeout Err"
++        );
++    }
++
++    #[tokio::test]
++    async fn watchdog_idle_timeout_fires_after_activity_goes_silent() {
++        // Distinct from the wall-clock case above: the agent emits ONE chunk
++        // (bumping `last_activity_ms` away from the `la == 0` sentinel), then
++        // goes silent forever (even past cancel). `hard_wall_clock` is set
++        // large so ONLY the idle-timeout branch (`la != 0 && now - la_instant
++        // >= idle_timeout`) can plausibly fire within the test's bound —
++        // exercising the idle-after-first-activity math specifically, not
++        // just the `la == 0` fallback-to-wall-clock path.
++        let rec = Recorder::new("agent-sess-WD-IDLE");
++        rec.set_updates(vec![ScriptedUpdate::Text("first")]).await;
++        rec.wait_cancel_before_respond.store(true, Ordering::SeqCst);
++        rec.hang_after_cancel.store(true, Ordering::SeqCst);
++        let cfg = AcpConfig {
++            watchdog: Some(bridge_core::domain::WatchdogConfig {
++                idle_timeout: Duration::from_millis(60),
++                hard_wall_clock: Duration::from_secs(5),
++            }),
++            cancel_grace: Duration::from_millis(150),
++            ..test_config()
++        };
++        let be = connect_recording_with(rec.clone(), cfg).await;
++        let key = bkey("bridge-WD-IDLE");
++
++        let mut s = be.prompt(&key, vec![]).await.unwrap();
++        assert!(matches!(s.next().await, Some(Ok(Update::Text(t))) if t == "first"));
++
++        match tokio::time::timeout(Duration::from_secs(2), s.next())
++            .await
++            .expect("idle watchdog must terminate the silent turn, not hang")
++        {
++            Some(Err(BridgeError::AgentTimedOut)) => {}
++            other => panic!(
++                "silent-after-initial-activity turn must surface AgentTimedOut via idle, got {other:?}"
++            ),
++        }
++    }
++
++    #[tokio::test]
++    async fn watchdog_fired_cancel_honored_within_grace_is_still_timed_out() {
++        // KEYSTONE (PFIX-F): if the watchdog fires and the agent HONORS the
++        // graceful cancel — returning `Done{"cancelled"}` promptly, well
++        // within grace — the terminal outcome must STILL be `AgentTimedOut`,
++        // never a clean/cancelled `Done`. The watchdog arm's inner bounded
++        // cancel discards its result UNCONDITIONALLY; only the
++        // `done_sender.closed()` arm propagates a natural outcome.
++        let rec = Recorder::new("agent-sess-WD-HONOR");
++        rec.wait_cancel_before_respond.store(true, Ordering::SeqCst);
++        rec.set_stop_reason(StopReason::Cancelled).await;
++        // `hang_after_cancel` stays false (default): the fake agent responds
++        // PROMPTLY once `cancel_arrived` fires, i.e. as soon as the
++        // watchdog's own `CancelNotification` reaches it — well inside grace.
++        let cfg = AcpConfig {
++            watchdog: Some(bridge_core::domain::WatchdogConfig {
++                idle_timeout: Duration::from_secs(10),
++                hard_wall_clock: Duration::from_millis(50),
++            }),
++            cancel_grace: Duration::from_secs(2),
++            ..test_config()
++        };
++        let be = connect_recording_with(rec.clone(), cfg).await;
++        let key = bkey("bridge-WD-HONOR");
++
++        let mut s = be.prompt(&key, vec![]).await.unwrap();
++        match tokio::time::timeout(Duration::from_secs(2), s.next())
++            .await
++            .expect("watchdog-triggered honored cancel must still resolve, not hang")
++        {
++            Some(Err(BridgeError::AgentTimedOut)) => {}
++            other => panic!(
++                "an honored cancel AFTER a watchdog timeout must still be AgentTimedOut \
++                 (not a cancelled Done), got {other:?}"
++            ),
++        }
++    }
++
++    #[tokio::test]
++    async fn watchdog_does_not_trip_active_or_unmodeled_turn() {
++        // (a) steady MODELED text chunks keep the idle deadline pushed out —
++        // the turn completes normally, never timed out.
++        let rec_a = Recorder::new("agent-sess-WD-ACTIVE");
++        rec_a
++            .set_updates(vec![
++                ScriptedUpdate::Text("a"),
++                ScriptedUpdate::Text("b"),
++                ScriptedUpdate::Text("c"),
++                ScriptedUpdate::Text("d"),
++                ScriptedUpdate::Text("e"),
++            ])
++            .await;
++        rec_a.set_update_interval(Duration::from_millis(20)).await;
++        let cfg_a = AcpConfig {
++            watchdog: Some(bridge_core::domain::WatchdogConfig {
++                idle_timeout: Duration::from_millis(100),
++                hard_wall_clock: Duration::from_secs(10),
++            }),
++            ..test_config()
++        };
++        let be_a = connect_recording_with(rec_a.clone(), cfg_a).await;
++        let key_a = bkey("bridge-WD-ACTIVE");
++        let mut s_a = be_a.prompt(&key_a, vec![]).await.unwrap();
++        let done_a = loop {
++            match tokio::time::timeout(Duration::from_secs(2), s_a.next())
++                .await
++                .expect("actively-streaming turn must complete, not time out")
++            {
++                Some(Ok(Update::Done { stop_reason })) => break stop_reason,
++                Some(Ok(_)) => continue,
++                other => panic!("active turn must complete cleanly, got {other:?}"),
++            }
++        };
++        assert_eq!(done_a, "end_turn");
++
++        // (b) FIX-11: steady UNMODELED updates (thought chunks the mapper
++        // drops) must ALSO count as activity — the handler bumps BEFORE the
++        // modeled/unmodeled split, so a dropped event still counts as alive.
++        let rec_b = Recorder::new("agent-sess-WD-UNMODELED");
++        rec_b
++            .set_updates(vec![
++                ScriptedUpdate::Thought("t1"),
++                ScriptedUpdate::Thought("t2"),
++                ScriptedUpdate::Thought("t3"),
++                ScriptedUpdate::Thought("t4"),
++                ScriptedUpdate::Thought("t5"),
++                ScriptedUpdate::Thought("t6"),
++            ])
++            .await;
++        rec_b.set_update_interval(Duration::from_millis(20)).await;
++        let cfg_b = AcpConfig {
++            watchdog: Some(bridge_core::domain::WatchdogConfig {
++                idle_timeout: Duration::from_millis(100),
++                hard_wall_clock: Duration::from_secs(10),
++            }),
++            ..test_config()
++        };
++        let be_b = connect_recording_with(rec_b.clone(), cfg_b).await;
++        let key_b = bkey("bridge-WD-UNMODELED");
++        let mut s_b = be_b.prompt(&key_b, vec![]).await.unwrap();
++        let done_b = loop {
++            match tokio::time::timeout(Duration::from_secs(2), s_b.next())
++                .await
++                .expect("unmodeled-only turn must complete, not time out")
++            {
++                Some(Ok(Update::Done { stop_reason })) => break stop_reason,
++                Some(Ok(_)) => continue,
++                other => panic!("unmodeled-only turn must complete cleanly, got {other:?}"),
++            }
++        };
++        assert_eq!(done_b, "end_turn");
++    }
++
++    #[tokio::test]
++    async fn no_watchdog_config_is_byte_identical() {
++        // With NO [agents.watchdog] config, a hung turn behaves exactly as
++        // today: no watchdog task fires, so the stream stays pending (it is
++        // NOT terminated as AgentTimedOut, or at all) within a bound well
++        // past what a configured hard_wall_clock would have used above.
++        let rec = Recorder::new("agent-sess-WD-NONE");
++        rec.wait_cancel_before_respond.store(true, Ordering::SeqCst);
++        let be = connect_recording(rec.clone()).await; // test_config(): watchdog = None
++        let key = bkey("bridge-WD-NONE");
++
++        let mut s = be.prompt(&key, vec![]).await.unwrap();
++        let still_pending = tokio::time::timeout(Duration::from_millis(200), s.next())
++            .await
++            .is_err();
++        assert!(
++            still_pending,
++            "no watchdog config must never fire AgentTimedOut on a hung turn"
++        );
++    }
++
+     #[tokio::test]
+     async fn dropping_stream_cancels_agent_turn() {
+         // If the CONSUMER drops the returned BackendStream mid-turn (client

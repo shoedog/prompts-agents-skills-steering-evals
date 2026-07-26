@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": false,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms correctly separate 'binding materialized' from 'type resolved': Arm A adds a `poisoned` flag on `RecoveredReceiver`, still returns `Some(...)` when poisoned, and filters `receiver_type` to None at the CallSite construction site while reusing `receiver_recovery.is_some()` as the downstream materialized signal. Arm B adds an explicit `ReceiverClassification` enum (Unmaterialized/MaterializedPoisoned/Recovered) plus a new dedicated `CallSite.receiver_materialized` bool. Both correctly restructure `recover_simple_ident` to scan for a local binding before checking `is_import(q)` for Python/JS/TS, and both gate the nested-class-body skip to Python/JS/TS only. Both suites reproduce the Python `qualifier_owner`-to-`class x` and TS `import_qualified`-to-`./api` false-Exacts, assert they no longer bind Exact post-fix, and include a positive (non-poisoned) control resolving Exact TypedParam \u2014 all of which would fail red pre-fix given the old `is_import(q)`-before-scan gating. The material difference is Rust/Go fidelity: the brief mandates 'Gate strictly to Python/JS/TS \u2014 Rust/Go byte-identical' and the report checklist demands 'Rust/Go unchanged.' Arm B's byte-vs-line cutoff in `walk_receiver_bindings` is explicitly branched by language (`byte_scoped` match), preserving the original line-based check for Rust/Go untouched. Arm A replaces `call_line` with `call_start_byte` and applies `node.start_byte() >= call_start_byte` unconditionally for ALL languages including Rust/Go, changing same-line-binding recovery behavior for those languages \u2014 a real, concrete violation of the gating requirement (e.g. `x.m(); let x = Foo::new();` on one line would now be excluded for Rust too, unlike before). Arm A also silently repurposes `receiver_recovery` (previously 1:1 with `receiver_type`) as a dual-purpose materialized signal without updating that field's 'derived from the same scan as receiver_type' invariant/doc, a latent-risk shortcut Arm B avoids with its dedicated field.",
+  "rationale": "Both implementations are functionally sound for the BLOCKER1+2 and MAJOR fixes and both have red-before/green-after tests for the three repros plus a positive control. Arm B is materially better because it honors the explicit 'Rust/Go byte-identical'/'Rust/Go unchanged' constraint via an explicit per-language branch, while Arm A applies its byte-precise cutoff ungated across all languages, changing Rust/Go behavior it was told not to touch. Arm B also uses a cleaner, type-safe signal (new enum + dedicated field) instead of overloading the existing `receiver_recovery` field's implied semantics, and its Python positive-control test isolates the exact colliding-class scenario (poisoned vs. non-poisoned) more precisely than Arm A's, plus covers a wildcard-import variant Arm A omits."
+ },
+ "cost_usd": 0.8414868
+}

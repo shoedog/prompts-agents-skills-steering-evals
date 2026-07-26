@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": true,
+  "load_bearing_caveats_matched": true,
+  "scope_calibrated": true,
+  "would_have_prevented_wasted_work": true,
+  "probe_answer": "The memo recommends Option A: a span-keyed (file, class_span) class-hierarchy map plumbed into CallGraph, populated across build paths, with a conservative policy \u2014 exact resolution only for single-chain/unambiguous in-repo bases, external bases treated as barriers (never guess by bare name), and multiple inheritance demoted/dropped rather than resolved via full C3. This is exactly the shape that landed (498482a, narrowed via 1df081d to depth-1 single-inheritance, tri-state, span-keyed). The memo explicitly flags that full C3 'is required for exact... behavior' but then immediately says a cheaper single-chain policy 'is acceptable' and sufficient for the measured buy \u2014 landing on the same conservative single-provider/barrier rule that shipped. It correctly warns against bare-name owner_lookup reuse (matching slice-1a's collision-fix concern) and sizes the buy empirically (16 calls: 12 FastAPI + 4 Pydantic, 0 Excalidraw) rather than assuming the '~10 fastapi' guess, keeping scope calibrated to what a thin slice should deliver.",
+  "rationale": "Minor wording imprecision ('full C3 is required for exact... behavior') could be read as recommending C3, but the very next sentence resolves it in favor of the simpler sound policy that was actually built, and the concrete Option A design, soundness rules, and thin-slice scoping all match the landed depth-1/single-provider/barrier implementation."
+ },
+ "cost_usd": 0.12753029999999999
+}

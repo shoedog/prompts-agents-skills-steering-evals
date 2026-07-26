@@ -1,0 +1,77 @@
+[bench] running 6 task(s): ['IMPL-01', 'IMPL-03', 'IMPL-04', 'IMPL-05', 'IMPL-06', 'IMPL-08']
+
+[bench] === IMPL-01 === ws=/private/tmp/gpt55-ws/IMPL-01 dry_run=False model=claude-fable-5
+[bench] git clone --local /Users/wesleyjinks/code/a2a-bridge /private/tmp/gpt55-ws/IMPL-01
+[bench] git -C /private/tmp/gpt55-ws/IMPL-01 checkout bench/IMPL-01-pre
+[bench] git -C /private/tmp/gpt55-ws/IMPL-01 remote remove origin
+[bench] NOTE: AGENTS.md-only scaffold — copied AGENTS.md -> CLAUDE.md in the clone to equalize priming with the original codex session and excluded it as a harness artifact.
+[bench] evidence: cargo test -p bridge-acp watchdog_cancels_a_hung_turn_as_timed_out
+[bench] evidence: cargo test -p bridge-acp watchdog_does_not_trip_active_or_unmodeled_turn
+[bench] evidence: cargo test -p bridge-acp no_watchdog_config_is_byte_identical
+[bench] evidence: cargo test -p bridge-acp
+[bench] evidence: cargo test --workspace --no-run
+[bench] evidence: cargo fmt --all --check
+[bench] evidence: cargo clippy -p bridge-acp --all-targets -- -D warnings
+[bench] transcript: /Users/wesleyjinks/.codex/sessions/2026/07/04/rollout-2026-07-04T17-01-34-019f2f5d-a7ba-7563-96ec-db3d1c50b5dd.jsonl -> bench/out-gpt55/IMPL-01/transcript.jsonl
+[bench] IMPL-01: dry_run=False tests_passed_guess='pass' cost=$None out=bench/out-gpt55/IMPL-01
+
+[bench] === IMPL-03 === ws=/private/tmp/gpt55-ws/IMPL-03 dry_run=False model=claude-fable-5
+[bench] git clone --local /Users/wesleyjinks/code/a2a-bridge /private/tmp/gpt55-ws/IMPL-03
+[bench] git -C /private/tmp/gpt55-ws/IMPL-03 checkout bench/IMPL-03-pre
+[bench] git -C /private/tmp/gpt55-ws/IMPL-03 remote remove origin
+[bench] NOTE: AGENTS.md-only scaffold — copied AGENTS.md -> CLAUDE.md in the clone to equalize priming with the original codex session and excluded it as a harness artifact.
+[bench] evidence: cargo test -p bridge-store sqlite_migration_idempotent_and_batch_roundtrip
+[bench] evidence: cargo test -p bridge-store sqlite_claim_is_atomic_single_runner
+[bench] evidence: cargo build --workspace
+[bench] transcript: /Users/wesleyjinks/.codex/sessions/2026/07/04/rollout-2026-07-04T17-06-13-019f2f61-e80c-7421-9775-7b5ab6832434.jsonl -> bench/out-gpt55/IMPL-03/transcript.jsonl
+[bench] IMPL-03: dry_run=False tests_passed_guess='pass' cost=$None out=bench/out-gpt55/IMPL-03
+
+[bench] === IMPL-04 === ws=/private/tmp/gpt55-ws/IMPL-04 dry_run=False model=claude-fable-5
+[bench] git clone --local /Users/wesleyjinks/code/a2a-bridge /private/tmp/gpt55-ws/IMPL-04
+[bench] git -C /private/tmp/gpt55-ws/IMPL-04 checkout bench/IMPL-04-pre
+[bench] git -C /private/tmp/gpt55-ws/IMPL-04 remote remove origin
+[bench] NOTE: AGENTS.md-only scaffold — copied AGENTS.md -> CLAUDE.md in the clone to equalize priming with the original codex session and excluded it as a harness artifact.
+[bench] evidence: cargo test -p a2a-bridge workflow_node_retry
+[bench] evidence: cargo build --workspace
+[bench] evidence: cargo test --workspace --all-targets
+[bench] evidence: cargo fmt --all --check
+[bench] evidence: cargo clippy --workspace --all-targets -- -D warnings
+[bench] transcript: /Users/wesleyjinks/.codex/sessions/2026/07/04/rollout-2026-07-04T17-11-22-019f2f66-9d96-7052-943d-0f8969a37009.jsonl -> bench/out-gpt55/IMPL-04/transcript.jsonl
+[bench] IMPL-04: dry_run=False tests_passed_guess='fail' cost=$None out=bench/out-gpt55/IMPL-04
+
+[bench] === IMPL-05 === ws=/private/tmp/gpt55-ws/IMPL-05 dry_run=False model=claude-fable-5
+[bench] git clone --local /Users/wesleyjinks/code/a2a-bridge /private/tmp/gpt55-ws/IMPL-05
+[bench] git -C /private/tmp/gpt55-ws/IMPL-05 checkout bench/IMPL-05-pre
+[bench] git -C /private/tmp/gpt55-ws/IMPL-05 remote remove origin
+[bench] NOTE: AGENTS.md-only scaffold — copied AGENTS.md -> CLAUDE.md in the clone to equalize priming with the original codex session and excluded it as a harness artifact.
+[bench] evidence: cargo test -p a2a-bridge commit_precedence_and_comment_only_falls_back_to_title
+[bench] evidence: cargo build --workspace
+[bench] evidence: cargo test -p a2a-bridge
+[bench] transcript: /Users/wesleyjinks/.codex/sessions/2026/07/04/rollout-2026-07-04T17-34-42-019f2f7b-fc07-7160-8224-c2fdcc61ae27.jsonl -> bench/out-gpt55/IMPL-05/transcript.jsonl
+[bench] IMPL-05: dry_run=False tests_passed_guess='pass' cost=$None out=bench/out-gpt55/IMPL-05
+
+[bench] === IMPL-06 === ws=/private/tmp/gpt55-ws/IMPL-06 dry_run=False model=claude-fable-5
+[bench] git clone --local /Users/wesleyjinks/code/a2a-bridge /private/tmp/gpt55-ws/IMPL-06
+[bench] git -C /private/tmp/gpt55-ws/IMPL-06 checkout bench/IMPL-06-pre
+[bench] git -C /private/tmp/gpt55-ws/IMPL-06 remote remove origin
+[bench] NOTE: AGENTS.md-only scaffold — copied AGENTS.md -> CLAUDE.md in the clone to equalize priming with the original codex session and excluded it as a harness artifact.
+[bench] evidence: cargo test -p bridge-a2a-inbound golden_two_node_run_wire_tuples
+[bench] evidence: cargo test -p bridge-a2a-inbound rich_snapshot_folds_toolcall_interleaved
+[bench] evidence: cargo test -p bridge-a2a-inbound
+[bench] evidence: cargo test --workspace --no-run
+[bench] evidence: cargo fmt --all --check
+[bench] evidence: cargo clippy -p bridge-a2a-inbound --all-targets -- -D warnings
+[bench] transcript: /Users/wesleyjinks/.codex/sessions/2026/07/04/rollout-2026-07-04T17-38-42-019f2f7f-a58f-70f0-a9d4-e94148cd8337.jsonl -> bench/out-gpt55/IMPL-06/transcript.jsonl
+[bench] IMPL-06: dry_run=False tests_passed_guess='pass' cost=$None out=bench/out-gpt55/IMPL-06
+
+[bench] === IMPL-08 === ws=/private/tmp/gpt55-ws/IMPL-08 dry_run=False model=claude-fable-5
+[bench] git clone --local /Users/wesleyjinks/code/slicing /private/tmp/gpt55-ws/IMPL-08
+[bench] git -C /private/tmp/gpt55-ws/IMPL-08 checkout bench/IMPL-08-pre2
+[bench] git -C /private/tmp/gpt55-ws/IMPL-08 remote remove origin
+[bench] evidence: cargo test --test integration scope_graph_
+[bench] evidence: cargo test --test integration
+[bench] evidence: cargo test --lib
+[bench] evidence: cargo fmt --all --check
+[bench] evidence: cargo build --release
+[bench] transcript: /Users/wesleyjinks/.codex/sessions/2026/07/04/rollout-2026-07-04T17-43-33-019f2f84-1714-75f2-ae6f-8526e8928f9b.jsonl -> bench/out-gpt55/IMPL-08/transcript.jsonl
+[bench] IMPL-08: dry_run=False tests_passed_guess='pass' cost=$None out=bench/out-gpt55/IMPL-08

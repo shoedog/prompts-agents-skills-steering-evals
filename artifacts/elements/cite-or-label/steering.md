@@ -1,0 +1,2 @@
+<!-- DRAFT 2026-07-25 (Wave 3, exp-w3a). Unvalidated: do not promote to global steering until exp-w3a passes. Comments are stripped before composition. -->
+Any claim that code does, doesn't, or can't do something may be asserted only after reading the implementing lines this session, and must carry an inline file:line citation to those lines. A claim that something is absent requires enumerating where you searched or checked. Any claim you did not trace this way must be labeled "assumption:", never stated as fact.

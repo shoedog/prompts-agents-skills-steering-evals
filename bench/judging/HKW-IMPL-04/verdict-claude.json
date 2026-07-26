@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms are identical in production code (RetryToml, WorkflowNodeToml.retry, graph-build mapping) and both include the two mandated tests: workflow_node_retry_parses (TOML deser only) and workflow_node_retry_maps_into_graph (PR-FIX-9, drives real load_workflows). Both of these would fail on pre-change code (retry field/mapping don't exist), so they're non-trivial. Arm B adds two more: workflow_node_retry_absent_defaults_to_none_end_to_end, which end-to-end confirms the opt-in/zero-behavior-change requirement from the task brief (retry omitted -> None through the full graph loader, not just the TOML struct) \u2014 this is a real edge case Arm A never exercises; and workflow_node_retry_missing_max_attempts_fails_to_parse, which asserts the required (non-Option) max_attempts field actually rejects malformed TOML rather than silently defaulting \u2014 a genuine negative-path test hitting serde's required-field behavior, also absent from Arm A. Neither is a tautology; both fail without the surrounding schema/mapping being correct. Arm A: strongest = maps_into_graph (proves real graph wiring); weakest = parses (redundant sanity check subsumed by maps_into_graph). Arm B: strongest = the missing-max_attempts negative test (unique failure-path coverage); weakest = parses (same redundancy as A).",
+  "rationale": "Implementation diffs are byte-identical for RetryToml, the WorkflowNodeToml field, and the graph-mapping code \u2014 no functional divergence there. Both arms satisfy the gate's two mandatory tests. Arm B is materially stronger only in test coverage: it adds a default/opt-in regression test (directly validating the task's 'zero behavior change unless a node sets retry' requirement at the graph level) and a required-field negative-parse test (edge case for schema strictness), neither of which is redundant with the shared tests. These are genuine, non-trivial additions matching exactly what the probe asks about (negative/edge coverage), so this counts as material rather than cosmetic superiority."
+ },
+ "cost_usd": 0.2346039
+}

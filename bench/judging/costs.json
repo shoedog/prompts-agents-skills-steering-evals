@@ -1,0 +1,230 @@
+{
+ "IMPL-01": {
+  "fable": {
+   "cost_usd": 7.979023000000001,
+   "turns": 45,
+   "input_tokens": 8236,
+   "cache_read": 3761063,
+   "output_tokens": 37060
+  },
+  "gpt55_original": {
+   "tokens": {
+    "input_tokens": 15413303,
+    "cached_input_tokens": 15245056,
+    "output_tokens": 28601,
+    "reasoning_output_tokens": 9069,
+    "total_tokens": 15441904
+   },
+   "assistant_msgs": 104
+  }
+ },
+ "IMPL-03": {
+  "fable": {
+   "cost_usd": 4.540576,
+   "turns": 24,
+   "input_tokens": 7803,
+   "cache_read": 1190336,
+   "output_tokens": 26753
+  },
+  "gpt55_original": {
+   "tokens": {
+    "input_tokens": 1095029,
+    "cached_input_tokens": 1020160,
+    "output_tokens": 9187,
+    "reasoning_output_tokens": 1922,
+    "total_tokens": 1104216
+   },
+   "assistant_msgs": 10
+  }
+ },
+ "IMPL-04": {
+  "fable": {
+   "cost_usd": 2.98507,
+   "turns": 32,
+   "input_tokens": 7951,
+   "cache_read": 1258330,
+   "output_tokens": 12077
+  },
+  "gpt55_original": {
+   "tokens": {
+    "input_tokens": 5356781,
+    "cached_input_tokens": 5097472,
+    "output_tokens": 12688,
+    "reasoning_output_tokens": 2847,
+    "total_tokens": 5369469
+   },
+   "assistant_msgs": 76
+  }
+ },
+ "IMPL-05": {
+  "fable": {
+   "cost_usd": 2.4949315000000003,
+   "turns": 22,
+   "input_tokens": 8827,
+   "cache_read": 667084,
+   "output_tokens": 16524
+  },
+  "gpt55_original": {
+   "tokens": {
+    "input_tokens": 810651,
+    "cached_input_tokens": 762752,
+    "output_tokens": 6691,
+    "reasoning_output_tokens": 1778,
+    "total_tokens": 817342
+   },
+   "assistant_msgs": 16
+  }
+ },
+ "IMPL-06": {
+  "fable": {
+   "cost_usd": 6.138949000000002,
+   "turns": 42,
+   "input_tokens": 8463,
+   "cache_read": 2512759,
+   "output_tokens": 33164
+  },
+  "gpt55_original": {
+   "tokens": {
+    "input_tokens": 3480452,
+    "cached_input_tokens": 3297024,
+    "output_tokens": 12711,
+    "reasoning_output_tokens": 3514,
+    "total_tokens": 3493163
+   },
+   "assistant_msgs": 35
+  }
+ },
+ "IMPL-08": {
+  "fable": {
+   "cost_usd": 6.397277000000001,
+   "turns": 40,
+   "input_tokens": 12370,
+   "cache_read": 2627807,
+   "output_tokens": 33257
+  },
+  "gpt55_original": {
+   "tokens": {
+    "input_tokens": 2906232,
+    "cached_input_tokens": 2789248,
+    "output_tokens": 15217,
+    "reasoning_output_tokens": 5674,
+    "total_tokens": 2921449
+   },
+   "assistant_msgs": 19
+  }
+ },
+ "REF-01": {
+  "fable": {
+   "cost_usd": 11.603508,
+   "turns": 54,
+   "input_tokens": 10053,
+   "cache_read": 5865928,
+   "output_tokens": 55281
+  },
+  "gpt55_original": {
+   "tokens": {
+    "input_tokens": 6253247,
+    "cached_input_tokens": 6049024,
+    "output_tokens": 13306,
+    "reasoning_output_tokens": 3141,
+    "total_tokens": 6266553
+   },
+   "assistant_msgs": 39
+  }
+ },
+ "REF-03": {
+  "fable": {
+   "cost_usd": 10.290968000000003,
+   "turns": 70,
+   "input_tokens": 12924,
+   "cache_read": 4858728,
+   "output_tokens": 49670
+  },
+  "gpt55_original": {
+   "tokens": {
+    "input_tokens": 4080966,
+    "cached_input_tokens": 3840000,
+    "output_tokens": 20595,
+    "reasoning_output_tokens": 3393,
+    "total_tokens": 4101561
+   },
+   "assistant_msgs": 38
+  }
+ },
+ "IMPL-12": {
+  "fable": {
+   "cost_usd": 15.745035,
+   "turns": 72,
+   "input_tokens": 21640,
+   "cache_read": 7861465,
+   "output_tokens": 73449
+  },
+  "gpt55_original": {
+   "tokens": {
+    "input_tokens": 10292246,
+    "cached_input_tokens": 10077312,
+    "output_tokens": 19354,
+    "reasoning_output_tokens": 4360,
+    "total_tokens": 10311600
+   },
+   "assistant_msgs": 60
+  }
+ },
+ "IMPL-13": {
+  "fable": {
+   "cost_usd": 8.81101,
+   "turns": 56,
+   "input_tokens": 10759,
+   "cache_read": 4347920,
+   "output_tokens": 42232
+  },
+  "gpt55_original": {
+   "tokens": {
+    "input_tokens": 2331249,
+    "cached_input_tokens": 2231680,
+    "output_tokens": 22005,
+    "reasoning_output_tokens": 9363,
+    "total_tokens": 2353254
+   },
+   "assistant_msgs": 9
+  }
+ },
+ "INFRA-01": {
+  "fable": {
+   "cost_usd": 1.2457,
+   "turns": 13,
+   "input_tokens": 7662,
+   "cache_read": 285170,
+   "output_tokens": 7485
+  },
+  "gpt55_original": {
+   "tokens": {
+    "input_tokens": 227488,
+    "cached_input_tokens": 208896,
+    "output_tokens": 3908,
+    "reasoning_output_tokens": 2087,
+    "total_tokens": 231396
+   },
+   "assistant_msgs": 5
+  }
+ },
+ "RES-01": {
+  "fable": {
+   "cost_usd": 10.68970825,
+   "turns": 11,
+   "input_tokens": 149,
+   "cache_read": 1076572,
+   "output_tokens": 27751
+  },
+  "gpt55_original": {
+   "tokens": {
+    "input_tokens": 23412334,
+    "cached_input_tokens": 21082624,
+    "output_tokens": 133692,
+    "reasoning_output_tokens": 66473,
+    "total_tokens": 23546026
+   },
+   "assistant_msgs": 139
+  }
+ }
+}

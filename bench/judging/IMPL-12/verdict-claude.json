@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Empirically verified against the real repo (checked out worktree, pre-task commit + reconstructed patches, cargo test): (a) Arm A's bind_params keeps ONE batched add_locals call for the whole param list (names+facts collected then passed together), so param ordinals stay unique (verified: fn f(a:X,b:Y) -> ordinals 0,1). Arm B's bind_params instead loops `for (name, fact) in facts { add_locals(..., &[name], fact) }`, calling add_locals once per parameter with a singleton slice; since ordinal = the enumerate index local to that call, EVERY param gets ordinal 0 (verified: a_ref=(scope1,0), b_ref=(scope1,0) -- collision). This reintroduces the exact F5 bug the task exists to guard against, for a case (params) the pre-task baseline already had fixed via batching. Worse, Arm B's rib filter restricts matches to `BindTarget::Resolved(Target::Local(_))`, excluding `use` imports; a covering inner `use m::b;` is invisible to it, so it ascends past the import and returns the WRONG outer `let b` (verified: returns outer local, not the import) -- a concrete wrong-target violation of the cardinal recall-safety rule. Arm A's rib filter has no BindTarget restriction and has a dedicated `inner_use_import_shadows_an_outer_local` test asserting the import wins. (b) Neither arm's own tests exercise 2+ params in one signature, so neither would catch the ordinal collision via assertions (both sidestep BindingRef/ordinal by design, keying on def_byte instead) -- but Arm A's implementation avoids the bug structurally regardless, while Arm B's does not. Arm B's single test also never exercises import-vs-local shadowing, so its wrong-target bug ships undetected.",
+  "rationale": "Both implement the required API surface and pass mechanical checks, but Arm B contains two verified, concrete bugs Arm A does not: (1) a reintroduced BindingRef ordinal collision for every multi-parameter function (data-integrity regression vs. the pre-task baseline, which already batched param binding calls correctly), and (2) a genuine wrong-target bug -- lookup_visible_binding returns an outer local instead of falling through to (or returning) a nearer shadowing `use` import, because its filter excludes non-Local BindTargets. That second bug directly violates this subsystem's stated cardinal rule. Arm A's design (unrestricted BindTarget rib filter, batched add_locals, nearest-by-def-byte tie-break with ambiguity->None) avoids both, and its test suite (9 tests: shadowing, re-let, use-before-def, macro-wildcard poison, glob poison, ambiguous tie, import-shadow, comprehensive InitExpr/decoy coverage) is far more thorough than Arm B's single test. This is a correctness/recall-safety gap, not a style preference."
+ },
+ "cost_usd": 2.0852049000000004
+}

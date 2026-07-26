@@ -1,0 +1,102 @@
+diff --git a/src/repo_loader.rs b/src/repo_loader.rs
+index a4470ff..d93fba5 100644
+--- a/src/repo_loader.rs
++++ b/src/repo_loader.rs
+@@ -338,6 +338,20 @@ fn parse_rust_crate_config(
+         if ws.is_some() {
+             workspace_root_dirs.insert(manifest_dir.to_string());
+         }
++        // Record CONCRETE declared `[workspace].members`, skipping glob patterns
++        // (`crates/*`) — a raw glob can't be expanded from the pattern alone and never
++        // prefix-matches a concrete root path, so glob members are recovered from the
++        // parsed `[package]` dirs below instead. Concrete members come straight from the
++        // root manifest, so a member whose OWN `Cargo.toml` is malformed/unparseable still
++        // survives here (it falls back to convention for its crate root) rather than being
++        // silently dropped along with its broken manifest.
++        if let Some(members) = ws.and_then(|w| w.get("members")).and_then(|m| m.as_array()) {
++            for member in members.iter().filter_map(|m| m.as_str()) {
++                if !member.contains('*') {
++                    workspace_members.insert(join_manifest_rel(manifest_dir, member));
++                }
++            }
++        }
+         if let Some(ws_deps) = ws
+             .and_then(|w| w.get("dependencies"))
+             .and_then(|d| d.as_table())
+@@ -1033,8 +1047,14 @@ mod tests {
+         let inputs = repo.scope_graph_inputs.expect("scope graph inputs");
+         // CONCRETE member dirs, never the glob pattern.
+         assert!(
+-            inputs.cfg.workspace_members.contains(&"crates/a".to_string())
+-                && inputs.cfg.workspace_members.contains(&"crates/b".to_string()),
++            inputs
++                .cfg
++                .workspace_members
++                .contains(&"crates/a".to_string())
++                && inputs
++                    .cfg
++                    .workspace_members
++                    .contains(&"crates/b".to_string()),
+             "glob members must expand to concrete dirs; got {:?}",
+             inputs.cfg.workspace_members
+         );
+@@ -1056,6 +1076,59 @@ mod tests {
+         );
+     }
+ 
++    #[test]
++    fn mixed_concrete_and_glob_members_survive_a_malformed_concrete_manifest() {
++        // A workspace that MIXES a concrete member (`good`) with a glob (`crates/*`) and
++        // exercises BOTH branches of the declared-member recording in one manifest.
++        // `good`'s own Cargo.toml is MALFORMED, so it never parses into a `[package]` dir;
++        // it must still survive as a workspace member from the root's declared concrete
++        // member (the #124 regression). The `crates/*` glob must be dropped (never left as
++        // a raw pattern) and its concrete member `crates/x` recovered from the parsed
++        // `[package]` dir. `vendor/*` is deliberately NOT used: `vendor` is a walk-skip dir.
++        let dir = tempfile::tempdir().unwrap();
++        let p = dir.path();
++        std::fs::create_dir_all(p.join("good/src")).unwrap();
++        std::fs::create_dir_all(p.join("crates/x/src")).unwrap();
++        std::fs::write(
++            p.join("Cargo.toml"),
++            "[workspace]\nmembers = [\"good\", \"crates/*\"]\n",
++        )
++        .unwrap();
++        // Malformed concrete member manifest (unclosed `[package`).
++        std::fs::write(p.join("good/Cargo.toml"), "[package\nname = \"good\"\n").unwrap();
++        std::fs::write(p.join("good/src/lib.rs"), "pub fn good() {}\n").unwrap();
++        // Valid globbed member.
++        std::fs::write(
++            p.join("crates/x/Cargo.toml"),
++            "[package]\nname = \"x\"\nedition = \"2021\"\n",
++        )
++        .unwrap();
++        std::fs::write(p.join("crates/x/src/lib.rs"), "pub fn x() {}\n").unwrap();
++
++        let repo = load_repo(p).unwrap();
++        let members = &repo
++            .scope_graph_inputs
++            .as_ref()
++            .expect("scope graph inputs")
++            .cfg
++            .workspace_members;
++        // Concrete member survives despite its malformed manifest (declared-member branch).
++        assert!(
++            members.contains(&"good".to_string()),
++            "concrete member with a malformed manifest must survive; got {members:?}"
++        );
++        // Globbed member is expanded to its concrete dir (parsed `[package]` branch).
++        assert!(
++            members.contains(&"crates/x".to_string()),
++            "globbed member must expand to its concrete dir; got {members:?}"
++        );
++        // The raw glob pattern is dropped (glob-skip branch).
++        assert!(
++            !members.iter().any(|m| m.contains('*')),
++            "no raw glob pattern may remain; got {members:?}"
++        );
++    }
++
+     #[test]
+     fn workspace_dep_records_in_repo_member_dependency() {
+         // `a` declares `b_crate = { workspace = true }`; the workspace root has

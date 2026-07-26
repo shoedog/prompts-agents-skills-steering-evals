@@ -1,0 +1,36 @@
+{
+  "harness": {
+    "executor": "codex",
+    "effort": "high",
+    "cwd": "/private/tmp/dbg-g5d2-ws/INFRA-01",
+    "argv": [
+      "/opt/homebrew/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "-o",
+      "/private/tmp/dbg-g5d2-ws/INFRA-01/.codex-final-message.md",
+      "-"
+    ],
+    "started_at": "2026-07-05T06:30:31+00:00",
+    "returncode": 0,
+    "timed_out": false,
+    "timeout_sec": 4500,
+    "stderr_tail": " !(normalized < best_load)}'; then\ndiff --git a/test/mocha/scripts/selectDbHost.test.js b/test/mocha/scripts/selectDbHost.test.js\nnew file mode 100644\nindex 0000000000000000000000000000000000000000..e5b11f1eeb6dc2449a25de94c180d1b4e8ccf301\n--- /dev/null\n+++ b/test/mocha/scripts/selectDbHost.test.js\n@@ -0,0 +1,108 @@\n+const { spawnSync } = require('node:child_process');\n+const fs = require('node:fs');\n+const os = require('node:os');\n+const path = require('node:path');\n+\n+require('chai').should();\n+\n+describe('select_db_host.sh', function () {\n+    let tempDir;\n+\n+    beforeEach(function () {\n+        tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'select-db-host-'));\n+    });\n+\n+    afterEach(function () {\n+        fs.rmSync(tempDir, { force: true, recursive: true });\n+    });\n+\n+    function writeExecutable(name, contents) {\n+        const filePath = path.join(tempDir, name);\n+        fs.writeFileSync(filePath, contents);\n+        fs.chmodSync(filePath, 0o755);\n+    }\n+\n+    it('Should avoid awk builtin names while comparing normalized host load', function () {\n+        const gawkCheck = spawnSync('gawk', ['--version'], { encoding: 'utf8' });\n+        if (gawkCheck.status !== 0) {\n+            this.skip();\n+        }\n+\n+        writeExecutable(\n+            'awk',\n+            ['#!/bin/bash', 'exec gawk --lint \"$@\"', ''].join('\\n'),\n+        );\n+        writeExecutable(\n+            'ssh',\n+            [\n+                '#!/bin/bash',\n+                'target=\"\"',\n+                'remote_cmd=\"\"',\n+                'for arg in \"$@\"; do',\n+                '  case \"$arg\" in',\n+                '    deploy@*) target=\"${arg#deploy@}\" ;;',\n+                '  esac',\n+                '  remote_cmd=\"$arg\"',\n+                'done',\n+                'case \"$remote_cmd\" in',\n+                '  *\"/proc/loadavg\"*)',\n+                '    case \"$target\" in',\n+                '      host-a) echo \"8.00\" ;;',\n+                '      host-b) echo \"1.00\" ;;',\n+                '      *) echo \"4.00\" ;;',\n+                '    esac',\n+                '    ;;',\n+                '  \"nproc\")',\n+                '    case \"$target\" in',\n+                '      host-a) echo \"4\" ;;',\n+                '      host-b) echo \"2\" ;;',\n+                '      *) echo \"1\" ;;',\n+                '    esac',\n+                '    ;;',\n+                '  *) exit 1 ;;',\n+                'esac',\n+                '',\n+            ].join('\\n'),\n+        );\n+\n+        const scriptPath = path.resolve(\n+            __dirname,\n+            '../../../scripts/test-db/select_db_host.sh',\n+        );\n+        const result = spawnSync(scriptPath, ['host-a host-b'], {\n+            encoding: 'utf8',\n+            env: {\n+                ...process.env,\n+                PATH: `${tempDir}${path.delimiter}${process.env.PATH}`,\n+            },\n+        });\n+\n+        result.status.should.equal(0, result.stderr);\n+        result.stdout.trim().should.equal('host-b');\n+        result.stderr.should.include('host-a: load=8.00 cpus=4 normalized=2.00');\n+        result.stderr.should.include('host-b: load=1.00 cpus=2 normalized=0.50');\n+    });\n+\n+    it('Should fall back to the first host when every host check fails', function () {\n+        writeExecutable(\n+            'ssh',\n+            ['#!/bin/bash', 'exit 1', ''].join('\\n'),\n+        );\n+\n+        const scriptPath = path.resolve(\n+            __dirname,\n+            '../../../scripts/test-db/select_db_host.sh',\n+        );\n+        const result = spawnSync(scriptPath, ['host-a host-b'], {\n+            encoding: 'utf8',\n+            env: {\n+                ...process.env,\n+                PATH: `${tempDir}${path.delimiter}${process.env.PATH}`,\n+            },\n+        });\n+\n+        result.status.should.equal(0, result.stderr);\n+        result.stdout.trim().should.equal('host-a');\n+        result.stderr.should.include('All host checks failed, falling back to host-a');\n+    });\n+});\n\nhook: Stop\nhook: Stop Completed\ntokens used\n126,351\n"
+  },
+  "cli_result": {
+    "subtype": "success",
+    "is_error": false,
+    "num_turns": null,
+    "usage": {
+      "tokens_used": 126351
+    },
+    "total_cost_usd": null,
+    "result": "Done. I added `VERIFICATION.md` at the repo root and updated the regression coverage.\n\nChanged files:\n- [scripts/test-db/select_db_host.sh](/private/tmp/dbg-g5d2-ws/INFRA-01/scripts/test-db/select_db_host.sh:14): renamed awk variables from `load`/`cpus` to `load_avg`/`cpu_count`.\n- [test/mocha/scripts/selectDbHost.test.js](/private/tmp/dbg-g5d2-ws/INFRA-01/test/mocha/scripts/selectDbHost.test.js:25): added a regression test that would fail on the pre-change `awk -v load=...` code, plus an all-hosts-fail fallback edge case.\n- [VERIFICATION.md](/private/tmp/dbg-g5d2-ws/INFRA-01/VERIFICATION.md:1): recorded exact commands, verified behavior, and unverified scope.\n\nVerification totals:\n- `bash -n`: passed\n- `node --check`: passed\n- `git diff --check`: passed\n- manual script regression: 2 script scenarios passed\n- full suite `npm test`: 0 tests run, blocked before Mocha because `cross-env` is missing and `node_modules` is not installed in this clone.",
+    "session_id": null,
+    "duration_ms": 268662
+  },
+  "replay_preface": "Replay note: you are working in /private/tmp/dbg-g5d2-ws/INFRA-01 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged."
+}

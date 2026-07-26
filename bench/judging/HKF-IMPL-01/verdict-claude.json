@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both suites would fail on pre-Task5 code for the wall-clock hung-turn case (2s timeout wrapper panics since nothing fires). Arm A: 3 tests. Strongest = watchdog_cancels_a_hung_turn_as_timed_out (fails pre-change; asserts AgentTimedOut AND verifies CancelNotification actually reached the agent). Weakest = watchdog_does_not_trip_active_or_unmodeled_turn (negative-only; passes under many implementations regardless of idle-math correctness). Arm A has NO positive idle-timeout-fires test and no test where the agent honors cancel within grace, so it never exercises the PFIX-F 'discard inner Ok' path at all (its hung agent never responds). Arm B: 5 tests. Strongest = watchdog_fired_cancel_honored_within_grace_is_still_timed_out \u2014 the only test in either arm making the agent HONOR cancel within grace and asserting the outcome is still AgentTimedOut, not Done{cancelled}; the true KEYSTONE assertion, and a regression Arm A's suite is blind to. Also watchdog_idle_timeout_fires_after_activity_goes_silent, a positive idle-only-fire test (large wall, small idle) Arm A lacks entirely \u2014 and which would actually fail against Arm A's shipped watchdog loop (see rationale). Weakest = no_watchdog_config_is_byte_identical: checks only a 300ms non-firing window and skips verifying normal completion after release (Arm A's equivalent does check that follow-up).",
+  "rationale": "WRONG (Arm A): the watchdog task is spawned before the request is sent, so la==0 on its very first check virtually always; that branch sets deadline=wall_deadline and the task commits to ONE long sleep with no way to re-derive mid-sleep, so idle_timeout can never fire earlier than hard_wall_clock in practice \u2014 e.g. idle=50ms/wall=5s, one update at t=0.1s then silence forever: expected AgentTimedOut ~t=0.15s, actual fires at t=5s (wall). Arm B anchors the la==0 branch to Instant::now()+idle_timeout, giving periodic re-derivation and avoiding this dead-code trap. The brief's own 3 required tests wouldn't catch this either way, but Arm B added a dedicated positive idle-fire test that would, plus a test proving PFIX-F's honored-cancel-within-grace keystone that Arm A's suite never exercises. Both arms are otherwise scope-faithful and PFIX-G/H/L-correct."
+ },
+ "cost_usd": 0.9633432
+}

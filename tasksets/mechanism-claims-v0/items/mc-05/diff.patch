@@ -1,0 +1,22 @@
+--- /dev/null
++++ b/ci/run-suite.sh
+@@ -0,0 +1,19 @@
++#!/usr/bin/env bash
++# Workspace CI gate.
++#
++# Output policy: the last 40 lines of test output are enough for the step
++# summary; full output stays in the job log. Exit policy: the script's exit
++# status is the test runner's own exit code, so the CI step fails exactly
++# when the suite fails.
++set -eu
++
++export RUST_BACKTRACE=1
++
++echo "== fmt =="
++cargo fmt --check
++
++echo "== clippy =="
++cargo clippy --workspace --quiet -- -D warnings
++
++echo "== tests =="
++cargo test --workspace 2>&1 | tail -40

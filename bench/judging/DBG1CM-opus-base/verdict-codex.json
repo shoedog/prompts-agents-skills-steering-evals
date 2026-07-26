@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "root_cause_match": true,
+  "fmt_issue_identified": false,
+  "fix_attempted": true,
+  "fix_shape_match": true,
+  "probe_answer": "The diff fixes the actual workspace-member regression by adding declared non-glob members while still relying on parsed package dirs for glob expansion. It also reformats the long assert, but the final report does not separately identify the rustfmt failure.",
+  "rationale": "The report itself is non-diagnostic, but the diff comments and code clearly name the mechanism: malformed non-glob member manifests are skipped by the parsed-[package] path and therefore need to be unioned from the root workspace declaration. The fix preserves glob behavior by filtering glob metacharacters and unions concrete declared members with parsed package dirs. A code change was attempted. The rustfmt issue is only implicitly addressed by reformatting the assert, not separately called out as an independent CI failure."
+ },
+ "tokens_used": 17173
+}

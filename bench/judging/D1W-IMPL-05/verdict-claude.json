@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": false,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms' `commit_precedence_and_comment_only_falls_back_to_title` test is the strongest: it exercises all four precedence tiers and the comment-only-typed-falls-to-title edge case with exact string equality, and since pre-change `commit_message` had a 2-arg/bool signature this test can't even compile against old code (strong regression guard). The weakest in both arms is the carried-over long-string case in `commit_message_file_else_fallback` (500 'x' chars, 120-char truncation) \u2014 it only exercises the untouched derived-fallback formatting, not any new precedence/comment-stripping path. Arm B's tests use the exact literal strings from the spec ('Add foo', 'task body'), showing closer fidelity. Arm A paraphrases (functionally identical) but adds one extra useful check (file beats a real non-blank title) while relocating the blank-candidate check from the `file` param to `typed`, diverging slightly from the original test's intent. Net: rigor is essentially at parity \u2014 both cover positive/negative/edge cases and assert exact resolved strings rather than trivial truths.",
+  "rationale": "Core logic is equivalent: identical precedence order, identical comment-stripping algorithm, and equivalent trim/NUL-strip/bound behavior despite differently-ordered steps (traced through edge cases to confirm same output). main.rs and merge.rs call-site changes are byte-for-byte identical in both arms. The decisive difference is scope: the task enumerates 'ALL three' ripple points (main.rs call, main.rs warning re-spec, merge.rs call) and explicitly states 'tweak.rs is NOT a caller,' signaling no tweak.rs changes are needed. Arm B honors this, converting CommitSource to bool at the main.rs call site so `decide()`'s signature and tweak.rs stay untouched. Arm A instead changes `decide()`'s public signature to CommitSource, forcing an unrequested edit to tweak.rs and decide_matrix \u2014 a concrete, demonstrable violation of 'Do NOT touch files outside your task' and the explicit corrective note, risking conflicts with other in-flight tasks in this multi-task workflow."
+ },
+ "cost_usd": 0.7801689
+}

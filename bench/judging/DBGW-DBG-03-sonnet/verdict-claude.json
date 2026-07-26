@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": false,
+  "probe_answer": "Both arms remove the collision at the root identically: collect all params as (name, def_byte) with their LocalFact in source order, call add_locals ONCE over the full ordered slice with a placeholder LocalFact (so BindingRef.ordinal comes from the single enumerate over all params, restoring 0,1,2,...), then attach each param's real annotated fact afterward via b.add_local_fact(file, def_byte, fact) keyed by def_byte. Verified against a validated reference fix in the actual repo (dbg-base-ws/DBG-03) that this is exactly the correct pattern given add_locals's real signature (fact: LocalFact, ordinal = i as u32 from names.iter().enumerate()). Both add a regression test with fn f(a: i32, b: i32) that fails pre-fix (buggy per-param add_locals calls give every param ordinal 0 since i is always 0 for a one-element slice) and passes post-fix (0,1). Both add a same-rib duplicate-let ambiguity test asserting lookup returns None. Neither touches any other add_locals call site (lets/patterns), and neither diff contains any change outside items.rs/binding_lookup.rs/tests - fix is inert beyond the repair in both.",
+  "rationale": "The production fix in src/name_resolution/rust_populator/walk/items.rs is byte-for-byte identical between the two arms and matches a validated reference implementation found in the actual repo tree, so there is no correctness difference. Both arms supply both required regression tests (ordinal preservation, ambiguity-to-None) and both tests are confirmed, by tracing the real BindingRef/add_locals/lookup_visible_binding/Resolution types, to compile and to fail on the pre-fix per-param code. The only difference is placement/altitude: Arm A puts the ordinal test in tests/name_resolution/rust_populate_test.rs exercising the full resolve_bare_at/Resolution pipeline (broader, more integration-style), while Arm B puts both tests in binding_lookup.rs directly against lookup_visible_binding/BindingRef (more surgical, closer to the root cause). Neither is objectively stronger - they are different valid testing philosophies covering the same regression. Scope discipline and inertness are equal in both. This is parity."
+ },
+ "cost_usd": 1.1671044
+}

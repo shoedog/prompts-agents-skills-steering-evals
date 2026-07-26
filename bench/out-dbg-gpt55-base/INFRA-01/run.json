@@ -1,0 +1,36 @@
+{
+  "harness": {
+    "executor": "codex",
+    "effort": "high",
+    "cwd": "/private/tmp/dbg-g5-ws/INFRA-01",
+    "argv": [
+      "/opt/homebrew/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "-o",
+      "/private/tmp/dbg-g5-ws/INFRA-01/.codex-final-message.md",
+      "-"
+    ],
+    "started_at": "2026-07-05T05:42:58+00:00",
+    "returncode": 0,
+    "timed_out": false,
+    "timeout_sec": 4500,
+    "stderr_tail": "sh\n+++ b/scripts/test-db/select_db_host.sh\n@@ -11,7 +11,7 @@\n   LOAD=$($SSH_CMD \"awk '{printf \\\"%.2f\\\", \\$1}' /proc/loadavg\" 2>/dev/null) || continue\n   CPUS=$($SSH_CMD \"nproc\" 2>/dev/null) || continue\n   # Use awk for float comparison\n-  NORMALIZED=$(awk -v load=\"$LOAD\" -v cpus=\"$CPUS\" 'BEGIN {printf \"%.2f\", load / cpus}')\n+  NORMALIZED=$(awk -v host_load=\"$LOAD\" -v cpus=\"$CPUS\" 'BEGIN {printf \"%.2f\", host_load / cpus}')\n   echo \"[select_db_host.sh] $HOST: load=$LOAD cpus=$CPUS normalized=$NORMALIZED\" >&2\n \n   if awk -v normalized=\"$NORMALIZED\" -v best_load=\"$BEST_LOAD\" 'BEGIN {exit !(normalized < best_load)}'; then\ndiff --git a/test/mocha/scripts/selectDbHost.test.js b/test/mocha/scripts/selectDbHost.test.js\nnew file mode 100644\nindex 0000000000000000000000000000000000000000..d5c252c5636bf19720b20025c344890c7cb73385\n--- /dev/null\n+++ b/test/mocha/scripts/selectDbHost.test.js\n@@ -0,0 +1,116 @@\n+const { execFile, execFileSync } = require('node:child_process');\n+const fs = require('node:fs');\n+const os = require('node:os');\n+const path = require('node:path');\n+const { promisify } = require('node:util');\n+const chai = require('chai');\n+\n+chai.should();\n+\n+const execFileAsync = promisify(execFile);\n+\n+describe('scripts/test-db/select_db_host.sh', function () {\n+    let tempDir;\n+    let binDir;\n+    let realAwk;\n+\n+    beforeEach(function () {\n+        tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'select-db-host-'));\n+        binDir = path.join(tempDir, 'bin');\n+        fs.mkdirSync(binDir);\n+        realAwk = execFileSync('which', ['awk'], { encoding: 'utf8' }).trim();\n+    });\n+\n+    afterEach(function () {\n+        fs.rmSync(tempDir, { recursive: true, force: true });\n+    });\n+\n+    function writeExecutable(name, contents) {\n+        const filePath = path.join(binDir, name);\n+        fs.writeFileSync(filePath, contents, { mode: 0o755 });\n+    }\n+\n+    function env() {\n+        return {\n+            ...process.env,\n+            PATH: `${binDir}${path.delimiter}${process.env.PATH}`,\n+            REAL_AWK: realAwk,\n+        };\n+    }\n+\n+    it('selects the host with the lowest normalized load without using reserved awk names', async function () {\n+        writeExecutable(\n+            'awk',\n+            `#!/bin/sh\n+for arg in \"$@\"; do\n+  case \"$arg\" in\n+    load=*) echo \"awk: fatal: cannot use gawk builtin \\`load' as variable name\" >&2; exit 2 ;;\n+  esac\n+done\n+exec \"$REAL_AWK\" \"$@\"\n+`,\n+        );\n+        writeExecutable(\n+            'ssh',\n+            `#!/bin/sh\n+host=\"\"\n+command=\"\"\n+for arg in \"$@\"; do\n+  case \"$arg\" in deploy@*) host=\"\\${arg#deploy@}\" ;; esac\n+  command=\"$arg\"\n+done\n+case \"$command\" in\n+  *\"/proc/loadavg\"*)\n+    case \"$host\" in\n+      db-a) echo \"4.00\" ;;\n+      db-b) echo \"3.00\" ;;\n+      *) exit 1 ;;\n+    esac\n+    ;;\n+  *\"nproc\"*)\n+    case \"$host\" in\n+      db-a) echo \"2\" ;;\n+      db-b) echo \"4\" ;;\n+      *) exit 1 ;;\n+    esac\n+    ;;\n+  *) exit 1 ;;\n+esac\n+`,\n+        );\n+\n+        const { stdout, stderr } = await execFileAsync(\n+            './scripts/test-db/select_db_host.sh',\n+            ['db-a db-b'],\n+            { env: env() },\n+        );\n+\n+        stdout.trim().should.equal('db-b');\n+        stderr.should.contain('db-a: load=4.00 cpus=2 normalized=2.00');\n+        stderr.should.contain('db-b: load=3.00 cpus=4 normalized=0.75');\n+    });\n+\n+    it('falls back to the first host when all probes fail', async function () {\n+        writeExecutable(\n+            'awk',\n+            `#!/bin/sh\n+exec \"$REAL_AWK\" \"$@\"\n+`,\n+        );\n+        writeExecutable(\n+            'ssh',\n+            `#!/bin/sh\n+exit 1\n+`,\n+        );\n+\n+        const { stdout, stderr } = await execFileAsync(\n+            './scripts/test-db/select_db_host.sh',\n+            ['db-a db-b'],\n+            { env: env() },\n+        );\n+\n+        stdout.trim().should.equal('db-a');\n+        stderr.should.contain('All host checks failed, falling back to db-a');\n+    });\n+});\n\nhook: Stop\nhook: Stop Completed\ntokens used\n79,950\n"
+  },
+  "cli_result": {
+    "subtype": "success",
+    "is_error": false,
+    "num_turns": null,
+    "usage": {
+      "tokens_used": 79950
+    },
+    "total_cost_usd": null,
+    "result": "Completed the verification gate and added [VERIFICATION.md](/private/tmp/dbg-g5-ws/INFRA-01/VERIFICATION.md:1).\n\nCurrent changes:\n- Fixed [select_db_host.sh](/private/tmp/dbg-g5-ws/INFRA-01/scripts/test-db/select_db_host.sh:14) by replacing awk variable `load` with `host_load`.\n- Added regression coverage in [selectDbHost.test.js](/private/tmp/dbg-g5-ws/INFRA-01/test/mocha/scripts/selectDbHost.test.js:41), including the reserved-name failure case and the all-probes-fail fallback case.\n- Documented verification commands, pass totals where available, and blocked full-suite status.\n\nFull suite status: `npm test` was attempted and ran 0 tests because `cross-env` is missing. `npm ci --offline --ignore-scripts` also failed because required npm tarballs are not cached and network access is unavailable. Other checks passed: shell syntax, JS syntax, whitespace, and 2 direct script behavior scenarios.",
+    "session_id": null,
+    "duration_ms": 300738
+  },
+  "replay_preface": "Replay note: you are working in /private/tmp/dbg-g5-ws/INFRA-01 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged."
+}

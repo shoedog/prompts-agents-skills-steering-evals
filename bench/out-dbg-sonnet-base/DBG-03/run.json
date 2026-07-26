@@ -1,0 +1,88 @@
+{
+  "harness": {
+    "argv_redacted": [
+      "/Users/wesleyjinks/.local/bin/claude",
+      "-p",
+      "<task_prompt omitted here \u2014 see the task yaml>",
+      "--model",
+      "claude-sonnet-5",
+      "--output-format",
+      "json",
+      "--dangerously-skip-permissions"
+    ],
+    "cwd": "/private/tmp/dbg-base-ws/DBG-03",
+    "model": "claude-sonnet-5",
+    "timeout_sec": 4500,
+    "started_at": "2026-07-05T05:48:08+00:00",
+    "ended_at": "2026-07-05T06:02:27+00:00",
+    "wall_sec": 859.177,
+    "timed_out": false,
+    "returncode": 0
+  },
+  "cli_result": {
+    "type": "result",
+    "subtype": "success",
+    "is_error": false,
+    "api_error_status": null,
+    "duration_ms": 857665,
+    "duration_api_ms": 267701,
+    "ttft_ms": 7290,
+    "ttft_stream_ms": 1143,
+    "time_to_request_ms": 32,
+    "num_turns": 41,
+    "result": "Zero regressions confirmed after amend (one macOS CLI suite ran slow \u2014 191s vs. its usual sub-second, a known transient per the project's macOS note \u2014 but it still passed clean).\n\n## Report\n\n**STATUS:** DONE\n\n**What I fixed:** `bind_params` in `src/name_resolution/rust_populator/walk/items.rs` was calling `add_locals` once per parameter with a single-element `&[name]` slice, so `add_locals`'s internal `enumerate()` always produced `ordinal = 0` \u2014 collapsing every param's `BindingRef` to the same ordinal (an inertness breach vs. parent `48f15d9`, which called `add_locals` once with the full ordered slice).\n\n**Fix:** Restored a single `add_locals` call over the full ordered `(name, def_byte)` slice (preserving `0,1,2,\u2026` ordinals), then loop separately over the collected `(name, LocalFact)` vector calling `b.add_local_fact(file, def_byte, fact)` directly, keyed by def_byte \u2014 not routed through a per-name `add_locals` call. I verified the other five `add_locals` call sites (`walk_let`, `walk_closure`, `walk_for`, `walk_match`, `walk_if_while` in `locals.rs`) were never split into per-name calls in `f89dd5c`'s diff \u2014 each still passes the full names slice with one shared fact, so ordinals there were never broken.\n\n**Regression tests added** (`src/name_resolution/binding_lookup.rs`, `#[cfg(test)] mod tests`):\n1. `param_bindings_get_distinct_ordinals` \u2014 `fn f(a: i32, b: i32)` asserts ordinals `(0, 1)`. Verified RED first: failed with `got a=0 b=0` against the reverted buggy code, then GREEN after the fix.\n2. `duplicate_same_rib_local_is_ambiguous` \u2014 `let x = 1; let x = 2;` in one block, lookup at the trailing `x;` returns `None` (recall-safe ambiguity path, passed even pre-fix \u2014 pins existing behavior).\n\n**Test results:** `cargo test --lib name_resolution::binding_lookup::tests` \u2192 3/3 ok; `cargo test --lib` \u2192 274/274 ok; `cargo test --test name_resolution` \u2192 91/91 ok; full `cargo test` \u2192 all 28 suites green, zero regressions (one suite took 191s instead of its usual <1s \u2014 the documented macOS CLI-test transient, not a failure).\n\n**Other checks:** `cargo fmt` clean, `cargo fmt --check` clean; `cargo clippy --all-targets` \u2014 no new warnings in either touched file (all warnings shown are pre-existing, in unrelated files); `cargo build` and `cargo build --features mcp` succeed (pre-existing unrelated `taint.rs` dead-code warnings only); `cargo build --release` + `tier-a --matrix-only --allow-stale-sut` \u2014 all matrix cases `ok`/`expected_gap`, 0 regressions.\n\n**Files changed:** `src/name_resolution/rust_populator/walk/items.rs`, `src/name_resolution/binding_lookup.rs`. No file split needed (both well under 600 lines).\n\n**Commit:** amended onto `f89dd5c` (message unchanged) \u2192 new SHA **`a16e4cf`**.\n\n**Self-review:** Fix is minimal and scoped exactly to the reported breach; no other files touched; determinism preserved (`BTreeMap` insert-overwrite semantics in `add_local_fact`, ordinals now byte-identical to `48f15d9`); no recall-safety concerns \u2014 this fix doesn't touch resolution/lookup logic, only ordinal assignment and fact attachment. Untracked eval/snapshot artifacts left untouched.",
+    "stop_reason": "end_turn",
+    "session_id": "ef1d0064-a214-4f95-a980-4a0da4c10c48",
+    "total_cost_usd": 1.8595802999999995,
+    "usage": {
+      "input_tokens": 78,
+      "cache_creation_input_tokens": 87721,
+      "cache_read_input_tokens": 3414251,
+      "output_tokens": 20583,
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 87721,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "not_available",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 1288,
+          "cache_read_input_tokens": 109005,
+          "cache_creation_input_tokens": 1917,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 1917
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard"
+    },
+    "modelUsage": {
+      "claude-sonnet-5": {
+        "inputTokens": 78,
+        "outputTokens": 20583,
+        "cacheReadInputTokens": 3414251,
+        "cacheCreationInputTokens": 87721,
+        "webSearchRequests": 0,
+        "costUSD": 1.8595802999999995,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000
+      }
+    },
+    "permission_denials": [],
+    "terminal_reason": "completed",
+    "fast_mode_state": "off",
+    "uuid": "83309559-42fe-490c-ba79-b11404342c67"
+  },
+  "stdout_tail": null,
+  "stderr_tail": "",
+  "parse_error": null,
+  "replay_preface": "Replay note: you are working in /private/tmp/dbg-base-ws/DBG-03 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged."
+}

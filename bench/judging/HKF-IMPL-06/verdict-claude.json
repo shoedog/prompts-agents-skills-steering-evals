@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms' rich_snapshot_frames/fold logic look functionally equivalent and correct (Plan-latest, ToolCall/Update fold by id, had_base tracked via enum variant in A vs a dedicated bool+struct in B) \u2014 no WRONG behavior found in either. The rigor gap is in tests. Arm A ships 2 tests, both unit-testing rich_snapshot_frames directly (rich_snapshot_folds_toolcall_interleaved; rich_snapshot_plan_latest_orphan_update_and_cursor) \u2014 neither exercises the actual subscribe_to_task/terminal_sse_response/working_sse_response call sites, so a regression reverting one of the 'BOTH reattach call sites' swaps would NOT be caught. Arm B ships 6: 4 unit tests covering the interleaved-fold case plus dedicated edge cases (orphan-update-only, latest-plan-only, cursor test targeting rich-frame exclusion specifically), PLUS two true end-to-end tests (subscribe_terminal_task_includes_rich_toolcall_frame, subscribe_working_snapshot_includes_rich_toolcall_frame) hitting the real SSE endpoint that would fail on pre-change code (bare snapshot_frames silently drops rich frames). Strongest A: rich_snapshot_plan_latest_orphan_update_and_cursor (combines 3 behaviors). Weakest A: rich_snapshot_folds_toolcall_interleaved (restates the task's literal example). Strongest B: subscribe_working_snapshot_includes_rich_toolcall_frame (proves the harder-to-reach working_sse_response wiring end-to-end). Weakest B: rich_snapshot_keeps_latest_plan_only (narrow, overlaps the interleaved test).",
+  "rationale": "Production logic is equivalent in both \u2014 same fold algorithm, same merge-then-cursor-filter-once, same sentinel re-derivation, no demonstrated incorrect output in either arm. B's test suite is materially more rigorous: it adds dedicated edge-case tests (orphan update, latest-plan, rich-frame cursor exclusion) AND two end-to-end tests hitting the real SSE endpoints at both reattach call sites \u2014 exactly Task 8's core ask. A only unit-tests the merge helper, leaving the call-site wiring itself unverified by any new test. Given TDD was mandated and the task explicitly calls out 'BOTH reattach call sites', that's a real coverage gap, not a nitpick."
+ },
+ "cost_usd": 0.6091812000000001
+}

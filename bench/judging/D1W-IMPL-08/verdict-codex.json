@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": false,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "The test suites are identical, so neither arm is stronger on rigor. They do cover several real paths: owner-pool recovery, inherent+trait demotion, fail-open to NameOnly, block-local glob/macro shadows, pending import keep-all, and the free-function misroute guard. Several of these would likely fail on the pre-Task-5 code, especially the owner-pool recovery/fail-open cases, but the free-function guard is mostly a regression test for a naive Task-5 integration and would likely pass before Task 5 because the old code stayed on graph resolution. Strongest test in both arms: `scope_graph_free_fn_path_not_misrouted_to_colliding_method_pool`, because it pins the colliding method bucket and asserts the resolved file is the module free function. Also strong: `scope_graph_unresolved_owner_path_keeps_full_pool_not_drop`, because it pins the collision and checks len/confidence/kind. Weakest test in both arms: `scope_graph_macro_wildcard_shadow_keeps_all`, because it does not assert the pool size or exact targets, so an empty or singleton NameOnly result could pass too easily. Both arms also omit the required mixed-edition keep-all fixture, and they do not add explicit tests for the three drop",
+  "rationale": "Arm A is materially better because its free-function guard matches the task\u2019s stated predicate: non-empty graph id-set and all ids not in `method_owners`. Arm B is WRONG for the state where `graph_target_ids` is empty: `rust_graph_qualified_target_is_free_fn` returns true even though the task explicitly says the guard is only for a non-empty free-function id-set, so it classifies an empty graph resolution as the free-fn guard path and bypasses the owner-prune/fail-open path. Both arms are incomplete because the requested mixed-edition keep-all test is missing, and their tests are identical. Scope is otherwise acceptable: both touch only `src/resolution.rs` and `tests/integration/resolution_test.rs` for the requested integration."
+ },
+ "tokens_used": 95714
+}

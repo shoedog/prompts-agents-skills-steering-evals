@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": true,
+  "load_bearing_caveats_matched": true,
+  "scope_calibrated": true,
+  "would_have_prevented_wasted_work": true,
+  "probe_answer": "The memo correctly recommends Option A: a span-keyed (file, class-span) ClassId hierarchy map plumbed into CallGraph, populated at build across all paths, matching exactly what shipped. It carries the decisive load-bearing caveat: conservative single-unambiguous-defining-ancestor \u2192 Exact, external/ambiguous/multi-ancestor \u2192 barrier (demote/drop), and explicitly argues C3 is unnecessary for this slice \u2014 the precise narrowing the repo's spec reworks converged on. It correctly rejects the bare-name `owner_lookup`/enrichment-layer reuse (Option C) as unsound, matching the settled rejection of name-keyed approaches. Scope is well-calibrated: it sizes the in-repo buy (~15 sites) with real measurement rather than assuming the full aggregate, and recommends exactly the depth-1/single-inheritance thin slice that landed, while correctly deferring cross-file-Exact-via-import and C3 as later refinements not required now. Minor deviation: it proposes NameOnly demotion for cross-file bases rather than pure depth-1 same-file-only scoping, slightly broader than the narrowest landed cut, but this is a defensible sound extension, not a wrong-shape recommendation, and it also correctly flags that the brief's stated acceptance test (`inherited_override`) doesn't actually test 1b and a new fixture is needed \u2014 exactly the kind of correction that would have prevented wasted implementation effort.",
+  "rationale": "Matches the settled outcome on architecture (span-keyed map, not name-keyed), on the core soundness policy (single unambiguous provider vs. barrier), and on explicitly rejecting full C3/MRO as unneeded \u2014 the three decisive axes in the ground truth. Scope sizing is measured and conservative, consistent with the depth-1 narrowing history (multiple REWORKs converging to this exact policy). The one added wrinkle (cross-file NameOnly instead of strict same-file-only) is a superset behavior built on the same sound primitive, not a different design, and the memo already flags it as separable/deferrable, so it doesn't undermine shape-matching or scope calibration in a way that would have caused rework."
+ },
+ "cost_usd": 0.1610313
+}

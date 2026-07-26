@@ -1,0 +1,116 @@
+POST-RUN evidence (workspace after the Fable session)
+=====================================================
+
+$ cargo test -p bridge-store sqlite_migration_idempotent_and_batch_roundtrip
+  # named test 1/2: migration is idempotent (open/drop/re-open) + create_batch/get_batch round-trip
+  [exit 0, 0.931s]
+  --- stdout (tail) ---
+  
+  running 1 test
+  test sqlite::tests::sqlite_migration_idempotent_and_batch_roundtrip ... ok
+  
+  test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 28 filtered out; finished in 0.02s
+  
+  --- stderr (tail) ---
+     Compiling bridge-store v0.1.0 (/private/tmp/gpt55-ws/IMPL-03/crates/bridge-store)
+      Finished `test` profile [unoptimized + debuginfo] target(s) in 0.67s
+       Running unittests src/lib.rs (target/debug/deps/bridge_store-f3167a6d4d28df81)
+
+$ cargo test -p bridge-store sqlite_claim_is_atomic_single_runner
+  # named test 2/2 (the atomicity oracle): two claims of the same batch item -> exactly one Created + one ExistingWorking, one child row
+  [exit 0, 0.072s]
+  --- stdout (tail) ---
+  
+  running 1 test
+  test sqlite::tests::sqlite_claim_is_atomic_single_runner ... ok
+  
+  test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 28 filtered out; finished in 0.00s
+  
+  --- stderr (tail) ---
+      Finished `test` profile [unoptimized + debuginfo] target(s) in 0.04s
+       Running unittests src/lib.rs (target/debug/deps/bridge_store-f3167a6d4d28df81)
+
+$ cargo build --workspace
+  # workspace still compiles (all 9 batch trait methods implemented on SqliteStore; no missed call site)
+  [exit 0, 15.303s]
+  --- stderr (tail) ---
+     Compiling derive_more-impl v2.1.1
+     Compiling pin-project-internal v1.1.13
+     Compiling strum_macros v0.28.0
+     Compiling rmcp-macros v1.7.0
+     Compiling futures-executor v0.3.32
+     Compiling async-signal v0.2.14
+     Compiling serde_repr v0.1.20
+     Compiling futures v0.3.32
+     Compiling async-process v2.5.0
+     Compiling clap_derive v4.6.1
+     Compiling agent-client-protocol-derive v0.11.1
+     Compiling axum-core v0.4.5
+     Compiling arc-swap v1.9.1
+     Compiling pin-project v1.1.13
+     Compiling matchers v0.2.0
+     Compiling nu-ansi-term v0.50.3
+     Compiling rusqlite v0.32.1
+     Compiling walkdir v2.5.0
+     Compiling crossbeam-channel v0.5.15
+     Compiling zerovec v0.11.6
+     Compiling zerotrie v0.2.4
+     Compiling filetime v0.2.29
+     Compiling fsevent-sys v4.1.0
+     Compiling notify v6.1.1
+     Compiling derive_more v2.1.1
+     Compiling strum v0.28.0
+     Compiling toml_datetime v0.6.11
+     Compiling serde_spanned v0.6.9
+     Compiling chrono v0.4.44
+     Compiling serde_urlencoded v0.7.1
+     Compiling toml_edit v0.22.27
+     Compiling jsonrpcmsg v0.1.2
+     Compiling tokio-stream v0.1.18
+     Compiling tokio-util v0.7.18
+     Compiling hyper v1.10.1
+     Compiling tower v0.5.3
+     Compiling futures-concurrency v7.7.1
+     Compiling clap v4.6.1
+     Compiling lsp-types v0.97.0
+     Compiling tracing-serde v0.2.0
+     Compiling schemars v1.2.1
+     Compiling a2a-lf v0.3.0
+     Compiling tracing-subscriber v0.3.23
+     Compiling hyper-util v0.1.20
+     Compiling tinystr v0.8.3
+     Compiling potential_utf v0.1.5
+     Compiling icu_locale_core v2.2.0
+     Compiling toml v0.8.23
+     Compiling icu_collections v2.2.0
+     Compiling tokio-rustls v0.26.4
+     Compiling bridge-core v0.1.0 (/private/tmp/gpt55-ws/IMPL-03/crates/bridge-core)
+     Compiling bridge-observ v0.1.0 (/private/tmp/gpt55-ws/IMPL-03/crates/bridge-observ)
+     Compiling icu_provider v2.2.0
+     Compiling icu_properties v2.2.0
+     Compiling icu_normalizer v2.2.0
+     Compiling hyper-rustls v0.27.9
+     Compiling axum v0.7.9
+     Compiling serde_with v3.20.0
+     Compiling idna_adapter v1.2.2
+     Compiling idna v1.1.0
+     Compiling url v2.5.8
+     Compiling bridge-workflow v0.1.0 (/private/tmp/gpt55-ws/IMPL-03/crates/bridge-workflow)
+     Compiling bridge-policy v0.1.0 (/private/tmp/gpt55-ws/IMPL-03/crates/bridge-policy)
+     Compiling bridge-store v0.1.0 (/private/tmp/gpt55-ws/IMPL-03/crates/bridge-store)
+     Compiling bridge-registry v0.1.0 (/private/tmp/gpt55-ws/IMPL-03/crates/bridge-registry)
+     Compiling bridge-worktree v0.1.0 (/private/tmp/gpt55-ws/IMPL-03/crates/bridge-worktree)
+     Compiling tower-http v0.6.11
+     Compiling reqwest v0.12.28
+     Compiling bridge-coordinator v0.1.0 (/private/tmp/gpt55-ws/IMPL-03/crates/bridge-coordinator)
+     Compiling bridge-a2a-outbound v0.1.0 (/private/tmp/gpt55-ws/IMPL-03/crates/bridge-a2a-outbound)
+     Compiling bridge-api v0.1.0 (/private/tmp/gpt55-ws/IMPL-03/crates/bridge-api)
+     Compiling agent-client-protocol-schema v0.13.2
+     Compiling bridge-mcp v0.1.0 (/private/tmp/gpt55-ws/IMPL-03/crates/bridge-mcp)
+     Compiling bridge-a2a-inbound v0.1.0 (/private/tmp/gpt55-ws/IMPL-03/crates/bridge-a2a-inbound)
+     Compiling lsp-mcp v0.1.0 (/private/tmp/gpt55-ws/IMPL-03/crates/lsp-mcp)
+     Compiling agent-client-protocol v0.12.1
+     Compiling bridge-acp v0.1.0 (/private/tmp/gpt55-ws/IMPL-03/crates/bridge-acp)
+     Compiling bridge-container v0.1.0 (/private/tmp/gpt55-ws/IMPL-03/crates/bridge-container)
+     Compiling a2a-bridge v0.1.0 (/private/tmp/gpt55-ws/IMPL-03/bin/a2a-bridge)
+      Finished `dev` profile [unoptimized + debuginfo] target(s) in 15.27s

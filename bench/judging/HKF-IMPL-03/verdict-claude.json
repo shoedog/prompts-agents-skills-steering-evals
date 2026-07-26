@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both suites would fail against the trait's default (pre-impl) methods since they assert real SQLite persistence/round-trip, not vacuous truths. Arm A: 2 dense tests. Strongest: sqlite_claim_is_atomic_single_runner (proves atomicity, unique-index enforcement, and terminal-reclaim in one coherent scenario). Weakest: sqlite_migration_idempotent_and_batch_roundtrip \u2014 packs many assertions together but never exercises settle_batch_if_status with a mismatched `expect` (CAS-miss), so that method's negative path is untested. Arm B: 9 focused tests, each isolating one behavior \u2014 get_batch-on-missing, create_batch duplicate-id error, list_batches ordering + active_batches status-filtering across 3 distinct statuses, claim_batch_child terminal-reclaim, and critically sqlite_batch_cas_transitions, which DOES test settle_batch_if_status with a mismatched expect (asserts false + unchanged status) \u2014 the exact gap Arm A misses. Strongest: sqlite_batch_cas_transitions (exercises all 3 CAS methods' miss+hit paths). Weakest: sqlite_get_batch_missing_is_none (trivial single-assertion, real but low-value). Net: Arm B's suite is more rigorous \u2014 it satisfies the same two required named tests plus genuine edge-case coverage Arm A entirely lacks for one CAS method and for list()'s batch-field roundtrip.",
+  "rationale": "Implementations are functionally equivalent: same schema, same 9 method impls, same claim_batch_child transaction pattern, both idempotent migrations, both add only tempfile as dev-dep. Neither has a demonstrated correctness bug (WRONG); differences are SMELL-level style choices (Arm A folds batch-table DDL into migrate_tasks_columns; Arm B keeps it in the initial schema block; Arm A compares a raw status string, Arm B reuses TaskRecordStatus::parse). Both satisfy scope/file constraints. The decisive difference is test rigor: Arm B has 9 granular tests covering get_batch-missing, duplicate-create-error, list/active ordering+filtering across 3 statuses, terminal-reclaim, and a CAS-miss test for settle_batch_if_status that Arm A's suite never exercises for that method \u2014 a real, concrete coverage gap given TDD is the stated goal."
+ },
+ "cost_usd": 0.5634576
+}

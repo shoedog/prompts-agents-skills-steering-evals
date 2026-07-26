@@ -1,0 +1,106 @@
+diff --git a/src/name_resolution/binding_lookup.rs b/src/name_resolution/binding_lookup.rs
+index d86d7c6..51c79de 100644
+--- a/src/name_resolution/binding_lookup.rs
++++ b/src/name_resolution/binding_lookup.rs
+@@ -121,6 +121,7 @@ mod tests {
+     use crate::call_graph::{CallGraph, ScopeGraphBuildInputs};
+     use crate::languages::Language::Rust;
+     use crate::name_resolution::rust_populator::RustCrateConfig;
++    use crate::name_resolution::types::BindingRef;
+ 
+     #[test]
+     fn lookup_visible_binding_returns_binding_by_name_and_byte() {
+@@ -155,4 +156,63 @@ mod tests {
+             Some(InitExpr::Ctor(s)) if s == "X::new()"
+         ));
+     }
++
++    /// Regression: `bind_params` must preserve enumerate-based `BindingRef`
++    /// ordinals (0, 1, 2, …) across all parameters. A prior per-parameter
++    /// `add_locals` call collapsed every ordinal to 0.
++    #[test]
++    fn param_bindings_get_distinct_ordinals() {
++        let src = "fn f(a: i32, b: i32) { a; b; }\n";
++        let mut files = std::collections::BTreeMap::new();
++        files.insert(
++            "a.rs".to_string(),
++            ParsedFile::parse("a.rs", src, Rust).unwrap(),
++        );
++        let mut inputs = ScopeGraphBuildInputs::from_files_convention(&files);
++        inputs.cfg = RustCrateConfig {
++            crate_roots: files.keys().cloned().collect(),
++            ..RustCrateConfig::default()
++        };
++        let cg = CallGraph::build_with_scope_graph_inputs(&files, Some(&inputs));
++        let graph = cg.scope_graph.as_ref().expect("scope graph");
++        let file = graph.file_paths["a.rs"];
++        let at_byte = src.find("a;").unwrap();
++
++        let binding_a = lookup_visible_binding(graph, file, at_byte, "a").expect("binding a");
++        let binding_b = lookup_visible_binding(graph, file, at_byte, "b").expect("binding b");
++
++        let ordinal = |binding: &Binding| match &binding.target {
++            BindTarget::Resolved(Target::Local(BindingRef { ordinal, .. })) => *ordinal,
++            other => panic!("expected a Target::Local binding, got {other:?}"),
++        };
++        let (ordinal_a, ordinal_b) = (ordinal(binding_a), ordinal(binding_b));
++        assert_eq!(
++            (ordinal_a, ordinal_b),
++            (0, 1),
++            "param ordinals must be 0,1 in source order, got a={ordinal_a} b={ordinal_b}"
++        );
++    }
++
++    /// Recall-safety: two same-name bindings in the same rib (no nested scope
++    /// between them) must make lookup return `None`, not silently pick one.
++    #[test]
++    fn duplicate_same_rib_local_is_ambiguous() {
++        let src = "fn f() { let x = 1; let x = 2; x; }\n";
++        let mut files = std::collections::BTreeMap::new();
++        files.insert(
++            "a.rs".to_string(),
++            ParsedFile::parse("a.rs", src, Rust).unwrap(),
++        );
++        let mut inputs = ScopeGraphBuildInputs::from_files_convention(&files);
++        inputs.cfg = RustCrateConfig {
++            crate_roots: files.keys().cloned().collect(),
++            ..RustCrateConfig::default()
++        };
++        let cg = CallGraph::build_with_scope_graph_inputs(&files, Some(&inputs));
++        let graph = cg.scope_graph.as_ref().expect("scope graph");
++        let file = graph.file_paths["a.rs"];
++        let use_byte = src.rfind("x;").unwrap();
++
++        assert_eq!(lookup_visible_binding(graph, file, use_byte, "x"), None);
++    }
+ }
+diff --git a/src/name_resolution/rust_populator/walk/items.rs b/src/name_resolution/rust_populator/walk/items.rs
+index f55a1dd..e994e3e 100644
+--- a/src/name_resolution/rust_populator/walk/items.rs
++++ b/src/name_resolution/rust_populator/walk/items.rs
+@@ -357,7 +357,23 @@ fn bind_params(
+         }
+         out
+     });
+-    for (name, fact) in facts {
+-        add_locals(b, body_scope, file, body_end, &[name], fact);
++    // One `add_locals` call over the full ordered slice keeps `BindingRef.ordinal`
++    // (0,1,2,…) identical across all params; splitting into per-name calls
++    // would reset the enumerate-based ordinal to 0 for every param.
++    let names: Vec<(String, usize)> = facts.iter().map(|(name, _)| name.clone()).collect();
++    add_locals(
++        b,
++        body_scope,
++        file,
++        body_end,
++        &names,
++        LocalFact {
++            kind: BindingKind::Param,
++            annotation: None,
++            init: None,
++        },
++    );
++    for ((_, def_byte), fact) in facts {
++        b.add_local_fact(file, def_byte, fact);
+     }
+ }

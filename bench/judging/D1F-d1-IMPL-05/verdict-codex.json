@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": false,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Arm A tests: they would fail to compile on pre-change code because the signature and CommitSource enum did not exist, and the new precedence test would fail behaviorally if adapted to the old API. Strongest test is comment-only typed falling back to title, because it exercises RR2-FIX-5. Weakest is the new precedence test\u2019s assertions on only `.0`; it does not verify CommitSource for Typed/File/Title. Arm B tests: also fail to compile on pre-change code, and they assert both resolved message and CommitSource for the new paths. Strongest test is comment-only typed to Title with source assertion. Weakest is the oversize typed test: it catches Arm B\u2019s own chosen behavior, but that behavior is likely contrary to the task\u2019s \u201cbound to 64 KiB\u201d wording, so it is not a good regression test for the specified contract.",
+  "rationale": "WRONG: Arm B treats typed/file candidates over 64 KiB as absent. The task says to strip comments, trim, NUL-strip, and bound to 64 KiB for each candidate, reusing/mirroring read_commit_msg_file\u2019s bounding. That means an oversized typed message should be truncated/bounded, not discarded. Arm A correctly truncates at a char boundary.\n\nSMELL: Arm A preserves the old `(String, bool)` shape locally for `decide`, but that appears necessary because downstream `decide` still expects the old fallback boolean; it does not add a persisted field and warning behavior is correctly re-specced to only Derived. Both arms update main.rs and merge.rs call sites and keep scope tight.\n\nArm B\u2019s tests are more rigorous overall because they assert the returned CommitSource on new precedence cases; Arm A mostly re"
+ },
+ "tokens_used": 21053
+}

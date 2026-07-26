@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": false,
+  "probe_answer": "Both arms' new tests would fail on pre-Task-8 code (rich_snapshot_frames/the fold didn't exist) and assert real merged state, not tautologies. Arm A: 4 tests \u2014 1 async golden (task's exact interleave example, but only asserts `status` post-merge) + 3 sync unit tests (orphan-update, latest-plan-only, cursor-applied-once) isolated from the store, good for regression localization. Weakest: the golden test never asserts title/kind survive the patch unchanged, so a bug that clobbers untouched fields during merge would slip through all 4 of A's tests. Strongest: the orphan test, which precisely guards against fabricating title/kind for an update with no base. Arm B: 2 async, store-backed tests. Strongest: its golden interleave test, which \u2014 unlike A's \u2014 verifies tool_call_id/title/tool_kind/status all correctly merge/survive, closing exactly the gap A misses. Weakest: the second test conflates latest-plan + orphan-update + cursor into one scenario, so a failure doesn't pinpoint which behavior broke. Net: B's coverage of the required golden case is more rigorous; A's suite is more numerous/isolated but has a real, demonstrable preservation-check gap.",
+  "rationale": "Both arms implement identical designs: a FoldedSnapshot{snap,events} from one journal_fold_inputs read, rich_snapshot_frames merging node frames with a Plan-latest-only + ToolCall/ToolCallUpdate-by-id fold, swapped into all reattach call sites, sentinel re-derived from the merged list, cursor applied once, dead_code allows removed \u2014 same scope (server.rs+reattach.rs), no implementation bugs found in either. Arm A is slightly more DRY (one ToolState struct, single conversion site) and uses an exhaustive match with no wildcard, plus splits fold logic into more, smaller, store-independent tests. Arm B's patch_tool_call_state duplicates logic across ToolCall/ToolCallUpdate arms and its 2nd test conflates 3 scenarios \u2014 but its primary golden test asserts deeper post-merge field survival (title/kind), a gap none of A's 4 tests cover. Legitimate but non-material stylistic/coverage tradeoffs; overall parity."
+ },
+ "cost_usd": 0.7815348
+}

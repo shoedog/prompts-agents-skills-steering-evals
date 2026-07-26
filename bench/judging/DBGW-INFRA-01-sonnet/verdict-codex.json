@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": false,
+  "probe_answer": "Arm A: yes. Arm B: yes. Both diagnose the gawk `load` builtin collision, make the minimal variable rename in `scripts/test-db/select_db_host.sh`, and leave `test/hooks.js` untouched.",
+  "rationale": "Both arms make the same effective fix: avoid passing an awk variable named `load` via `-v`, which is what triggers gawk's builtin-name collision. Arm A renames it to `ld`; Arm B renames it to `load_avg`. Both are confined to the DB host selection script and do not touch the transaction/fixture hook code. Neither arm adds tests or materially improves validation over the other, so this is parity."
+ },
+ "tokens_used": 2469
+}

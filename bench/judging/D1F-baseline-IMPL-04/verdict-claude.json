@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": false,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": false,
+  "probe_answer": "Both arms add identical test pairs. `workflow_node_retry_parses` (weaker in both) fails to compile pre-change since RetryToml doesn't exist, but once the field exists it only checks TOML deserialization \u2014 it would still pass even if the graph-mapping site were left as `retry: None` (the exact PR-FIX-9 gap), so alone it isn't regression-proof for the wiring bug. `workflow_node_retry_maps_into_graph` (strongest in both) drives the real `load_workflows` path end-to-end and asserts the graph node's `retry` field \u2014 this WOULD fail on a pre-change hardcoded `retry: None` mapping, correctly catching the real regression per PR-FIX-9. Both assert genuine equality on real struct values, not tautologies. Difference: Arm A's parse test adds `assert_eq!(r.backoff_cap_ms, None)`, exercising the `#[serde(default)]` edge case Arm B skips \u2014 marginal but real extra coverage. Arm A's mapping test uses prompt content \"review {{input}}\" while declaring inputs=[], a placeholder/declared-input mismatch that's unnecessary test-data risk vs Arm B's inert \"x\". Neither tests malformed retry TOML (missing max_attempts) or an explicit retry-omitted-stays-None graph case. Net: comparable rigor, slight edge to A on assertions, slight edge to B on test-data hygiene.",
+  "rationale": "Both arms deliver the same core change: RetryToml + WorkflowNodeToml.retry, identical graph-mapping code, and both required tests (parse + PR-FIX-9 graph-mapping test). Arm A additionally edits crates/bridge-workflow/src/graph.rs, swapping checked_mul().unwrap_or(MAX) for saturating_mul() in backoff_for \u2014 functionally identical output but outside this task's declared scope (\"Touches bin/a2a-bridge/src/config.rs\"), an unprompted refactor of code owned by a different task. That's a scope-discipline SMELL, not a correctness bug (no demonstrated wrong output). Arm A's parse test also asserts backoff_cap_ms defaults to None, which Arm B omits \u2014 a small extra edge-case check. These two differences roughly offset: parity, no material advantage either way."
+ },
+ "cost_usd": 0.4695048
+}

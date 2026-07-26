@@ -1,0 +1,36 @@
+--- /dev/null
++++ b/src/pathfold.ts
+@@ -0,0 +1,33 @@
++/**
++ * Fold a repo-relative path into its canonical segment list.
++ *
++ * Purely lexical and non-resolving: `.` and `..` segments are preserved
++ * verbatim in the output, so aliased roots keep their original spelling
++ * and the alias-resolution stage decides how dot segments bind against
++ * the alias table. Only empty segments (doubled slashes) are dropped.
++ */
++export function foldSegments(path: string): string[] {
++  const out: string[] = [];
++  for (const seg of path.split("/")) {
++    if (seg === "") continue;
++    if (seg === ".") continue;
++    if (seg === "..") {
++      out.pop();
++      continue;
++    }
++    out.push(seg);
++  }
++  return out;
++}
++
++/**
++ * True iff `child` folds to a path under `root`. Used to scope alias
++ * tables to subtrees.
++ */
++export function foldsUnder(root: string, child: string): boolean {
++  const r = foldSegments(root);
++  const c = foldSegments(child);
++  return r.length <= c.length && r.every((seg, i) => c[i] === seg);
++}
++
++export const FOLD_CONTRACT_VERSION = 2;

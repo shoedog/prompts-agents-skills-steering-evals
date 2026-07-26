@@ -1,0 +1,26 @@
+[judges] 12 tasks x 2 judges = 24 calls
+[judges] IMPL-01/codex: ok (attempt 1)
+[judges] IMPL-03/codex: ok (attempt 1)
+[judges] IMPL-04/codex: ok (attempt 1)
+[judges] IMPL-05/codex: ok (attempt 1)
+[judges] IMPL-06/codex: ok (attempt 1)
+[judges] IMPL-08/codex: ok (attempt 1)
+[judges] IMPL-12/codex: ok (attempt 1)
+[judges] IMPL-13/codex: ok (attempt 1)
+[judges] INFRA-01/codex: ok (attempt 1)
+[judges] REF-01/codex: ok (attempt 1)
+[judges] REF-03/codex: ok (attempt 1)
+[judges] RES-01/codex: ok (attempt 1)
+[judges] IMPL-01/claude: cached
+[judges] IMPL-03/claude: cached
+[judges] IMPL-04/claude: cached
+[judges] IMPL-05/claude: cached
+[judges] IMPL-06/claude: cached
+[judges] IMPL-08/claude: cached
+[judges] IMPL-12/claude: cached
+[judges] IMPL-13/claude: cached
+[judges] INFRA-01/claude: cached
+[judges] REF-01/claude: cached
+[judges] REF-03/claude: cached
+[judges] RES-01/claude: cached
+[judges] done; 0 errors: []

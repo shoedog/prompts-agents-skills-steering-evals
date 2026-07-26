@@ -1,0 +1,210 @@
+# git -C /private/tmp/des-sonnet-ws/DES-04 status --short
+ M src/name_resolution/engine.rs
+ M src/name_resolution/glob_stats.rs
+ M src/name_resolution/rust_policy.rs
+ M src/name_resolution/types.rs
+ M src/navigation/queries.rs
+
+# git -C /private/tmp/des-sonnet-ws/DES-04 diff
+diff --git a/src/name_resolution/engine.rs b/src/name_resolution/engine.rs
+index 9ffda1b..a1c713a 100644
+--- a/src/name_resolution/engine.rs
++++ b/src/name_resolution/engine.rs
+@@ -460,6 +460,22 @@ fn glob_lookup(
+                         // is a deferred follow-on.
+                         ResStatus::Unresolved if !member_rib_present => GlobOutcome::Empty,
+                         ResStatus::Unresolved => {
++                            // SPIKE-ONLY instrumentation (throwaway measurement, not
++                            // part of any shipped slice, does not change the Poison
++                            // outcome below): classify whether every rib candidate
++                            // for (target_scope, q.name, q.ns) is *known*-hidden
++                            // (vis_reaches Some(false)) vs at least one *undecidable*
++                            // (vis_reaches None, e.g. unresolved pub(in)).
++                            if spike_classify_member_rib_all_hidden(
++                                graph,
++                                target_scope,
++                                q,
++                                policy,
++                            ) {
++                                guard.stats().spike_record_member_hidden();
++                            } else {
++                                guard.stats().spike_record_member_undecidable();
++                            }
+                             guard.stats().record_ambiguous();
+                             GlobOutcome::Poison
+                         }
+@@ -641,6 +657,38 @@ fn scope_member_lookup_probed(
+     (res, false)
+ }
+ 
++/// SPIKE-ONLY (throwaway measurement, not part of any shipped slice): re-derives
++/// the `(scope, name, ns)` rib the way `scope_member_lookup_probed` does, and
++/// returns `true` iff every candidate is *known*-hidden (`spike_member_visible_tri`
++/// returns `Hidden`) rather than `Unknown`. Read-only; does not affect resolution.
++fn spike_classify_member_rib_all_hidden(
++    graph: &ScopeGraph,
++    scope: ScopeId,
++    q: &ResolveQuery,
++    policy: &dyn ResolutionPolicy,
++) -> bool {
++    let rib: Vec<usize> = graph
++        .bindings
++        .iter()
++        .enumerate()
++        .filter(|(_, b)| b.scope == scope && b.name == q.name && b.ns == q.ns)
++        .filter(|(_, b)| cfg_compatible(&b.cond))
++        .map(|(i, _)| i)
++        .collect();
++    rib.iter().all(|&bidx| {
++        let b = &graph.bindings[bidx];
++        let trav = TraversalCtx {
++            lookup_scope: Some(b.scope),
++            via_glob: false,
++            edge_kind: None,
++        };
++        matches!(
++            policy.spike_member_visible_tri(b, q, &trav),
++            GlobEdgeVis::Hidden
++        )
++    })
++}
++
+ // ── binding selection helpers ─────────────────────────────────────────────────
+ 
+ /// Indices of explicit `(name, ns)` bindings in `scope` whose `vis_extents`
+diff --git a/src/name_resolution/glob_stats.rs b/src/name_resolution/glob_stats.rs
+index e2442c4..d849382 100644
+--- a/src/name_resolution/glob_stats.rs
++++ b/src/name_resolution/glob_stats.rs
+@@ -15,6 +15,13 @@ pub struct GlobExpandStats {
+     multi_target: AtomicUsize,
+     ambiguous: AtomicUsize,
+     vis_unknown: AtomicUsize,
++    // SPIKE-ONLY (throwaway measurement, not part of the shipped slice): splits
++    // the `ambiguous` (Unresolved + rib_present) case by whether every filtered
++    // candidate was a *known*-hidden member (vis_reaches Some(false)) vs at least
++    // one was undecidable (vis_reaches None, e.g. unresolved pub(in)). Pure
++    // instrumentation — does not change `ambiguous` or any resolution outcome.
++    spike_member_hidden: AtomicUsize,
++    spike_member_undecidable: AtomicUsize,
+ }
+ 
+ #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+@@ -27,6 +34,8 @@ pub struct GlobExpandSnapshot {
+     pub multi_target: usize,
+     pub ambiguous: usize,
+     pub vis_unknown: usize,
++    pub spike_member_hidden: usize,
++    pub spike_member_undecidable: usize,
+ }
+ 
+ impl GlobExpandStats {
+@@ -67,6 +76,14 @@ impl GlobExpandStats {
+         self.vis_unknown.fetch_add(1, Ordering::Relaxed);
+     }
+ 
++    pub fn spike_record_member_hidden(&self) {
++        self.spike_member_hidden.fetch_add(1, Ordering::Relaxed);
++    }
++
++    pub fn spike_record_member_undecidable(&self) {
++        self.spike_member_undecidable.fetch_add(1, Ordering::Relaxed);
++    }
++
+     pub fn reset(&self) {
+         for a in [
+             &self.resolved_l1,
+@@ -77,6 +94,8 @@ impl GlobExpandStats {
+             &self.multi_target,
+             &self.ambiguous,
+             &self.vis_unknown,
++            &self.spike_member_hidden,
++            &self.spike_member_undecidable,
+         ] {
+             a.store(0, Ordering::Relaxed);
+         }
+@@ -93,6 +112,8 @@ impl GlobExpandStats {
+             multi_target: g(&self.multi_target),
+             ambiguous: g(&self.ambiguous),
+             vis_unknown: g(&self.vis_unknown),
++            spike_member_hidden: g(&self.spike_member_hidden),
++            spike_member_undecidable: g(&self.spike_member_undecidable),
+         }
+     }
+ }
+@@ -108,6 +129,8 @@ pub static GLOBAL: GlobExpandStats = GlobExpandStats {
+     multi_target: GlobExpandStats::z(),
+     ambiguous: GlobExpandStats::z(),
+     vis_unknown: GlobExpandStats::z(),
++    spike_member_hidden: GlobExpandStats::z(),
++    spike_member_undecidable: GlobExpandStats::z(),
+ };
+ 
+ #[cfg(test)]
+diff --git a/src/name_resolution/rust_policy.rs b/src/name_resolution/rust_policy.rs
+index 273ff35..2daf49a 100644
+--- a/src/name_resolution/rust_policy.rs
++++ b/src/name_resolution/rust_policy.rs
+@@ -256,6 +256,19 @@ impl ResolutionPolicy for RustPolicy<'_> {
+         }
+     }
+ 
++    fn spike_member_visible_tri(
++        &self,
++        binding: &Binding,
++        q: &ResolveQuery,
++        _trav: &TraversalCtx,
++    ) -> GlobEdgeVis {
++        match self.vis_reaches(&binding.vis, binding.scope, q.from) {
++            Some(true) => GlobEdgeVis::Visible,
++            Some(false) => GlobEdgeVis::Hidden,
++            None => GlobEdgeVis::Unknown,
++        }
++    }
++
+     fn anchor(&self, anchor: &Anchor, from: ScopeId) -> Option<(ScopeId, NamespaceId)> {
+         match anchor.kind {
+             AnchorKind::CrateRoot => self.crate_root(from).map(|s| (s, NS_TYPE)),
+diff --git a/src/name_resolution/types.rs b/src/name_resolution/types.rs
+index 774e5d3..1adfa19 100644
+--- a/src/name_resolution/types.rs
++++ b/src/name_resolution/types.rs
+@@ -588,6 +588,24 @@ pub trait ResolutionPolicy {
+         GlobEdgeVis::Visible
+     }
+ 
++    /// SPIKE-ONLY (throwaway measurement hook, not part of any shipped slice):
++    /// tri-state member visibility, mirroring `glob_edge_visible` but for a rib
++    /// binding rather than a glob edge. Default folds a `false` `visible()` into
++    /// `Unknown` (preserves today's poison-on-any-invisible-claim behavior for
++    /// every policy that does not override this).
++    fn spike_member_visible_tri(
++        &self,
++        binding: &Binding,
++        q: &ResolveQuery,
++        trav: &TraversalCtx,
++    ) -> GlobEdgeVis {
++        if self.visible(binding, q, trav) {
++            GlobEdgeVis::Visible
++        } else {
++            GlobEdgeVis::Unknown
++        }
++    }
++
+     /// Map a path anchor (`crate::`, `self::`, `super::`, bare ident, `::`) to
+     /// the starting `ScopeId` + initial `NamespaceId` for the walk.
+     ///
+diff --git a/src/navigation/queries.rs b/src/navigation/queries.rs
+index 1b22ca0..1d3f1d8 100644
+--- a/src/navigation/queries.rs
++++ b/src/navigation/queries.rs
+@@ -303,6 +303,8 @@ pub fn call_stats(cg: &CallGraph) -> serde_json::Value {
+             "multi_target": ge.multi_target,
+             "ambiguous": ge.ambiguous,
+             "vis_unknown": ge.vis_unknown,
++            "spike_member_hidden": ge.spike_member_hidden,
++            "spike_member_undecidable": ge.spike_member_undecidable,
+         },
+     })
+ }
+

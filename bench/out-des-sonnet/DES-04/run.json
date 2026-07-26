@@ -1,0 +1,88 @@
+{
+  "harness": {
+    "argv_redacted": [
+      "/Users/wesleyjinks/.local/bin/claude",
+      "-p",
+      "<task_prompt omitted here \u2014 see the task yaml>",
+      "--model",
+      "claude-sonnet-5",
+      "--output-format",
+      "json",
+      "--dangerously-skip-permissions"
+    ],
+    "cwd": "/private/tmp/des-sonnet-ws/DES-04",
+    "model": "claude-sonnet-5",
+    "timeout_sec": 4500,
+    "started_at": "2026-07-05T02:32:39+00:00",
+    "ended_at": "2026-07-05T02:55:45+00:00",
+    "wall_sec": 1386.713,
+    "timed_out": false,
+    "returncode": 0
+  },
+  "cli_result": {
+    "type": "result",
+    "subtype": "success",
+    "is_error": false,
+    "api_error_status": null,
+    "duration_ms": 1380508,
+    "duration_api_ms": 983058,
+    "ttft_ms": 19351,
+    "ttft_stream_ms": 1031,
+    "time_to_request_ms": 30,
+    "num_turns": 72,
+    "result": "Still waiting on both background jobs (ruff spike measurement and full test suite) \u2014 I'll report back once they complete.",
+    "stop_reason": "end_turn",
+    "session_id": "79c40ca5-035f-471f-8969-a18356f53bc9",
+    "total_cost_usd": 5.895501000000001,
+    "usage": {
+      "input_tokens": 121,
+      "cache_creation_input_tokens": 217592,
+      "cache_read_input_tokens": 11244520,
+      "output_tokens": 81082,
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 217592,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "not_available",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 39,
+          "cache_read_input_tokens": 240201,
+          "cache_creation_input_tokens": 592,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 592
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard"
+    },
+    "modelUsage": {
+      "claude-sonnet-5": {
+        "inputTokens": 121,
+        "outputTokens": 81082,
+        "cacheReadInputTokens": 11244520,
+        "cacheCreationInputTokens": 217592,
+        "webSearchRequests": 0,
+        "costUSD": 5.895501000000001,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000
+      }
+    },
+    "permission_denials": [],
+    "terminal_reason": "completed",
+    "fast_mode_state": "off",
+    "uuid": "edf5a69c-2ef8-4a3b-83f8-6a16023e08e9"
+  },
+  "stdout_tail": null,
+  "stderr_tail": "",
+  "parse_error": null,
+  "replay_preface": "Replay note: you are working in /private/tmp/des-sonnet-ws/DES-04 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged."
+}

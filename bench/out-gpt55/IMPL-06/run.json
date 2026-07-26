@@ -1,0 +1,36 @@
+{
+  "harness": {
+    "executor": "codex",
+    "effort": "high",
+    "cwd": "/private/tmp/gpt55-ws/IMPL-06",
+    "argv": [
+      "/opt/homebrew/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "-o",
+      "/private/tmp/gpt55-ws/IMPL-06/.codex-final-message.md",
+      "-"
+    ],
+    "started_at": "2026-07-04T23:38:42+00:00",
+    "returncode": 0,
+    "timed_out": false,
+    "timeout_sec": 4500,
+    "stderr_tail": "090,99 @@\n     }\n \n     #[tokio::test]\n+    async fn rich_snapshot_folds_toolcall_interleaved() {\n+        let node = bridge_core::ids::NodeId::parse(\"node-a\").unwrap();\n+        let op = bridge_core::ids::OperationId::parse(\"op-rich-snapshot\").unwrap();\n+        let snap = bridge_core::task_store::TaskProgressSnapshot {\n+            status: bridge_core::task_store::TaskRecordStatus::Working,\n+            result: None,\n+            error: None,\n+            checkpoints: vec![(node, \"out-a\".to_string(), true, 4)],\n+            starts: Vec::new(),\n+            terminal_seq: None,\n+            cut_seq: 4,\n+        };\n+        let events = vec![\n+            bridge_core::orch::OrchEvent {\n+                v: bridge_core::orch::ORCH_V,\n+                seq: 1,\n+                ts_ms: 10,\n+                operation_id: op.clone(),\n+                session: None,\n+                source: None,\n+                kind: bridge_core::orch::OrchEventKind::NodeStarted {\n+                    node: \"node-a\".to_string(),\n+                },\n+            },\n+            bridge_core::orch::OrchEvent {\n+                v: bridge_core::orch::ORCH_V,\n+                seq: 2,\n+                ts_ms: 20,\n+                operation_id: op.clone(),\n+                session: None,\n+                source: None,\n+                kind: bridge_core::orch::OrchEventKind::ToolCall {\n+                    tool_call_id: \"t1\".to_string(),\n+                    title: \"Read file\".to_string(),\n+                    kind: \"read\".to_string(),\n+                    status: \"in_progress\".to_string(),\n+                    locations: vec![\"src/lib.rs\".to_string()],\n+                    content: Some(bridge_core::orch::ContentSummary {\n+                        item_count: 1,\n+                        preview: \"src/lib.rs\".to_string(),\n+                    }),\n+                },\n+            },\n+            bridge_core::orch::OrchEvent {\n+                v: bridge_core::orch::ORCH_V,\n+                seq: 3,\n+                ts_ms: 30,\n+                operation_id: op.clone(),\n+                session: None,\n+                source: None,\n+                kind: bridge_core::orch::OrchEventKind::ToolCallUpdate {\n+                    tool_call_id: \"t1\".to_string(),\n+                    title: None,\n+                    kind: None,\n+                    status: Some(\"completed\".to_string()),\n+                    locations: None,\n+                    content: None,\n+                },\n+            },\n+            bridge_core::orch::OrchEvent {\n+                v: bridge_core::orch::ORCH_V,\n+                seq: 4,\n+                ts_ms: 40,\n+                operation_id: op,\n+                session: None,\n+                source: None,\n+                kind: bridge_core::orch::OrchEventKind::NodeFinished {\n+                    node: \"node-a\".to_string(),\n+                    ok: true,\n+                    output: \"out-a\".to_string(),\n+                },\n+            },\n+        ];\n+\n+        let frames = rich_snapshot_frames(&snap, &events, None);\n+        let tags = frames\n+            .iter()\n+            .map(|frame| {\n+                let tag = match &frame.kind {\n+                    crate::reattach::FrameKind::ToolCall { status, .. } => {\n+                        assert_eq!(status, \"completed\");\n+                        \"tool_call\"\n+                    }\n+                    crate::reattach::FrameKind::NodeFinished { .. } => \"node_finished\",\n+                    other => panic!(\"unexpected frame kind in rich snapshot: {other:?}\"),\n+                };\n+                (frame.seq, tag)\n+            })\n+            .collect::<Vec<_>>();\n+        assert_eq!(tags, vec![(3, \"tool_call\"), (4, \"node_finished\")]);\n+    }\n+\n+    #[tokio::test]\n     async fn golden_two_node_run_wire_tuples() {\n         let store = std::sync::Arc::new(bridge_core::task_store::MemoryTaskStore::new());\n         let task_id = bridge_core::ids::TaskId::parse(\"task-golden\").unwrap();\n\ntokens used\n86,740\n"
+  },
+  "cli_result": {
+    "subtype": "success",
+    "is_error": false,
+    "num_turns": null,
+    "usage": {
+      "tokens_used": 86740
+    },
+    "total_cost_usd": null,
+    "result": "STATUS: DONE\n\nImplemented Task 8 in [server.rs](/private/tmp/gpt55-ws/IMPL-06/crates/bridge-a2a-inbound/src/server.rs): `fold_or_typed_snapshot` now returns snapshot plus journal events, both reattach paths use `rich_snapshot_frames`, and the merged projection folds latest plan plus tool-call/update state by id before one seq sort and one cursor filter. Added `rich_snapshot_folds_toolcall_interleaved`; the existing no-rich S6 golden still passes.\n\nTests/results:\n- TDD red: `cargo test -p bridge-a2a-inbound rich_snapshot_folds_toolcall_interleaved` failed first with missing `rich_snapshot_frames`.\n- `cargo test -p bridge-a2a-inbound rich_snapshot_folds_toolcall_interleaved`: 1 passed.\n- `cargo test -p bridge-a2a-inbound golden_two_node_run_wire_tuples`: 1 passed.\n- `cargo test -p bridge-a2a-inbound`: 217 lib tests + 47 workflow producer tests passed.\n- `cargo test --workspace --no-run`: passed.\n- `cargo fmt --all`: passed.\n- `cargo fmt --all --check`: passed.\n- `cargo clippy -p bridge-a2a-inbound --all-targets -- -D warnings`: passed.\n- `git diff --check`: passed.\n\nSelf-review: no-rich path remains node-frame byte-identical, cursor is applied once after merge, both reattach sites are swapped, SnapshotComplete seq is re-derived from the merged frames, and working SSE keeps the existing `cut_seq` dedup floor. No `_dyld_start` flake observed. No commit made.\n\n",
+    "session_id": null,
+    "duration_ms": 288438
+  },
+  "replay_preface": "Replay note: you are working in /private/tmp/gpt55-ws/IMPL-06 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged."
+}

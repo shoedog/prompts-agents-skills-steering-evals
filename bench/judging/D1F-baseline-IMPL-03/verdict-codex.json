@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": false,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Arm A: yes, its tests would fail on pre-change code because batch creation/lookup and child claiming would hit missing/default SqliteStore behavior. They assert real behavior through the real store, but edge coverage is thin: no CAS/fail/list/active assertions and no terminal re-claim. Strongest test: sqlite_claim_is_atomic_single_runner. Weakest: sqlite_migration_idempotent_and_batch_roundtrip, which only checks reopen plus total. Arm B: yes, its tests would also fail pre-change and they assert much more real behavior: duplicate batch rejection, task batch_id/item_id round-trip, CAS success/failure, active filtering, fail error persistence, list, and terminal re-claim. Strongest test: sqlite_migration_idempotent_and_batch_roundtrip. Weakest: sqlite_claim_is_atomic_single_runner because it is still single-runner, not a true race test, and it misses that claim_batch_child must force inserted status to working.",
+  "rationale": "WRONG: Arm B's claim_batch_child inserts rec.status.as_str() instead of forcing status='working'. With a TaskRecord whose status is Completed, it returns Created but stores a completed child; the task explicitly requires inserting a working child. Arm A implements the required migration, task metadata round-trip, all 9 batch methods, and the corrected tests without that behavior bug. SMELL: Arm A's tests are much narrower, and both arms' atomicity tests are sequential rather than concurrent, but Arm B's stronger tests do not compensate for the concrete claim insertion bug."
+ },
+ "tokens_used": 79956
+}

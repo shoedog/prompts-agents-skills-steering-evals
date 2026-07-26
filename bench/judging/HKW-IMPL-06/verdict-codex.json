@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A: the new rich_snapshot_folds_toolcall_interleaved test would fail on pre-change code because rich_snapshot_frames did not exist and the old snapshot projection would not include tool_call frames. Its strongest test is that interleaved fold golden because it asserts seq ordering and node-start collapse. Its weakest coverage is call-site behavior: it does not add terminal or working SSE tests proving both reattach sites actually emit rich frames, and it does not cover orphan updates, latest-plan-only, or cursor filtering of rich frames.\n\nArm B: its added tests would fail on pre-change code for the same compile/runtime reason, and the terminal/working subscribe tests specifically fail because old reattach used snapshot_frames and dropped rich events. Strongest test is subscribe_terminal_task_includes_rich_toolcall_frame or subscribe_working_snapshot_includes_rich_toolcall_frame because they assert real end-to-end SSE behavior through the changed call sites, including sentinel placement. Weakest test is rich_snapshot_keeps_latest_plan_only: it proves latest-plan selection but only lightly inspects content and does not exercise interleaving with node frames or cursor behavior.",
+  "rationale": "Both arms implement the requested one-read FoldedSnapshot, pass events into terminal and working reattach paths, merge node frames with folded Plan/ToolCall/ToolCallUpdate frames, preserve cursor filtering after merge, and rederive SnapshotComplete seq from the merged list. No clear WRONG defect appears in either diff from the provided context. Both also remove the now-stale dead_code allows in reattach.rs, which is in scope because the task explicitly mentions removing the Task-7 allow if frame_from_orch is now used.\n\nArm B is materially better on test rigor. Arm A has the required rich golden and keeps the no-rich golden adjusted, but it only directly tests the helper path. Arm B covers the required golden plus orphan update behavior, latest Plan replacement, cursor filtering on rich seq"
+ },
+ "tokens_used": 29825
+}

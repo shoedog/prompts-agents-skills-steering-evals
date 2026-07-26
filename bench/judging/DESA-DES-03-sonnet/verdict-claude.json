@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": false,
+  "load_bearing_caveats_matched": false,
+  "scope_calibrated": false,
+  "would_have_prevented_wasted_work": false,
+  "probe_answer": "The memo correctly identifies both options (A: same-dir preference; B: import-qualified narrowing) and does excellent empirical work \u2014 sizing free_multi by site vs edge, finding the parameter-shadowing soundness hole, and diagnosing R3's loose dir_hit matching. But its core recommendation is inverted from what shipped: it recommends Option A (same-directory Exact) first as the 'cheaper, provably safe' primary fix, with Option B as a fast-follow. Reality shipped only R4c import-qualified narrowing (Option B) and never added a same-directory Exact rung \u2014 same-dir was kept telemetry-only because directory co-location doesn't imply scope in Python/JS (unlike Go packages), so it mints wrong edges. The memo's shadow-guard treats this as a narrow parameter-shadowing fix rather than recognizing the deeper unsoundness of directory-based Exact promotion in these languages, so its majority-of-buy estimate (225/308 sites from A) rests on the option that was never shipped.",
+  "rationale": "Memo's primary recommendation and cheapest-first sequencing (A then B) is the opposite of the settled outcome (B shipped, A rejected as unsound and kept telemetry-only). It never articulates the specific soundness argument that killed A \u2014 that sibling files aren't in scope unless imported in Python/JS \u2014 treating A's risk as recall/shadowing rather than fundamental unsoundness. Following this memo would have pointed engineering effort at implementing and shipping the rejected rung first."
+ },
+ "cost_usd": 0.22111080000000002
+}

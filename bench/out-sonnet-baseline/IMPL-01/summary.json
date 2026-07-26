@@ -1,0 +1,136 @@
+{
+  "id": "IMPL-01",
+  "ws": "/private/tmp/sonnet-base-ws/IMPL-01",
+  "dry_run": false,
+  "model": "claude-sonnet-5",
+  "replay_preface": "Replay note: you are working in /private/tmp/sonnet-base-ws/IMPL-01 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged.",
+  "run_status": "ok",
+  "subtype": "success",
+  "api_error_status": null,
+  "returncode": 0,
+  "session_id": "1a5867db-146f-43a4-bdb9-a73cd0882b52",
+  "duration_ms": 467800,
+  "num_turns": 49,
+  "usage": {
+    "input_tokens": 93,
+    "cache_creation_input_tokens": 135919,
+    "cache_read_input_tokens": 5213476,
+    "output_tokens": 37281,
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 135919,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1606,
+        "cache_read_input_tokens": 158503,
+        "cache_creation_input_tokens": 617,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 617
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "total_cost_usd": 2.9390507999999995,
+  "stop_reason": "end_turn",
+  "is_error": false,
+  "result_text": "All gates pass. Here's my report.\n\n**STATUS: DONE**\n\n**What I implemented** (`crates/bridge-acp/src/acp_backend.rs`, Task 5 of the slice-7b watchdog plan):\n\n1. **TDD \u2014 3 failing tests first** (verified `watchdog_cancels_a_hung_turn_as_timed_out` failed pre-implementation with `Elapsed`; the other two passed trivially since nothing existed yet to trip):\n   - `watchdog_cancels_a_hung_turn_as_timed_out` \u2014 fake agent accepts prompt, never responds/emits; `hard_wall_clock=50ms`, `idle=10s` \u2192 stream's terminal item is `Err(BridgeError::AgentTimedOut)`.\n   - `watchdog_does_not_trip_active_or_unmodeled_turn` \u2014 (a) Text chunks every 20ms then Done (`idle=100ms`, `wall=10s`) completes; (b) FIX-11: ONLY unmodeled `Thought` chunks every 20ms then Done also completes (proves the handler's unconditional bump keeps a dropped-event turn \"alive\").\n   - `no_watchdog_config_is_byte_identical` \u2014 `watchdog: None` \u2192 a hung turn stays hung (no spurious timeout) within a 300ms bound.\n   - Extended the `Recorder` test harness with `update_delay`/`set_update_delay` so scripted updates can drip over real wall-clock time (needed for the periodic-emission tests; didn't exist before).\n\n2. **Implementation** in `prompt_inner`:\n   - Setup: `watchdog_fired: Option<Arc<Notify>>` (mirrors `watch`'s `is_some()`), and \u2014 only when `watch`+config both present \u2014 a `oneshot` `(done_tx, done_rx)` plus a spawned `'static` watchdog task capturing `Arc<TurnWatch>`, the `Notify`, and the two `Duration`s. It loops: derive `deadline = min(wall_deadline, idle_deadline)` (idle only when `la != 0`, using the `la_instant = turn_start + Duration::from_millis(la.saturating_sub(1))` round-trip, PFIX-L), `select!{ sleep_until(Instant::from_std(deadline)) vs &mut done_rx }`, and on wake re-checks both bounds with saturating math (FIX-5) before `notify_one()`+return.\n   - Driver `select!` gained a `_ = async { match &watchdog_fired { Some(n)=>n.notified().await, None=>pending().await } }` arm (PFIX-G: `Pending` when disabled) that runs the same bounded cancel (`CancelNotification` \u2192 inner `select!{ prompt_fut | kill | sleep(grace)\u2192escalate_terminate }`) but **unconditionally** sets `timed_out_local = true; Err(())`, discarding the inner result (PFIX-F).\n   - Teardown: `drop(watchdog_done_tx)` added right after `map.remove`/kill-slot clear, on every exit path.\n   - Terminal: `Err(()) if timed_out_local => AgentTimedOut`, else the existing `AgentCrashed` path; `Ok(resp)` untouched (never relabeled).\n\n**Tests:** `cargo test -p bridge-acp --lib` \u2192 108 passed, 0 failed (includes the 3 new + all existing turn/cancel tests unchanged). `cargo test --workspace --no-run` \u2192 compiles clean. `cargo fmt --all --check` \u2192 clean (fmt was applied once). `cargo clippy -p bridge-acp --all-targets -- -D warnings` \u2192 clean. No flakes observed.\n\n**Files changed:** only `crates/bridge-acp/src/acp_backend.rs` (+277/-5). Nothing committed, per instructions.\n\n**Self-review vs the PFIX checklist:** watchdog arm always yields `Err(())`+`timed_out_local` regardless of inner outcome (confirmed no `Ok` leak); disabled path is genuinely `Pending` with no task spawned (guarded by one `if let (Some,Some,Some)`); `tokio::time::Instant::from_std` used for `sleep_until`; `la_instant` round-trip + saturating math present in both the deadline-derivation and the wake-recheck; `drop(watchdog_done_tx)` runs unconditionally on every exit; a natural `Ok(resp)` never touches `timed_out_local`; the inner `&mut prompt_fut` reborrow in the new arm's body is safe for the same reason it already is in the pre-existing `done_sender.closed()` arm (the outer select's other arm futures are dropped before a winning arm's body runs). No concerns to flag.",
+  "timed_out": false,
+  "parse_error": null,
+  "terminal_reason": "completed",
+  "tests_passed_guess": "pass",
+  "evidence_summary": [
+    {
+      "cmd": "cargo test -p bridge-acp watchdog_cancels_a_hung_turn_as_timed_out",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": 1,
+      "matched_tests": 1,
+      "min_tests_satisfied": true
+    },
+    {
+      "cmd": "cargo test -p bridge-acp watchdog_does_not_trip_active_or_unmodeled_turn",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": 1,
+      "matched_tests": 1,
+      "min_tests_satisfied": true
+    },
+    {
+      "cmd": "cargo test -p bridge-acp no_watchdog_config_is_byte_identical",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": 1,
+      "matched_tests": 1,
+      "min_tests_satisfied": true
+    },
+    {
+      "cmd": "cargo test -p bridge-acp",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo test --workspace --no-run",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo fmt --all --check",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo clippy -p bridge-acp --all-targets -- -D warnings",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    }
+  ],
+  "scaffold": {
+    "tracked_scaffold_paths": [
+      "AGENTS.md"
+    ],
+    "missing_on_disk_after_checkout": [],
+    "has_CLAUDE_md": false,
+    "has_dot_claude_dir": false,
+    "has_AGENTS_md": true,
+    "agents_md_shimmed": true,
+    "global_hooks_present": true,
+    "shim": {
+      "present": true,
+      "sha256_at_write": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53",
+      "sha256_after_run": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53",
+      "changed": false
+    }
+  },
+  "shim": {
+    "present": true,
+    "changed": false,
+    "sha256_at_write": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53",
+    "sha256_after_run": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53"
+  },
+  "source_repo_touched": false,
+  "transcript_lookup_note": null,
+  "transcript_path": "bench/out-sonnet-baseline/IMPL-01/transcript.jsonl"
+}

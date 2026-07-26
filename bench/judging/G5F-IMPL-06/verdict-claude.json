@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Both arms' new tests reference the new rich_snapshot_frames/fold_or_typed_snapshot shape, which doesn't exist pre-change, so both fail to compile on old code (a real gate). Arm A: 2 new tests. rich_snapshot_folds_toolcall_interleaved drives the REAL store (record_event_sequenced, journal_fold_inputs, fold_journal_to_snapshot) end-to-end and asserts tool_call_id/title/tool_kind/status plus (seq,tag) \u2014 strongest test, validating the true pipeline not just the pure function. rich_snapshot_plan_latest_orphan_update_and_cursor is the standout: proves latest-Plan-wins, an orphan ToolCallUpdate (no base) framed at its own seq, AND cursor applied ONCE on the MERGED list (cursor=2 also drops the plan frame) \u2014 directly targets PFIX-H's riskiest edge. Arm B: 1 new test, hand-builds OrchEvent/TaskProgressSnapshot literals (bypassing the store) and only asserts status on the merged ToolCall frame plus tag order \u2014 its weakest/only test, since it never exercises Plan-latest, orphan-update, or cursor-on-rich-frames despite the task naming all three as required. Neither test is tautological, but Arm B's coverage is materially narrower \u2014 a cursor-before-merge bug would slip past Arm B's suite but be caught by Arm A's.",
+  "rationale": "Both correctly restructure fold_or_typed_snapshot to return {snap, events} from one read, add rich_snapshot_frames merging node+rich frames with a single cursor-filter, swap both call sites, and preserve the sentinel/dedup_floor logic \u2014 functionally equivalent; no demonstrated (WRONG) bug in either. Arm A is more thorough: its second test proves cursor-on-merged and orphan/Plan-latest handling explicitly, its interleaved test round-trips through the real store, and it completes the task's explicit dead_code-removal step in reattach.rs (Arm B leaves stale #[allow(dead_code)] despite frame_from_orch now being used in server.rs). Arm A's fold also reuses the existing OrchEventKind enum directly rather than duplicating its field list into a new ToolCallFold struct with unreachable default fallbacks \u2014 slightly more DRY/maintainable. These are verifiable differences in test coverage and instruction compliance, not hypothetical risk."
+ },
+ "cost_usd": 0.6749721
+}

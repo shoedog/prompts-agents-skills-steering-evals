@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both suites would fail on pre-change code (SqliteStore had no real batch overrides) so both are regression-catching for what they call. But coverage differs sharply. Arm A's two tests only exercise create_batch/get_batch (one field: total) and claim_batch_child's Created/ExistingWorking paths \u2014 cancel_batch_if_working, settle_batch_if_status, fail_batch_if_status, active_batches, list_batches, and the ExistingTerminal claim branch are NEVER called by any test, so a bug in any of those five methods or that branch would compile and pass silently. Arm B's migration test drives all 9 batch methods with real assertions: full BatchRecord round-trip (status/items_json), duplicate-id rejection, batch_id/item_id round-trip via plain create/get, and CAS chains proving both the success transition and the no-op-when-status-mismatched case for cancel/settle/fail. Arm B's claim test additionally marks a child terminal via set_terminal and re-claims to assert ExistingTerminal, the one claim outcome Arm A never reaches. Strongest in A: sqlite_claim_is_atomic_single_runner (real atomicity check, asserts 1 row survives two claims). Weakest in A: sqlite_migration_idempotent_and_batch_roundtrip (only checks reopen doesn't crash + one field). Strongest in B: the same migration test, extended to touch all 9 methods with both positive and negative CAS assertions. Weakest in B: batch_children still only gets indirect coverage via the claim test, same gap as A.",
+  "rationale": "Production sqlite.rs logic is essentially identical between arms (same schema, same CAS SQL, same claim_batch_child transaction pattern, same row mappers) \u2014 no WRONG findings in either. The one stylistic difference is migration placement: B puts both the batch table and the unique index inside migrate_tasks_columns as the task literally specified ('in the same place as migrate_tasks_columns'), while A puts the batch table in the main schema-init block and only the index in migrate_tasks_columns \u2014 both are idempotent via IF NOT EXISTS/IF NOT EXISTS so this is a SMELL, not a bug. The deciding factor is test rigor, which the probe explicitly weights: Arm B's tests actually invoke and assert on cancel_batch_if_working, settle_batch_if_status, fail_batch_if_status, active_batches, list_batches, and the ExistingTerminal claim path \u2014 all of which ship in Arm A's code but are completely unverified by Arm A's tests. That's a real verification gap on core batch-lifecycle behavior (cancellation and settlement) for this task, so Arm B is materially better."
+ },
+ "cost_usd": 0.4132674
+}

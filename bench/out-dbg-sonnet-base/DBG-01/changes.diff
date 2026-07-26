@@ -1,0 +1,92 @@
+# git -C /private/tmp/dbg-base-ws/DBG-01 status --short
+ M src/repo_loader.rs
+
+# git -C /private/tmp/dbg-base-ws/DBG-01 diff
+diff --git a/src/repo_loader.rs b/src/repo_loader.rs
+index a4470ff..25f0d4d 100644
+--- a/src/repo_loader.rs
++++ b/src/repo_loader.rs
+@@ -361,17 +361,24 @@ fn parse_rust_crate_config(
+ 
+     for manifest_path in manifest_hashes.keys() {
+         let abs = root.join(manifest_path);
++        let manifest_dir = manifest_path
++            .strip_suffix("Cargo.toml")
++            .unwrap_or("")
++            .trim_end_matches('/');
+         let Ok(text) = std::fs::read_to_string(&abs) else {
+             continue;
+         };
+         let Ok(value) = text.parse::<toml::Value>() else {
++            // Malformed manifest: still a concrete member dir (the workspace root
++            // declared it), so it must survive in `workspace_members` even though we
++            // can't extract its edition/lib/bin/deps here. `crate_roots` falls back
++            // to convention for it via `RustCrateConfig::from_convention` above.
++            if !manifest_dir.is_empty() {
++                workspace_members.insert(manifest_dir.to_string());
++            }
+             continue;
+         };
+         parsed_any = true;
+-        let manifest_dir = manifest_path
+-            .strip_suffix("Cargo.toml")
+-            .unwrap_or("")
+-            .trim_end_matches('/');
+ 
+         if value.get("package").is_some() {
+             // Cargo default: a `[package]` with no `edition` key is edition 2015.
+@@ -1033,8 +1040,14 @@ mod tests {
+         let inputs = repo.scope_graph_inputs.expect("scope graph inputs");
+         // CONCRETE member dirs, never the glob pattern.
+         assert!(
+-            inputs.cfg.workspace_members.contains(&"crates/a".to_string())
+-                && inputs.cfg.workspace_members.contains(&"crates/b".to_string()),
++            inputs
++                .cfg
++                .workspace_members
++                .contains(&"crates/a".to_string())
++                && inputs
++                    .cfg
++                    .workspace_members
++                    .contains(&"crates/b".to_string()),
+             "glob members must expand to concrete dirs; got {:?}",
+             inputs.cfg.workspace_members
+         );
+@@ -1056,6 +1069,36 @@ mod tests {
+         );
+     }
+ 
++    #[test]
++    fn malformed_root_manifest_does_not_register_empty_member_dir() {
++        // The ROOT Cargo.toml itself (not a member) is malformed TOML. Its
++        // `manifest_dir` is "" (the repo root), which must never be inserted into
++        // `workspace_members` -- only concrete, non-root member dirs belong there.
++        // The valid sibling member must still register normally.
++        let dir = tempfile::tempdir().unwrap();
++        let p = dir.path();
++        std::fs::create_dir_all(p.join("m/src")).unwrap();
++        std::fs::write(p.join("Cargo.toml"), "[workspace\nmembers = [\"m\"]\n").unwrap();
++        std::fs::write(
++            p.join("m/Cargo.toml"),
++            "[package]\nname = \"m\"\nedition = \"2021\"\n",
++        )
++        .unwrap();
++        std::fs::write(p.join("m/src/lib.rs"), "pub fn m() {}\n").unwrap();
++        let repo = load_repo(p).unwrap();
++        let inputs = repo.scope_graph_inputs.expect("scope graph inputs");
++        assert!(
++            !inputs.cfg.workspace_members.iter().any(|m| m.is_empty()),
++            "a malformed root manifest must not register an empty member dir; got {:?}",
++            inputs.cfg.workspace_members
++        );
++        assert_eq!(
++            inputs.cfg.workspace_members,
++            vec!["m".to_string()],
++            "valid member must still register when the root manifest is malformed"
++        );
++    }
++
+     #[test]
+     fn workspace_dep_records_in_repo_member_dependency() {
+         // `a` declares `b_crate = { workspace = true }`; the workspace root has
+

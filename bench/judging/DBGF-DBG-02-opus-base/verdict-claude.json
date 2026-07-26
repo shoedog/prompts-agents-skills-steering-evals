@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": false,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms add a classifier signal distinct from 'type resolved': a ReceiverClassification enum wired into CallSite.receiver_materialized, true whether the binding's type resolved or was import/wildcard-poisoned. Both gate the actual R3/R3b suppression to Python/JS/TS callers (Rust's existing rust_recv_materialized path/gating is untouched by both). Both add scope-aware recovery: byte-precise 'binding before call' plus skipping nested class bodies. Both test suites reproduce the Python R3b owner-collision case, the TS R3 import_qualified case, and the nested-class/same-line MAJOR repros, and would fail pre-fix (pre-fix, poison makes the classifier return None, leaving R3/R3b live to mis-bind). Arm B is more rigorous: it explicitly scopes the new byte-precise cutoff to Python/JS/TS only (a byte_scoped branch), leaving Rust/Go's original line-based cutoff untouched, whereas Arm A applies the byte cutoff unconditionally to every language (including Rust/Go), silently changing shared binding-scan semantics with no Rust/Go test coverage or acknowledgment beyond its own doc comment. Arm B's class-boundary check also includes TS's abstract_class_declaration, which Arm A's class_node_types() omits \u2014 a real gap for nested abstract classes. Arm B's tests directly assert receiver_materialized, add a positive control WITH the owner-name collision present (not just a bare positive control) and an unshadowed-import control, and assert the exact NameOnly confidence rather than Arm A's weaker '!= Exact' check.",
+  "rationale": "Both fully implement the BLOCKER classifier distinction, the R3/R3b suppression, and scope-aware recovery, with TDD covering all 3 repros plus a positive control, and both leave Rust/Go's R3/R3b suppression gating itself untouched. Arm B is more disciplined: its byte-precise 'before-call' cutoff is explicitly branched to Python/JS/TS only, preserving Rust/Go's original line-based scan; Arm A applies the byte cutoff unconditionally to all languages, an unrequested and untested change to shared Rust/Go binding-scan semantics that even contradicts Arm A's own 'keeps Rust/Go byte-identical' comment on the adjacent class-scope check. Arm B's class-boundary list also covers TS's abstract_class_declaration, which Arm A omits, leaving nested abstract classes unguarded. Arm B's tests are more rigorous, directly asserting the new receiver_materialized field, adding an unpoisoned-with-collision control and an unshadowed-import control, and pinning the exact NameOnly outcome instead of a looser non-Exact check."
+ },
+ "cost_usd": 1.0729932
+}

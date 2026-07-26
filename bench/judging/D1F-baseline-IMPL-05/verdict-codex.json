@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": false,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A's tests would fail on the pre-change code, at minimum because they require the new 4-arg API and CommitSource, and behaviorally because title/comment-only typed precedence did not exist. Strongest: comment-only typed falls back to title. Weakest: the new precedence test mostly asserts only .0, so it misses wrong CommitSource values. Arm B's tests would also fail on pre-change code and are stronger: they assert the full (message, CommitSource) tuple for typed, comment-only typed, title, and file precedence. Strongest: comment-only typed -> Title with source assertion. Weakest: the oversize typed case is useful but is a more interpretive edge case than the required precedence examples.",
+  "rationale": "WRONG in Arm A: it edits tweak.rs even though the brief explicitly says tweak.rs is not a commit_message caller and to leave it; scope is not OK. WRONG in Arm A: its 64 KiB handling truncates an oversize typed/file candidate into a winning message, rather than mirroring read_commit_msg_file's oversize-as-absent behavior. Arm B implements the requested main/merge call sites, source-based warning, precedence, comment stripping, title fallback, and existing test updates while staying within the named files. SMELL in Arm B: it converts CommitSource back to a bool for decide instead of rippling the typed source through that helper, but given the brief singled out tweak.rs as not a caller to leave alone, this is less damaging than Arm A's scope violation."
+ },
+ "tokens_used": 32956
+}

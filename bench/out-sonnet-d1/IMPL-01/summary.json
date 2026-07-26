@@ -1,0 +1,136 @@
+{
+  "id": "IMPL-01",
+  "ws": "/private/tmp/sonnet-d1-ws/IMPL-01",
+  "dry_run": false,
+  "model": "claude-sonnet-5",
+  "replay_preface": "Replay note: you are working in /private/tmp/sonnet-d1-ws/IMPL-01 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged.",
+  "run_status": "ok",
+  "subtype": "success",
+  "api_error_status": null,
+  "returncode": 0,
+  "session_id": "dedc1173-cbdd-4d2b-b4ac-1a2ff7ee0d37",
+  "duration_ms": 669291,
+  "num_turns": 67,
+  "usage": {
+    "input_tokens": 129,
+    "cache_creation_input_tokens": 161050,
+    "cache_read_input_tokens": 8036196,
+    "output_tokens": 48535,
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 161050,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2125,
+        "cache_read_input_tokens": 183986,
+        "cache_creation_input_tokens": 265,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 265
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "total_cost_usd": 4.1055708,
+  "stop_reason": "end_turn",
+  "is_error": false,
+  "result_text": "Only the one intended file changed, uncommitted as required. Here's my report:\n\n**STATUS: DONE**\n\n## What I implemented\n\nIn `crates/bridge-acp/src/acp_backend.rs` (Task 5, the keystone):\n\n1. **`AcpBackend::run_watchdog`** (new associated fn, `'static`, no `&self`, placed next to `escalate_terminate`): loops, computing `deadline = min(turn_start + hard_wall_clock, la_instant + idle_timeout)` (idle deadline only considered once `la != 0`), `select!`s `sleep_until(Instant::from_std(deadline))` vs `&mut done_rx`. On wake it reloads `la` and re-checks both bounds against real elapsed time; if either is truly exceeded it `notify_one()`s and exits, else re-derives and loops (handles the handler advancing `la` mid-check \u2014 PFIX-L saturating math, `la_instant = turn_start + Duration::from_millis(la.saturating_sub(1))`).\n2. **`prompt_inner` setup**: consolidated the `config.watchdog` lookup into `watchdog_cfg`, derived `watch` from it (unchanged behavior), then built `watchdog_fired: Option<Arc<Notify>>` and `watchdog_done_tx: Option<oneshot::Sender<()>>`, spawning `run_watchdog` only when all three of `watch`/`fired`/`watchdog_cfg` are `Some`.\n3. **Driver `select!`**: added a 4th arm awaiting `watchdog_fired.notified()` when `Some`, or `std::future::pending()` when `None` (PFIX-G \u2014 no task, arm never fires, byte-identical when disabled). The arm's body runs the same CancelNotification + inner `select!{ prompt_fut | kill | sleep(grace)\u2192escalate_terminate }` as the `done_sender.closed()` arm, but **unconditionally** discards the inner result and sets `timed_out_local = true; Err(())` (PFIX-F keystone \u2014 an honored cancel-after-timeout is still `AgentTimedOut`, never propagated as `Ok`).\n4. **Teardown**: `drop(watchdog_done_tx)` added right after `map.remove`, on the single straight-line path every turn exit takes (Ok/Err/kill/consumer-drop/timeout) \u2014 no leak, no-op when disabled.\n5. **Terminal**: `Err(()) if timed_out_local => TurnEvent::Failed(BridgeError::AgentTimedOut)`, ahead of the generic `AgentCrashed` arm; `Ok(resp)` path is untouched (never relabeled).\n\nTest harness extension: added `Recorder.update_interval` (+ `set_update_interval`), defaulting to `None` (no behavior change for any existing test), which makes `emit_updates` sleep before each scripted update when set \u2014 needed to exercise real idle-timeout timing.\n\n## Tests (all new, TDD \u2014 written first, watched fail, then implemented to green)\n- `watchdog_cancels_a_hung_turn_as_timed_out` \u2014 hung turn (gated forever, no output), `hard_wall_clock=50ms`, `cancel_grace=50ms` \u2192 terminal `Err(AgentTimedOut)`, and confirms the agent actually observed the `session/cancel`.\n- `watchdog_does_not_trip_active_or_unmodeled_turn` \u2014 (a) 10 `Text` chunks 20ms apart with `idle_timeout=150ms` \u2192 completes normally with all 10 chunks; (b) FIX-11: 10 `Thought` (unmodeled) chunks 20ms apart, same config \u2192 completes, proving the handler's activity bump runs before the modeled/unmodeled split.\n- `no_watchdog_config_is_byte_identical` \u2014 `watchdog: None`, hung turn stays pending past 300ms (no self-resolution), then released and completes normally \u2014 proving no task was spawned.\n\n## Results\n- `cargo test -p bridge-acp --lib`: **108 passed, 0 failed** (105 pre-existing + 3 new).\n- `cargo test --workspace --no-run`: green (no missed ripple sites).\n- `cargo test --workspace --exclude bridge-container`: **1059 passed, 0 failed, ~12 ignored** (live-gate/e2e tests requiring real agents/docker) \u2014 full log inspected for any `FAILED`/`error[`, none found.\n- `cargo test -p bridge-container --lib`: **22 passed, 0 failed** (checked separately since the workspace command excludes it; PFIX-I's `ContainerRwConfig` literal still compiles/passes).\n- `cargo fmt --all` then `--check`: clean.\n- `cargo clippy -p bridge-acp --all-targets -- -D warnings`: clean.\n- No PTY/dyld flake observed.\n\n## Self-review vs the binding constraints\n- Watchdog arm always yields `Err(())` + `timed_out_local=true`, no `Ok` leak (PFIX-F) \u2014 confirmed in the diff, inner select's arms all resolve to `()`, discarding any prompt result.\n- Disabled path is a `Pending` future, no task spawned (PFIX-G) \u2014 `watchdog_fired`/`watchdog_done_tx` are `None` iff `config.watchdog` is `None`.\n- `tokio::time::Instant::from_std` used for `sleep_until` (PFIX-H).\n- `la_instant` round-trip + `saturating_sub` in both the deadline calc and the post-wake check (PFIX-L).\n- `drop(watchdog_done_tx)` runs unconditionally on every exit path, right after `map.remove` (no leak).\n- `Ok(resp)` is structurally unreachable from the watchdog arm \u2014 the outer `select!` picks exactly one arm, so no race.\n\n## Not verified (explicitly out of scope for this task)\n- Live-gate against a real ACP agent (codex) \u2014 that's Task 6, the controller's job, and needs network/agent creds unavailable in this sandbox.\n- Full `cargo clippy --workspace --all-targets` (only `-p bridge-acp` was in scope here; ran `--workspace --no-run` for compile-only ripple verification, which is what Task 5 calls for).",
+  "timed_out": false,
+  "parse_error": null,
+  "terminal_reason": "completed",
+  "tests_passed_guess": "pass",
+  "evidence_summary": [
+    {
+      "cmd": "cargo test -p bridge-acp watchdog_cancels_a_hung_turn_as_timed_out",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": 1,
+      "matched_tests": 1,
+      "min_tests_satisfied": true
+    },
+    {
+      "cmd": "cargo test -p bridge-acp watchdog_does_not_trip_active_or_unmodeled_turn",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": 1,
+      "matched_tests": 1,
+      "min_tests_satisfied": true
+    },
+    {
+      "cmd": "cargo test -p bridge-acp no_watchdog_config_is_byte_identical",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": 1,
+      "matched_tests": 1,
+      "min_tests_satisfied": true
+    },
+    {
+      "cmd": "cargo test -p bridge-acp",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo test --workspace --no-run",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo fmt --all --check",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo clippy -p bridge-acp --all-targets -- -D warnings",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    }
+  ],
+  "scaffold": {
+    "tracked_scaffold_paths": [
+      "AGENTS.md"
+    ],
+    "missing_on_disk_after_checkout": [],
+    "has_CLAUDE_md": false,
+    "has_dot_claude_dir": false,
+    "has_AGENTS_md": true,
+    "agents_md_shimmed": true,
+    "global_hooks_present": true,
+    "shim": {
+      "present": true,
+      "sha256_at_write": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53",
+      "sha256_after_run": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53",
+      "changed": false
+    }
+  },
+  "shim": {
+    "present": true,
+    "changed": false,
+    "sha256_at_write": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53",
+    "sha256_after_run": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53"
+  },
+  "source_repo_touched": false,
+  "transcript_lookup_note": null,
+  "transcript_path": "bench/out-sonnet-d1/IMPL-01/transcript.jsonl"
+}

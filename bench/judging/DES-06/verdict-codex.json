@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "verdict_matches_vindicated": true,
+  "ordered_collect_serial_apply": true,
+  "cache_byte_parity_point": true,
+  "would_have_prevented_wasted_work": true,
+  "probe_answer": "The analysis matches the settled GO outcome and uses the vindicated shape: parallel per-file statement collection, then serial apply in BTreeMap file order and walk order to preserve NodeIndex creation. It correctly identifies the cache-byte proof as load-bearing, including that CpgNode PartialEq is insufficient because byte spans are ignored and serialized node/edge order is byte-significant. Minor overreach includes an optional batching optimization and a slightly too-strong claim that a retained global contains_key would neutralize any per-file dedup bug, but the stated ship gates would still have forced the safe byte-identical implementation.",
+  "rationale": "GO is explicit. The design materializes ordered files, uses ordered rayon collection, and serially creates nodes/indexes. It calls out cache blob byte comparison, bincode/cache parity, and PartialEq's span blind spot, so it would have caught the reorder/cache bug before shipping."
+ },
+ "tokens_used": 21280
+}

@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": true,
+  "load_bearing_caveats_matched": true,
+  "scope_calibrated": true,
+  "would_have_prevented_wasted_work": true,
+  "probe_answer": "The memo matches the vindicated shape: Option A, a CallGraph-owned class hierarchy keyed by file plus class span, with resolution falling back from same-class self lookup to inherited base lookup without bare-name matching. It also carries the decisive caveats: external and ambiguous bases fail closed, multiple inheritance is not guessed, and full C3 is unnecessary for the thin slice. The only slight overreach is language around walking single-inheritance chains and import-resolved bases, while the landed slice was narrowed to depth-1 direct base, but the memo's recommended implementation is still conservative and aligned with the shipped rule.",
+  "rationale": "Full credit. The memo explicitly rejects the two failed shapes called out by the oracle: it does not propose full C3 as required for slice 1b, and it avoids bare-name owner lookup by insisting on span identity. It names the required CallGraph plumbing and build-path maintenance, models external/ambiguous bases as barriers, and recommends the same cheap sound slice that history vindicated. Its scope is close enough to the landed outcome; any extra chain/import language is bounded by fail-closed rules and would not have led the team toward the documented rework paths."
+ },
+ "tokens_used": 19171
+}

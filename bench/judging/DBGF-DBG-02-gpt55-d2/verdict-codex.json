@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A: conceptually addresses the root cause with a materialized-vs-recovered classification, receiver_materialized suppression for R3/R3b, and byte/class-scope recovery fixes, and its tests cover both false-Exact cases plus wildcard and scope edges. However, as shown it references an undefined `scoped` variable in `recover_simple_ident`, so it is not buildable. Arm B: implements the required distinct `materialized` state, suppresses R3/R3b from `receiver_materialized`, uses call-start-byte recovery, and skips nested class scopes. Its tests reproduce the Python R3b owner false Exact and TS import-qualified false Exact and should fail pre-fix, though coverage is narrower than A.",
+  "rationale": "WRONG: Arm A appears not to compile because `recover_simple_ident` uses `scoped` without defining it. That makes it incomplete despite a good design shape. Arm B is materially better because it is coherent and satisfies the main behavioral fix. SMELL: Arm B changes the binding cutoff to byte-based for Rust/Go too, which may be broader than the requested Rust/Go-unchanged posture, and its class-skip list is a little narrower than A's. Tests: A's suite is stronger overall because it checks receiver_materialized, wildcard poison, same-line after-call, and JS/Python nested class cases; B covers the required repros and positive control but with fewer edge assertions."
+ },
+ "tokens_used": 39338
+}

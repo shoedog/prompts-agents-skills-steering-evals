@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both suppress R3/R3b when a binding is materialized but poisoned, and both fix byte-precise + nested-class-scope recovery, with tests that fail pre-fix (both false-Exact repros reproduced: Python qualifier_owner collision, TS import_qualified shadow). But root-cause depth differs. Arm A bolts on a separate `materialized()` trait method that re-runs the AST walk independently of `classify()`, so it only ever suppresses the false-Exact \u2014 even in the TS shadow case where the type (Foo) is actually resolved and unpoisoned, `receiver_type` stays None (classify() still bails early on `is_import(q)`), so the site degrades to NameOnly instead of the spec's 'type resolved+unpoisoned \u2192 R6 owner_lookup'. Arm B unifies the signal by adding `poisoned: bool` to `RecoveredReceiver` in one pass: `receiver_recovery.is_some()` = materialized, `!poisoned` = resolved. This correctly resolves the TS shadow case to Exact TypedParam (verified by its own test) while still suppressing R3/R3b when poisoned. Arm B also bumps CACHE_VERSION (24\u219225) per this codebase's own convention for resolution-behavior changes \u2014 Arm A doesn't, so previously-cached CPGs would keep serving the old wrong resolutions post-upgrade. Arm A's new `receiver_materialized` field on `CallSite` also forces ~11 scattered edits across otherwise-unrelated test files, a larger/fragile blast radius Arm B avoids entirely.",
+  "rationale": "Arm A's fix is a correct patch for the letter of BLOCKER1/2 (suppresses both false-Exacts) but its materialized() signal is a bolted-on duplicate scan disconnected from classify(), so it never recovers the correct type in the unpoisoned-shadow case (own test proves NameOnly, not the spec's expected Exact TypedParam) and doubles the AST walk cost. It also omits the CACHE_VERSION bump this codebase's history shows is required whenever typed-receiver resolution semantics change, risking stale-cache reuse of the old buggy resolution. Arm B's `poisoned` flag on `RecoveredReceiver` cleanly unifies 'materialized' vs 'resolved+unpoisoned' in a single pass, correctly resolves the unpoisoned-shadow case to Exact (stronger test), bumps CACHE_VERSION, and needs no new CallSite field. Both pass the Python-BLOCKER1 and scope-fix repros comparably; Arm A's assertion there is marginally tighter, but that's outweighed by B's broader correctness and lower-risk design."
+ },
+ "cost_usd": 0.8288585999999999
+}

@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": false,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Arm A's required commit_precedence test would fail on the pre-change code because the old 2-arg API cannot compile against the new calls, and behaviorally it adds real checks for typed precedence, comment-only fallback to title, title fallback, and file-over-title. Its strongest tests are the extra NUL stripping and 64 KiB bounding checks, which exercise new sanitizer behavior beyond the brief. Its weakest required test only asserts `.0` for precedence cases, so it would not catch a wrong CommitSource for Typed/File/Title. Arm B's required commit_precedence test also would fail on pre-change code for the same compile/API reason and it asserts both message and CommitSource, which is stronger for source behavior. Its strongest tests are the tuple assertions for comment-only typed -> Title and file -> File. Its weakest test is the oversize typed case: it asserts oversize is absent, but the task says candidate strings should be bounded to 64 KiB, so this test locks in an incorrect edge behavior rather than validating the required one.",
+  "rationale": "Arm A is closer to the required sanitizer semantics: it strips comments, trims, strips NULs, and bounds candidates to 64 KiB by truncating. It also updates the main and merge call sites and fixes the warning to only fire on Derived. It is still incomplete because main.rs passes `(commit_msg, false)` into `decide`, losing the derived/fallback flag expected by existing decision behavior. Arm B keeps that legacy bool correctly as `msg_source == Derived`, but it implements the 64 KiB rule incorrectly: oversize typed/file candidates are treated as absent instead of bounded/truncated, and its test asserts that wrong behavior. That is a direct spec miss on a named edge case, so Arm A is materially better overall."
+ },
+ "tokens_used": 21972
+}

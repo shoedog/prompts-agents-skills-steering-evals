@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": false,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Arm A: the named rich_snapshot_folds_toolcall_interleaved test would fail on pre-change code because rich_snapshot_frames did not exist and the old projection had no rich frames; it also asserts the real merged behavior and patched completed status. Its strongest test is rich_snapshot_frames_applies_cursor_once_over_merged_list because it directly targets the new merge-then-cursor invariant. Its weakest relevant test is the existing S6 golden coverage, which is regression-preserving but not new-path coverage. Arm B: rich_snapshot_folds_toolcall_interleaved would also fail pre-change and asserts real folded wire behavior; rich_snapshot_plan_latest_orphan_update_and_cursor covers several edge cases. However B lacks a test for the critical base-after-orphan-update case, where its implementation keeps an orphan ToolCallUpdate state even after a later ToolCall base. Strongest test: rich_snapshot_plan_latest_orphan_update_and_cursor. Weakest/gap: no test for ToolCall replacing an orphan or prior base, which is the path that breaks.",
+  "rationale": "WRONG in Arm B: a later ToolCall does not replace a prior orphan ToolCallUpdate for the same tool_call_id. Its loop uses insert for ToolCall, but because an orphan update is stored as OrchEventKind::ToolCallUpdate, a later update after the base would patch that ToolCallUpdate variant and final emission remains tool_call_update, not the required folded tool_call with had_base=true. Concrete sequence: ToolCallUpdate(t1,status=queued) at seq 1, ToolCall(t1,base) at seq 2, ToolCallUpdate(t1,status=completed) at seq 3 produces a tool_call_update at seq 3 instead of tool_call. Arm A tracks had_base separately and emits ToolCall once any base has appeared, so it satisfies that case. Both arms wire both reattach sites, rederive the sentinel from merged frames, preserve cursor filtering over the M="
+ },
+ "tokens_used": 28970
+}

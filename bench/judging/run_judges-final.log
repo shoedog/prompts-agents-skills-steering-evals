@@ -1,0 +1,106 @@
+[judges] 52 tasks x 2 judges = 104 calls
+[judges] D1F-baseline-IMPL-01/codex: cached
+[judges] D1F-baseline-IMPL-03/codex: cached
+[judges] D1F-baseline-IMPL-04/codex: cached
+[judges] D1F-baseline-IMPL-05/codex: cached
+[judges] D1F-baseline-IMPL-06/codex: cached
+[judges] D1F-baseline-IMPL-08/codex: cached
+[judges] D1F-d1-IMPL-01/codex: cached
+[judges] D1F-d1-IMPL-03/codex: cached
+[judges] D1F-d1-IMPL-04/codex: cached
+[judges] D1F-d1-IMPL-05/codex: cached
+[judges] D1F-d1-IMPL-06/codex: cached
+[judges] D1F-d1-IMPL-08/codex: cached
+[judges] D1W-IMPL-01/codex: cached
+[judges] D1W-IMPL-03/codex: cached
+[judges] D1W-IMPL-04/codex: cached
+[judges] D1W-IMPL-05/codex: cached
+[judges] D1W-IMPL-06/codex: cached
+[judges] D1W-IMPL-08/codex: cached
+[judges] DBG-03/codex: cached
+[judges] DES-01/codex: cached
+[judges] DES-06/codex: cached
+[judges] G5F-IMPL-01/codex: ok (attempt 1)
+[judges] G5F-IMPL-03/codex: ok (attempt 1)
+[judges] G5F-IMPL-04/codex: ok (attempt 1)
+[judges] G5F-IMPL-05/codex: ok (attempt 1)
+[judges] G5F-IMPL-06/codex: ok (attempt 1)
+[judges] G5F-IMPL-08/codex: ok (attempt 1)
+[judges] HKF-IMPL-01/codex: ok (attempt 1)
+[judges] HKF-IMPL-03/codex: ok (attempt 1)
+[judges] HKF-IMPL-04/codex: ok (attempt 1)
+[judges] HKF-IMPL-05/codex: ok (attempt 1)
+[judges] HKF-IMPL-06/codex: ok (attempt 1)
+[judges] HKF-IMPL-08/codex: ok (attempt 1)
+[judges] HKW-IMPL-01/codex: ok (attempt 1)
+[judges] HKW-IMPL-03/codex: ok (attempt 1)
+[judges] HKW-IMPL-04/codex: ok (attempt 1)
+[judges] HKW-IMPL-05/codex: ok (attempt 1)
+[judges] HKW-IMPL-06/codex: ok (attempt 1)
+[judges] HKW-IMPL-08/codex: ok (attempt 1)
+[judges] IMPL-01/codex: cached
+[judges] IMPL-03/codex: cached
+[judges] IMPL-04/codex: cached
+[judges] IMPL-05/codex: cached
+[judges] IMPL-06/codex: cached
+[judges] IMPL-08/codex: cached
+[judges] IMPL-12/codex: cached
+[judges] IMPL-13/codex: cached
+[judges] INFRA-01/codex: cached
+[judges] PLAN-01/codex: cached
+[judges] REF-01/codex: cached
+[judges] REF-03/codex: cached
+[judges] RES-01/codex: cached
+[judges] D1F-baseline-IMPL-01/claude: cached
+[judges] D1F-baseline-IMPL-03/claude: cached
+[judges] D1F-baseline-IMPL-04/claude: cached
+[judges] D1F-baseline-IMPL-05/claude: cached
+[judges] D1F-baseline-IMPL-06/claude: cached
+[judges] D1F-baseline-IMPL-08/claude: cached
+[judges] D1F-d1-IMPL-01/claude: cached
+[judges] D1F-d1-IMPL-03/claude: cached
+[judges] D1F-d1-IMPL-04/claude: cached
+[judges] D1F-d1-IMPL-05/claude: cached
+[judges] D1F-d1-IMPL-06/claude: cached
+[judges] D1F-d1-IMPL-08/claude: cached
+[judges] D1W-IMPL-01/claude: cached
+[judges] D1W-IMPL-03/claude: cached
+[judges] D1W-IMPL-04/claude: cached
+[judges] D1W-IMPL-05/claude: cached
+[judges] D1W-IMPL-06/claude: cached
+[judges] D1W-IMPL-08/claude: cached
+[judges] DBG-03/claude: cached
+[judges] DES-01/claude: cached
+[judges] DES-06/claude: cached
+[judges] G5F-IMPL-01/claude: ok (attempt 1)
+[judges] G5F-IMPL-03/claude: ok (attempt 1)
+[judges] G5F-IMPL-04/claude: ok (attempt 1)
+[judges] G5F-IMPL-05/claude: ok (attempt 1)
+[judges] G5F-IMPL-06/claude: ok (attempt 1)
+[judges] G5F-IMPL-08/claude: ok (attempt 1)
+[judges] HKF-IMPL-01/claude: ok (attempt 1)
+[judges] HKF-IMPL-03/claude: ok (attempt 1)
+[judges] HKF-IMPL-04/claude: ok (attempt 1)
+[judges] HKF-IMPL-05/claude: ok (attempt 1)
+[judges] HKF-IMPL-06/claude: ok (attempt 1)
+[judges] HKF-IMPL-08/claude: ok (attempt 1)
+[judges] HKW-IMPL-01/claude: ok (attempt 1)
+[judges] HKW-IMPL-03/claude: ok (attempt 1)
+[judges] HKW-IMPL-04/claude: ok (attempt 1)
+[judges] HKW-IMPL-05/claude: ok (attempt 1)
+[judges] HKW-IMPL-06/claude: ok (attempt 1)
+[judges] HKW-IMPL-08/claude: ok (attempt 1)
+[judges] IMPL-01/claude: cached
+[judges] IMPL-03/claude: cached
+[judges] IMPL-04/claude: cached
+[judges] IMPL-05/claude: cached
+[judges] IMPL-06/claude: cached
+[judges] IMPL-08/claude: cached
+[judges] IMPL-12/claude: cached
+[judges] IMPL-13/claude: cached
+[judges] INFRA-01/claude: cached
+[judges] PLAN-01/claude: cached
+[judges] REF-01/claude: cached
+[judges] REF-03/claude: cached
+[judges] RES-01/claude: cached
+[judges] done; 0 errors: []

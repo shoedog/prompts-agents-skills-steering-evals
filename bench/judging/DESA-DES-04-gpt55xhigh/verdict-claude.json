@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": true,
+  "load_bearing_caveats_matched": true,
+  "scope_calibrated": true,
+  "would_have_prevented_wasted_work": true,
+  "probe_answer": "The memo correctly recommends the tri-state design: split Hidden/Unknown/multi, continue only when all bindings are provably Hidden, poison on Unknown (undecidable pub(in)), and explicitly frames the 14,663 count as target population not guaranteed recall \u2014 matching the vindicated design-of-record exactly. It also correctly recommends the hybrid architecture (policy hook + richer rib probe return type) rather than picking a single naive option, keeps the engine language-neutral by not calling vis_reaches directly, and proposes telemetry bucket splits (member_multi/member_hidden_continued/member_undecidable) mirroring what shipped. Minor gaps: it doesn't explicitly restate the cardinal invariant phrase ('may miss an edge but never mint a wrong singleton') verbatim, though the substance (sibling-glob wrong-singleton risk analysis) is present and correct.",
+  "rationale": "All four grading dimensions are satisfied: the recommendation shape matches (tri-state, continue-only-on-all-Hidden, poison-on-Unknown), the load-bearing caveat (buy is the small reached-subset, not raw 14,663) is explicitly called out, scope is calibrated (light-medium effort, phased telemetry-before-recall-claims), and following this memo would have avoided both failure modes (naive full-recall over-claim and unsound continue-on-Unknown)."
+ },
+ "cost_usd": 0.1404333
+}

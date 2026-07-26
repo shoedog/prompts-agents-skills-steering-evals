@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A does add a distinct receiver_materialized signal and should suppress R3/R3b for the poisoned Python case and the TS import-shadow case on fresh extraction, with byte-aware and nested-class scope recovery. Its regression tests reproduce both false-Exact cases and should fail pre-fix. However, it still treats the TS api: Foo import-shadowed param as unresolved/NameOnly even though Foo is local and unpoisoned. Arm B makes the materialized-vs-resolved split cleaner through poisoned RecoveredReceiver plus receiver_recovery, scans Python/JS/TS local bindings before the qualifier-import gate, suppresses R3/R3b when poisoned, resolves unpoisoned api: Foo to TypedParam, and implements the scope-aware recovery. Its regression tests reproduce both false-Exact cases and should fail pre-fix.",
+  "rationale": "Arm B is materially better. WRONG(A): for import api plus function run(api: Foo), Arm A suppresses the false import_qualified result but leaves receiver_type None, so a resolved unpoisoned local typed param does not reach R6 owner_lookup/TypedParam as required. WRONG(A): it adds serialized CallSite.receiver_materialized without bumping the CPG cache version, so existing cached v24 call sites deserialize with receiver_materialized=false and can keep the old false R3/R3b behavior. SMELL(A): materialized detection does a second receiver scan and its tests encode the weaker NameOnly outcome for the TS shadow case. Arm B also bumps the cache version and has the stronger central test: the TS import-shadowing param must resolve as TypedParam, while plain imports still use R3. Arm A has useful add"
+ },
+ "tokens_used": 28460
+}

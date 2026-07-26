@@ -1,0 +1,88 @@
+{
+  "harness": {
+    "argv_redacted": [
+      "/Users/wesleyjinks/.local/bin/claude",
+      "-p",
+      "<task_prompt omitted here \u2014 see the task yaml>",
+      "--model",
+      "claude-opus-4-8",
+      "--output-format",
+      "json",
+      "--dangerously-skip-permissions"
+    ],
+    "cwd": "/private/tmp/des-opus-ws/DES-03",
+    "model": "claude-opus-4-8",
+    "timeout_sec": 4500,
+    "started_at": "2026-07-05T02:20:35+00:00",
+    "ended_at": "2026-07-05T02:33:06+00:00",
+    "wall_sec": 751.777,
+    "timed_out": false,
+    "returncode": 0
+  },
+  "cli_result": {
+    "type": "result",
+    "subtype": "success",
+    "is_error": false,
+    "api_error_status": null,
+    "duration_ms": 750724,
+    "duration_api_ms": 746588,
+    "ttft_ms": 33146,
+    "ttft_stream_ms": 1529,
+    "time_to_request_ms": 19,
+    "num_turns": 22,
+    "result": "Memo delivered: **`MEMO-slice3-free-multi-import-scoping.md`** (repo root, untracked \u2014 no code touched). Here's the substance.\n\n## What I verified (real numbers, this clone)\n\n**Baseline reproduces exactly** (`prism nav call-stats`, release build):\n\n| corpus | total sites | `free_multi` NameOnly **edges** | canary `multi_target_exact_sites` |\n|---|--:|--:|--:|\n| pydantic | 65,645 | **25,293** (38.5% of all sites; 76% of all demotions) | 439 |\n| fastapi | 19,919 | **488** | 70 |\n| express | 949 | **72** | 0 |\n\nConfirmed corpus-dominant: pydantic's `free_multi` is **52\u00d7 fastapi's**. This is a pydantic-shaped win, not a universal Python one.\n\n**Mechanism (root cause), confirmed by grep:** `CallGraph.imports` is read for resolution in *exactly one place* \u2014 `resolution.rs:996-997`, the **qualified** `q.name()` branch (R3). The bare-call branch (`None =>`, `resolution.rs:1237-1328`) has **no import rung**, so `from x import foo; foo()` falls straight to the `FreeMulti` demote at `resolution.rs:1325`. The data the fix needs already exists: `extract_imports` (`ast.rs:564-663`) already binds `from utils import func \u2192 {\"func\":\"utils\"}`. It's simply never queried for bare names.\n\n**Two facts that reshape the framing:**\n1. **Same-file preference already ships** \u2014 R4 (`resolution.rs:1248-1256`) returns Exact `LocalDef`. So Option A's \"prefer the caller's own module\" is *already true at file granularity*. Its only net-new part \u2014 a same-*directory* tier \u2014 is **unsound for Python** (a bare non-local call must have been imported; co-location \u2260 target). Option A buys ~nothing sound.\n2. **The fix is Option B (import\u2192path narrowing), and it must use path-suffix, not R3's stem.** Proof from the corpus: `Field` (pydantic's #1 `free_multi`) is `def`'d in `pydantic/fields.py` **and** `pydantic/v1/fields.py` \u2014 same last-segment `fields`, so R3's stem match keeps both. Full path-suffix (`pydantic.fields \u2192 pydantic/fields.py`) + relative-dir resolution disambiguates to one.\n\n**Soundness measured, not asserted** (independent probe over the real corpora): when a `free_multi` name is imported, path-matching narrows to **exactly one target with 0 path collisions** (pydantic 612 unique / 0 multi / 4 external; fastapi 63 / 0 / 0). Zero collisions \u21d2 **the canary cannot rise** \u21d2 no wrong multi-target Exact.\n\n## Recommendation\n\nShip **Option B only**: a lang-gated (Py/JS/TS) rung in the bare-call branch, firing **only on the would-be-`FreeMulti` set**, that looks up the name in the caller's imports and narrows by resolved path \u2014 1\u21d2Exact, >1\u21d2demote (unchanged outcome), 0\u21d2fall through (pure Pareto, never removes an existing edge). ~30\u201340 lines, **no `CACHE_VERSION` bump** (imports already serialized), Rust/Go byte-identical by construction. Full details, discriminating-test list, acceptance gate, and deferred scope (authoritative `__init__.py`/`import *` resolution \u2192 scope-graph slice 4; R3 tightening) are in the memo.\n\n## Honest caveats\n- `call_stats` counts **edges, not sites** \u2014 one `FreeMulti` site (fan-out \u22652) emits multiple edges, so the reported drop will exceed sites-fixed; the PR should state both.\n- I do **not** quote a precise converted-edge integer: my probe samples only ~12\u201315% of prism's calls and is biased against class-body `Field(...)` defaults. The exact pydantic delta *is* the acceptance gate, measured after implementation. The probe establishes structure + soundness, not the headline number.\n\nOne deviation from the brief's line refs (expected per the replay note \u2014 clone differs from the original branch): Go same-package is at `resolution.rs:1258-1291` and the `FreeMulti` demote at `1313-1326`, not the cited `1226-1248`/`1270-1318`.",
+    "stop_reason": "end_turn",
+    "session_id": "659e6ef1-4a23-45fd-aef8-9fa1e733b0d0",
+    "total_cost_usd": 2.8473194999999993,
+    "usage": {
+      "input_tokens": 8093,
+      "cache_creation_input_tokens": 98283,
+      "cache_read_input_tokens": 1067949,
+      "output_tokens": 51602,
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 98283,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "not_available",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 1718,
+          "cache_read_input_tokens": 100928,
+          "cache_creation_input_tokens": 12434,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 12434
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard"
+    },
+    "modelUsage": {
+      "claude-opus-4-8": {
+        "inputTokens": 8093,
+        "outputTokens": 51602,
+        "cacheReadInputTokens": 1067949,
+        "cacheCreationInputTokens": 98283,
+        "webSearchRequests": 0,
+        "costUSD": 2.8473194999999993,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000
+      }
+    },
+    "permission_denials": [],
+    "terminal_reason": "completed",
+    "fast_mode_state": "off",
+    "uuid": "c2ce8d67-f09b-4109-a0f9-c014944f4852"
+  },
+  "stdout_tail": null,
+  "stderr_tail": "",
+  "parse_error": null,
+  "replay_preface": "Replay note: you are working in /private/tmp/des-opus-ws/DES-03 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged."
+}

@@ -1,0 +1,36 @@
+{
+  "harness": {
+    "executor": "codex",
+    "effort": "high",
+    "cwd": "/private/tmp/dbg-g5-ws/DBG-03",
+    "argv": [
+      "/opt/homebrew/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "-o",
+      "/private/tmp/dbg-g5-ws/DBG-03/.codex-final-message.md",
+      "-"
+    ],
+    "started_at": "2026-07-05T05:27:26+00:00",
+    "returncode": 0,
+    "timed_out": false,
+    "timeout_sec": 4500,
+    "stderr_tail": "/walk/items.rs\nindex f55a1dd752a9eb1b6fff9b97f1864525ffe4ca19..ceddc6b1415e636fece71ad1cbd5a98a4936172e\n--- a/src/name_resolution/rust_populator/walk/items.rs\n+++ b/src/name_resolution/rust_populator/walk/items.rs\n@@ -342,9 +342,10 @@\n                 if let Some(p) = c.child_by_field_name(\"pattern\") {\n                     let mut names = Vec::new();\n                     pattern_idents(pf, &p, &mut names);\n-                    for name in names {\n+                    for (name, def_byte) in names {\n                         out.push((\n                             name,\n+                            def_byte,\n                             LocalFact {\n                                 kind: BindingKind::Param,\n                                 annotation: annotation.clone(),\n@@ -357,7 +358,26 @@\n         }\n         out\n     });\n-    for (name, fact) in facts {\n-        add_locals(b, body_scope, file, body_end, &[name], fact);\n+    if facts.is_empty() {\n+        return;\n+    }\n+    let names: Vec<(String, usize)> = facts\n+        .iter()\n+        .map(|(name, def_byte, _)| (name.clone(), *def_byte))\n+        .collect();\n+    add_locals(\n+        b,\n+        body_scope,\n+        file,\n+        body_end,\n+        &names,\n+        LocalFact {\n+            kind: BindingKind::Param,\n+            annotation: None,\n+            init: None,\n+        },\n+    );\n+    for (_, def_byte, fact) in facts {\n+        b.add_local_fact(file, def_byte, fact);\n     }\n }\ndiff --git a/tests/name_resolution/rust_populate_test.rs b/tests/name_resolution/rust_populate_test.rs\nindex a3c26e9ccc68561acbcabc9f9766849a50577e69..69c7e4de62d58b9f0aacdb8d93986ec63bbfda67\n--- a/tests/name_resolution/rust_populate_test.rs\n+++ b/tests/name_resolution/rust_populate_test.rs\n@@ -21,7 +21,8 @@\n     enclosing_scope, file_id, populate_rust, RustCrateConfig,\n };\n use prism::name_resolution::types::{\n-    Anchor, NamespaceId, RawPath, ResStatus, Resolution, ResolveQuery, SourceLoc, Target,\n+    Anchor, BindTarget, BindingRef, NamespaceId, RawPath, ResStatus, Resolution, ResolveQuery,\n+    SourceLoc, Target,\n };\n \n // \u2500\u2500 fixture + query helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n@@ -154,6 +155,24 @@\n     );\n }\n \n+fn local_ref_at_def(g: &ScopeGraph, name: &str, def_byte: usize) -> BindingRef {\n+    let binding = g\n+        .bindings\n+        .iter()\n+        .find(|binding| {\n+            binding.name == name\n+                && binding\n+                    .vis_extents\n+                    .iter()\n+                    .any(|span| span.lo.byte == def_byte)\n+        })\n+        .unwrap_or_else(|| panic!(\"missing local binding {name:?} at byte {def_byte}\"));\n+    match &binding.target {\n+        BindTarget::Resolved(Target::Local(local_ref)) => local_ref.clone(),\n+        other => panic!(\"expected local binding target for {name:?}, got {other:?}\"),\n+    }\n+}\n+\n /// Convention-fallback config (no manifest): edition 2015, conventional roots.\n fn convention(fs: &BTreeMap<String, ParsedFile>) -> RustCrateConfig {\n     RustCrateConfig::from_convention(fs)\n@@ -344,6 +363,20 @@\n }\n \n #[test]\n+fn test_param_binding_refs_preserve_source_order_ordinals() {\n+    let src = \"fn f(a: i32, b: i32) { let _ = (a, b); }\\n\";\n+    let fs = files(&[(\"src/lib.rs\", src)]);\n+    let g = populate_rust(&fs, &convention(&fs), None);\n+    let a = local_ref_at_def(&g, \"a\", byte_of(src, \"a: i32\"));\n+    let b = local_ref_at_def(&g, \"b\", byte_of(src, \"b: i32\"));\n+\n+    assert_eq!(a.scope, b.scope, \"params must bind in the same body scope\");\n+    assert_eq!(a.ordinal, 0, \"first param ordinal changed\");\n+    assert_eq!(b.ordinal, 1, \"second param ordinal changed\");\n+    assert_ne!(a, b, \"distinct params must not share one BindingRef\");\n+}\n+\n+#[test]\n fn test_local_closure_arg_shadows_free_fn() {\n     let src = \"pub fn f(){}\\nfn host(){ let c = |f| { let _z = f; }; }\\n\";\n     let (res, _) = single_file_resolve(src, 2015, \"_z = f\", \"f\", NS_VALUE);\n\nhook: Stop\nhook: Stop Completed\ntokens used\n181,880\n"
+  },
+  "cli_result": {
+    "subtype": "success",
+    "is_error": false,
+    "num_turns": null,
+    "usage": {
+      "tokens_used": 181880
+    },
+    "total_cost_usd": null,
+    "result": "STATUS: DONE\n\nImplemented the inertness fix and amended `f89dd5c` to:\n\n`a4681a7bbd378c44020debad7ef05af244cc90d0`\n\nChanged files:\n- [items.rs](/private/tmp/dbg-g5-ws/DBG-03/src/name_resolution/rust_populator/walk/items.rs): restored one ordered `add_locals` pass for params, then populated `local_facts` by `(file, def_byte)`.\n- [rust_populate_test.rs](/private/tmp/dbg-g5-ws/DBG-03/tests/name_resolution/rust_populate_test.rs): added param ordinal regression.\n- [binding_lookup.rs](/private/tmp/dbg-g5-ws/DBG-03/src/name_resolution/binding_lookup.rs): added duplicate same-rib local lookup regression.\n\nTDD evidence:\n- New ordinal test failed before fix: second param ordinal was `0`, expected `1`.\n- After fix: `cargo test --test name_resolution test_param_binding_refs_preserve_source_order_ordinals` passed.\n- Duplicate same-rib lookup regression passed: `lookup_visible_binding(...) == None`.\n\nVerification:\n- `cargo test --lib`: 273 passed.\n- `cargo test --test name_resolution`: 92 passed.\n- `cargo test`: 2,237 passed, 0 failed, 1 ignored.\n- `cargo fmt && cargo fmt --check`: passed.\n- `cargo clippy --all-targets`: passed with existing unrelated warnings, none in touched files.\n- `cargo build`: passed.\n- `cargo build --features mcp`: passed.\n- `cargo build --release`: passed.\n- `cd eval && uv run tier-a --matrix-only --allow-stale-sut`: passed, 0 regressions.\n\nSelf-review:\n- Recall-safety preserved: duplicate same-rib locals fall through with `None`; no wrong target is selected.\n- Inertness restored for params: `fn f(a, b)` now produces distinct `BindingRef`s with ordinals `0` and `1`.\n- Verified other `add_locals` call sites still pass collected binding groups in one call; no let/pattern ordinal split was introduced.\n- No file split.\n\n",
+    "session_id": null,
+    "duration_ms": 643252
+  },
+  "replay_preface": "Replay note: you are working in /private/tmp/dbg-g5-ws/DBG-03 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged."
+}

@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both hung-turn tests would fail (hang\u21922s-timeout panic) on pre-Task5 code, so both are genuine regression tests. Both active/unmodeled and no-config tests can't discriminate pre/post-code since nothing tripped falsely either way pre-change; they instead guard against Task5 introducing false positives, which is the correct purpose. The real gap: Arm B's hung-turn test additionally asserts the CancelNotification was actually observed by the fake agent (cancel_seen + cancels==[id]), verifying the mechanism, not just the terminal label \u2014 Arm A only checks the final Err(AgentTimedOut). Arm B's active/unmodeled and no-config tests also assert `cancels` stays empty (no spurious cancel), and its no-config test additionally verifies the turn completes normally after the gate releases (fuller round-trip) \u2014 Arm A stops at the 300ms hang check. Arm B's active-turn margin (8\u00d720ms=160ms > 100ms idle) also shows more intent to stress the renewal boundary vs Arm A's looser 60ms<100ms margin, though this is blunted by the shared watchdog design's initial la=0\u2192wall-deadline branch in both. Strongest/weakest: A strongest=hung-turn, weakest=active/unmodeled (loose margin, no cancel assertions). B strongest=hung-turn (adds mechanism-level cancel proof), weakest=unmodeled(thought) sub-case (mostly re-validates pre-existing Task4 bump behavior).",
+  "rationale": "Both arms correctly implement every binding PFIX item (F/G/H/L, FIX-5, FIX-11) with equivalent, correct logic: watchdog task, Pending-when-disabled arm, unconditional Err(())+timed_out_local discard of the inner cancel result, saturating la_instant math, and teardown via drop(done_tx). Neither shows a demonstrated WRONG bug. Arm B extracts `watchdog_cfg` once and reuses it for both `watch` and the spawn condition, a minor touch to adjacent pre-existing Task-4 code (harmless SMELL, not scope-breaking). The material difference is test depth: Arm B verifies the actual CancelNotification fired/didn't-fire via the Recorder's `cancels`/`cancel_seen`, and does a fuller round-trip in the no-config test, giving strictly stronger regression-catching power than Arm A's outcome-only assertions. This tips the balance to Arm B without any offsetting correctness or scope issue."
+ },
+ "cost_usd": 0.8491763999999999
+}

@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A: the hung-timeout test would fail on pre-change code and asserts real terminal behavior. The no-config test would pass pre-change, as expected for a regression guard. The active/unmodeled test is weak: the unmodeled branch schedules only about 80ms under a 100ms idle timeout, despite claiming total > idle, so it can pass without proving unmodeled events bump activity. Strongest: watchdog_cancels_a_hung_turn_as_timed_out. Weakest: the unmodeled half of watchdog_does_not_trip_active_or_unmodeled_turn.\n\nArm B: the hung-timeout, idle-after-activity, and honored-cancel-after-timeout tests would fail on pre-change code. They cover more of the new code path, especially PFIX-F result-discard behavior. The no-config test is a proper negative guard. Its unmodeled negative case is still the weakest because a la==0/no-bump implementation may not necessarily trip before completion, but it is stronger than Arm A's timing. Strongest: watchdog_fired_cancel_honored_within_grace_is_still_timed_out. Weakest: the unmodeled half of watchdog_does_not_trip_active_or_unmodeled_turn.",
+  "rationale": "Both arms implement the main watchdog pieces: gated task creation, Pending disabled arm, from_std conversion, inner cancel result discard, done_tx teardown, and AgentTimedOut terminal mapping. Arm B is materially better because its tests directly exercise the keystone PFIX-F case and the idle-after-activity path, while Arm A mostly proves only hard-wall timeout.\n\nWRONG: Arm A's unmodeled test claims idle=100ms is less than total emission time, but the diff shows 4 updates with 20ms sleeps, about 80ms total; that does not force the intended edge case.\n\nSMELL: Arm A has no test that an agent honoring watchdog cancel within grace still yields AgentTimedOut, so a regression that propagates Done{cancelled} could slip through.\n\nSMELL: Arm B changes the la==0 watchdog sleep from the binding's \u201cno"
+ },
+ "tokens_used": 64057
+}

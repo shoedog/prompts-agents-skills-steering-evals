@@ -1,0 +1,15 @@
+# source_repo: /Users/wesleyjinks/code/slicing
+# before: git -C <source_repo> status --porcelain
+?? .superpowers/
+
+# before_returncode: 0
+
+# after: git -C <source_repo> status --porcelain
+ M docs/analysis/prism-llm-and-accuracy-plan.md
+ M docs/superpowers/handoffs/2026-07-03-prism-p-items-execution-handoff.md
+ M docs/superpowers/pipeline-lessons.md
+R  p14-fixwave-report.md -> docs/superpowers/specs/2026-07-04-prism-p14-fixwave-report.md
+?? .superpowers/
+?? docs/superpowers/specs/2026-07-04-prism-p14-taint-descent-spec.md
+
+# after_returncode: 0

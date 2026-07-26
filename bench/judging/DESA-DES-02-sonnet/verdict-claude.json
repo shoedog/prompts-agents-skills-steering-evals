@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": true,
+  "load_bearing_caveats_matched": true,
+  "scope_calibrated": true,
+  "would_have_prevented_wasted_work": true,
+  "probe_answer": "The memo lands on the vindicated design: a span-keyed class_bases: BTreeMap<(file, class_span), Vec<String>> map on CallGraph, populated at all build sites, with a conservative policy \u2014 resolve only on a single unambiguous provider, treat external/ambiguous/multi-branch bases as barriers (drop, don't guess), and an explicit, well-argued case that full Python C3 is unnecessary. This is exactly the shape that shipped (498482a / 1df081d / 2fb6457). It also correctly rejects the naive bare-name owner_lookup trap, citing 1a's own collision fix as the reason to stay span-keyed. Its one gap versus the final scope: the memo recurses up an arbitrarily-deep same-file single-inheritance chain, whereas the shipped spec was narrowed further to a single DEPTH-1 direct-base hop only ('sound by simplification') \u2014 a refinement the memo didn't anticipate, though its own data (13/13 real hits were direct/depth-1) already supported that narrower cut.",
+  "rationale": "Core design elements \u2014 span-keyed identity, all-build-site population, single-unambiguous-provider/barrier semantics, and the no-C3-needed argument \u2014 match the settled outcome closely enough that following this memo would have anchored the team at essentially the final architecture, sidestepping most of the churn implied by the 4 spec REWORKs. The only miscalibration is scope depth (chain-walk vs. depth-1-only), a minor overshoot within the same conservative design family rather than a different approach, so it doesn't change the overall verdict."
+ },
+ "cost_usd": 0.3294558
+}

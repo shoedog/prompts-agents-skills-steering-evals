@@ -1,0 +1,215 @@
+# git -C /private/tmp/gpt55-ws/IMPL-05 status --short
+ M bin/a2a-bridge/src/implement.rs
+ M bin/a2a-bridge/src/main.rs
+ M bin/a2a-bridge/src/merge.rs
+
+# git -C /private/tmp/gpt55-ws/IMPL-05 diff
+diff --git a/bin/a2a-bridge/src/implement.rs b/bin/a2a-bridge/src/implement.rs
+index b015d42e..1c370b07 100644
+--- a/bin/a2a-bridge/src/implement.rs
++++ b/bin/a2a-bridge/src/implement.rs
+@@ -115,22 +115,70 @@ pub fn compose_warm_fetch(
+ 
+ // ─── Commit message ──────────────────────────────────────────────────────────
+ 
+-/// Resolve the commit message: the agent-written `.git/A2A_COMMIT_MSG` content if non-blank, else a
+-/// deterministic task-derived fallback `implement: <first line of task, truncated>`. Returns
+-/// (message, used_fallback). `raw` is the file content (None if absent/unreadable/oversize/NUL/non-UTF-8).
+-pub fn commit_message(raw: Option<String>, task: &str) -> (String, bool) {
+-    if let Some(s) = raw {
+-        let trimmed = s.trim();
+-        if !trimmed.is_empty() {
+-            return (trimmed.to_string(), false);
+-        }
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub enum CommitSource {
++    Typed,
++    File,
++    Title,
++    Derived,
++}
++
++const COMMIT_MESSAGE_MAX_BYTES: usize = 64 * 1024;
++
++/// Resolve the commit message from typed task-spec content, `.git/A2A_COMMIT_MSG`, title, then a
++/// deterministic task-derived fallback `implement: <first line of task, truncated>`.
++pub fn commit_message(
++    typed: Option<String>,
++    file: Option<String>,
++    title: &str,
++    task: &str,
++) -> (String, CommitSource) {
++    if let Some(s) = commit_candidate(typed) {
++        return (s, CommitSource::Typed);
++    }
++    if let Some(s) = commit_candidate(file) {
++        return (s, CommitSource::File);
++    }
++    let title = title.trim();
++    if !title.is_empty() {
++        return (title.to_string(), CommitSource::Title);
+     }
+     let first = task.lines().next().unwrap_or("").trim();
+     let mut subj: String = first.chars().take(120).collect();
+     if subj.is_empty() {
+         subj = "changes".into();
+     }
+-    (format!("implement: {subj}"), true)
++    (format!("implement: {subj}"), CommitSource::Derived)
++}
++
++fn commit_candidate(raw: Option<String>) -> Option<String> {
++    let mut s = raw?;
++    s.retain(|ch| ch != '\0');
++    let stripped = strip_html_comments(&s);
++    if stripped.len() > COMMIT_MESSAGE_MAX_BYTES {
++        return None;
++    }
++    let trimmed = stripped.trim();
++    if trimmed.is_empty() {
++        None
++    } else {
++        Some(trimmed.to_string())
++    }
++}
++
++fn strip_html_comments(input: &str) -> String {
++    let mut out = String::with_capacity(input.len());
++    let mut rest = input;
++    while let Some(start) = rest.find("<!--") {
++        out.push_str(&rest[..start]);
++        let after_start = &rest[start + "<!--".len()..];
++        match after_start.find("-->") {
++            Some(end) => rest = &after_start[end + "-->".len()..],
++            None => return out,
++        }
++    }
++    out.push_str(rest);
++    out
+ }
+ 
+ /// Read `<clone>/.git/A2A_COMMIT_MSG`, bounded to 64 KiB so an oversized/binary file can't blow memory.
+@@ -496,11 +544,11 @@ pub enum Action {
+ }
+ 
+ /// PURE soft gate: gate on workflow completion + the HEAD guard, then the stage state. Unit-tested matrix.
+-pub fn decide(
++pub fn decide<S>(
+     completed: bool,
+     head_guard: Result<(), String>,
+     stage: StageState,
+-    msg: (String, bool),
++    msg: (String, S),
+ ) -> Action {
+     if !completed {
+         return Action::Abort("workflow did not complete".into());
+@@ -695,20 +743,58 @@ mod tests {
+     #[test]
+     fn commit_message_file_else_fallback() {
+         assert_eq!(
+-            commit_message(Some("  Fix the widget\n\ndetails\n".into()), "task ignored"),
+-            ("Fix the widget\n\ndetails".to_string(), false)
++            commit_message(
++                None,
++                Some("  Fix the widget\n\ndetails\n".into()),
++                "ignored title",
++                "task ignored"
++            ),
++            ("Fix the widget\n\ndetails".to_string(), CommitSource::File)
+         );
+         assert_eq!(
+-            commit_message(None, "Add a FOO marker file to the repo root\nmore"),
++            commit_message(None, None, "", "Add a FOO marker file to the repo root\nmore"),
+             (
+                 "implement: Add a FOO marker file to the repo root".to_string(),
+-                true
++                CommitSource::Derived
+             )
+         );
+-        assert!(commit_message(Some("   \n  ".into()), "Tidy up").1);
++        assert_eq!(
++            commit_message(None, Some("   \n  ".into()), "", "Tidy up").1,
++            CommitSource::Derived
++        );
+         let long = "x".repeat(500);
+-        let (m, fb) = commit_message(None, &long);
+-        assert!(fb && m.starts_with("implement: ") && m.len() <= "implement: ".len() + 120);
++        let (m, source) = commit_message(None, None, "", &long);
++        assert!(
++            source == CommitSource::Derived
++                && m.starts_with("implement: ")
++                && m.len() <= "implement: ".len() + 120
++        );
++    }
++
++    #[test]
++    fn commit_precedence_and_comment_only_falls_back_to_title() {
++        assert_eq!(
++            commit_message(Some("feat: x".into()), None, "Add foo", "task body").0,
++            "feat: x"
++        );
++        assert_eq!(
++            commit_message(
++                Some("<!-- OPTIONAL -->".into()),
++                None,
++                "Add foo endpoint",
++                "task body"
++            )
++            .0,
++            "Add foo endpoint"
++        );
++        assert_eq!(
++            commit_message(None, None, "Add foo endpoint", "task body").0,
++            "Add foo endpoint"
++        );
++        assert_eq!(
++            commit_message(None, Some("from file".into()), "T", "task").0,
++            "from file"
++        );
+     }
+ 
+     #[test]
+@@ -762,7 +848,7 @@ mod tests {
+ 
+     #[test]
+     fn decide_matrix() {
+-        let msg = ("m".to_string(), false);
++        let msg = ("m".to_string(), CommitSource::File);
+         assert_eq!(
+             decide(false, Ok(()), StageState::Staged, msg.clone()),
+             Action::Abort("workflow did not complete".into())
+diff --git a/bin/a2a-bridge/src/main.rs b/bin/a2a-bridge/src/main.rs
+index 77cd7093..60feaa2f 100644
+--- a/bin/a2a-bridge/src/main.rs
++++ b/bin/a2a-bridge/src/main.rs
+@@ -2214,8 +2214,13 @@ async fn implement_cmd(args: &[String]) -> Result<(), BoxError> {
+             return Err(format!("implement: stage check: {e}").into());
+         }
+     };
+-    let msg = implement::commit_message(implement::read_commit_msg_file(&clone), &task);
+-    if msg.1 {
++    let msg = implement::commit_message(
++        spec.section("Commit Message").map(|s| s.content.clone()),
++        implement::read_commit_msg_file(&clone),
++        spec.title.as_deref().unwrap_or(""),
++        &task,
++    );
++    if msg.1 == implement::CommitSource::Derived {
+         eprintln!("[implement] no .git/A2A_COMMIT_MSG — using task-derived message");
+     }
+     match implement::decide(completed, guard, stage, msg) {
+diff --git a/bin/a2a-bridge/src/merge.rs b/bin/a2a-bridge/src/merge.rs
+index a4617e4a..ed1e5aa6 100644
+--- a/bin/a2a-bridge/src/merge.rs
++++ b/bin/a2a-bridge/src/merge.rs
+@@ -462,7 +462,8 @@ pub fn merge_clone(
+                 );
+                 return MergeOutcome::Unlanded;
+             }
+-            let (msg, _) = commit_message(ck.original_message.clone(), &ck.task_brief);
++            let (msg, _) =
++                commit_message(ck.original_message.clone(), None, &ck.task_brief, &ck.task_brief);
+             let rt = match reauthor_commit(clone, cur, &ck.base_commit, &msg, &op) {
+                 Ok(r) => r,
+                 Err(e) => {
+

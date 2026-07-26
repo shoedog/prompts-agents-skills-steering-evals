@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": false,
+  "load_bearing_caveats_matched": false,
+  "scope_calibrated": false,
+  "would_have_prevented_wasted_work": false,
+  "probe_answer": "The memo does not answer the design question at all; it only says background jobs are still running. It never recommends the tri-state member-visibility policy, never states continue-only-on-proven-Hidden, never preserves poison-on-Unknown, and never sizes the real buy as the reached-later-result subset rather than the 14,663 raw events.",
+  "rationale": "No substantive architecture, soundness rule, telemetry plan, tests, or sizing caveats are present, so it cannot match the settled design or prevent the known over-claim/unsoundness risks."
+ },
+ "tokens_used": 17059
+}

@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": true,
+  "load_bearing_caveats_matched": true,
+  "scope_calibrated": true,
+  "would_have_prevented_wasted_work": true,
+  "probe_answer": "The memo matches the settled design shape: a shared member/edge tri-state, member-level visibility hook, split buckets, and the rule that only all-proven-hidden filtered members may fall through. It carries the decisive caveats: Unknown/undecidable pub(in) still poisons, the cardinal invariant is explicit, and the 14,663 events are framed as an upper-bound target population rather than guaranteed recall. Minor quibbles are mostly presentation, such as calling the architecture hook plus probe instead of choosing only the brief's option label, and an early instrumentation sketch that says to re-scan via vis_reaches before later correctly keeping that behind policy.",
+  "rationale": "Full-credit shape. The memo would have steered implementation toward the landed commits: shared VisibilityDecision/member_visible, read-inert staging, additive counters split into member_hidden/member_undecidable/member_multi, and clean replacement of the old ambiguous blanket. It also would have avoided the unsound paths the ground truth flags, especially continuing on Unknown or over-claiming all raw ambiguous events as recall."
+ },
+ "tokens_used": 24798
+}

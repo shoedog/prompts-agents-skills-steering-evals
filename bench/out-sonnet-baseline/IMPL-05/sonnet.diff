@@ -1,0 +1,255 @@
+diff --git a/bin/a2a-bridge/src/implement.rs b/bin/a2a-bridge/src/implement.rs
+index b015d42e..243f87f3 100644
+--- a/bin/a2a-bridge/src/implement.rs
++++ b/bin/a2a-bridge/src/implement.rs
+@@ -115,22 +115,83 @@ pub fn compose_warm_fetch(
+ 
+ // ─── Commit message ──────────────────────────────────────────────────────────
+ 
+-/// Resolve the commit message: the agent-written `.git/A2A_COMMIT_MSG` content if non-blank, else a
+-/// deterministic task-derived fallback `implement: <first line of task, truncated>`. Returns
+-/// (message, used_fallback). `raw` is the file content (None if absent/unreadable/oversize/NUL/non-UTF-8).
+-pub fn commit_message(raw: Option<String>, task: &str) -> (String, bool) {
+-    if let Some(s) = raw {
+-        let trimmed = s.trim();
+-        if !trimmed.is_empty() {
+-            return (trimmed.to_string(), false);
+-        }
++/// Which precedence tier the resolved commit message came from (RR2-FIX-5 / PR-FIX-9).
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub enum CommitSource {
++    Typed,
++    File,
++    Title,
++    Derived,
++}
++
++/// Strip HTML comments (mirrors `bridge_core::task_spec`'s stripper — kept local since that helper isn't
++/// `pub`). Used only to decide whether a candidate is comment-only, never to alter rendered content.
++fn strip_html_comments(s: &str) -> String {
++    let mut out = String::with_capacity(s.len());
++    let mut rest = s;
++    while let Some(start) = rest.find("<!--") {
++        out.push_str(&rest[..start]);
++        let after_start = &rest[start + "<!--".len()..];
++        let Some(end) = after_start.find("-->") else {
++            return out;
++        };
++        rest = &after_start[end + "-->".len()..];
++    }
++    out.push_str(rest);
++    out
++}
++
++/// Clean a `typed`/`file` commit-message candidate: strip HTML comments, trim, drop NUL bytes, bound to
++/// 64 KiB (mirrors `read_commit_msg_file`'s bounding). A candidate that is empty/comment-only afterward is
++/// treated as ABSENT (`None`), not as "present but blank".
++fn clean_commit_candidate(raw: Option<String>) -> Option<String> {
++    const MAX: usize = 64 * 1024;
++    let s = raw?;
++    let stripped = strip_html_comments(&s);
++    let trimmed = stripped.trim();
++    let no_nul: String = trimmed.chars().filter(|&c| c != '\0').collect();
++    let mut end = no_nul.len().min(MAX);
++    while !no_nul.is_char_boundary(end) {
++        end -= 1;
++    }
++    let bounded = no_nul[..end].trim();
++    if bounded.is_empty() {
++        None
++    } else {
++        Some(bounded.to_string())
++    }
++}
++
++/// Resolve the commit message with precedence **typed > file > title > task-derived**:
++/// - `typed`: the parsed task-spec's `Commit Message` section content.
++/// - `file`: the agent-written `.git/A2A_COMMIT_MSG` content (`read_commit_msg_file`).
++/// - `title`: the parsed task-spec title.
++/// - `task`: the task body, used only for the final derived fallback `implement: <first line, truncated>`.
++///
++/// `typed`/`file` are comment-stripped + trimmed + NUL-stripped + 64 KiB-bounded before the emptiness
++/// check, so a comment-only or blank candidate falls through instead of winning as an empty message.
++pub fn commit_message(
++    typed: Option<String>,
++    file: Option<String>,
++    title: &str,
++    task: &str,
++) -> (String, CommitSource) {
++    if let Some(s) = clean_commit_candidate(typed) {
++        return (s, CommitSource::Typed);
++    }
++    if let Some(s) = clean_commit_candidate(file) {
++        return (s, CommitSource::File);
++    }
++    let title = title.trim();
++    if !title.is_empty() {
++        return (title.to_string(), CommitSource::Title);
+     }
+     let first = task.lines().next().unwrap_or("").trim();
+     let mut subj: String = first.chars().take(120).collect();
+     if subj.is_empty() {
+         subj = "changes".into();
+     }
+-    (format!("implement: {subj}"), true)
++    (format!("implement: {subj}"), CommitSource::Derived)
+ }
+ 
+ /// Read `<clone>/.git/A2A_COMMIT_MSG`, bounded to 64 KiB so an oversized/binary file can't blow memory.
+@@ -500,7 +561,7 @@ pub fn decide(
+     completed: bool,
+     head_guard: Result<(), String>,
+     stage: StageState,
+-    msg: (String, bool),
++    msg: (String, CommitSource),
+ ) -> Action {
+     if !completed {
+         return Action::Abort("workflow did not complete".into());
+@@ -694,21 +755,71 @@ mod tests {
+ 
+     #[test]
+     fn commit_message_file_else_fallback() {
++        // file content wins (over a non-empty title, too).
+         assert_eq!(
+-            commit_message(Some("  Fix the widget\n\ndetails\n".into()), "task ignored"),
+-            ("Fix the widget\n\ndetails".to_string(), false)
++            commit_message(
++                None,
++                Some("  Fix the widget\n\ndetails\n".into()),
++                "some title",
++                "task ignored"
++            ),
++            ("Fix the widget\n\ndetails".to_string(), CommitSource::File)
+         );
++        // no typed/file/title → task-derived fallback.
+         assert_eq!(
+-            commit_message(None, "Add a FOO marker file to the repo root\nmore"),
++            commit_message(
++                None,
++                None,
++                "",
++                "Add a FOO marker file to the repo root\nmore"
++            ),
+             (
+                 "implement: Add a FOO marker file to the repo root".to_string(),
+-                true
++                CommitSource::Derived
+             )
+         );
+-        assert!(commit_message(Some("   \n  ".into()), "Tidy up").1);
++        // blank candidates (whitespace-only) → ABSENT → falls through to derived.
++        assert_eq!(
++            commit_message(Some("   \n  ".into()), None, "", "Tidy up").1,
++            CommitSource::Derived
++        );
+         let long = "x".repeat(500);
+-        let (m, fb) = commit_message(None, &long);
+-        assert!(fb && m.starts_with("implement: ") && m.len() <= "implement: ".len() + 120);
++        let (m, source) = commit_message(None, None, "", &long);
++        assert!(
++            source == CommitSource::Derived
++                && m.starts_with("implement: ")
++                && m.len() <= "implement: ".len() + 120
++        );
++    }
++
++    #[test]
++    fn commit_precedence_and_comment_only_falls_back_to_title() {
++        // typed wins outright.
++        assert_eq!(
++            commit_message(Some("feat: x".into()), None, "title", "task").0,
++            "feat: x"
++        );
++        // comment-only typed → treated ABSENT → falls back to the title (not the raw comment, not the task).
++        assert_eq!(
++            commit_message(
++                Some("<!-- OPTIONAL -->".into()),
++                None,
++                "Add foo endpoint",
++                "task"
++            )
++            .0,
++            "Add foo endpoint"
++        );
++        // no typed, no file → title.
++        assert_eq!(
++            commit_message(None, None, "Add foo endpoint", "task").0,
++            "Add foo endpoint"
++        );
++        // file beats title when there's no typed commit message.
++        assert_eq!(
++            commit_message(None, Some("from file".into()), "T", "task").0,
++            "from file"
++        );
+     }
+ 
+     #[test]
+@@ -762,7 +873,7 @@ mod tests {
+ 
+     #[test]
+     fn decide_matrix() {
+-        let msg = ("m".to_string(), false);
++        let msg = ("m".to_string(), CommitSource::Derived);
+         assert_eq!(
+             decide(false, Ok(()), StageState::Staged, msg.clone()),
+             Action::Abort("workflow did not complete".into())
+diff --git a/bin/a2a-bridge/src/main.rs b/bin/a2a-bridge/src/main.rs
+index 77cd7093..60feaa2f 100644
+--- a/bin/a2a-bridge/src/main.rs
++++ b/bin/a2a-bridge/src/main.rs
+@@ -2214,8 +2214,13 @@ async fn implement_cmd(args: &[String]) -> Result<(), BoxError> {
+             return Err(format!("implement: stage check: {e}").into());
+         }
+     };
+-    let msg = implement::commit_message(implement::read_commit_msg_file(&clone), &task);
+-    if msg.1 {
++    let msg = implement::commit_message(
++        spec.section("Commit Message").map(|s| s.content.clone()),
++        implement::read_commit_msg_file(&clone),
++        spec.title.as_deref().unwrap_or(""),
++        &task,
++    );
++    if msg.1 == implement::CommitSource::Derived {
+         eprintln!("[implement] no .git/A2A_COMMIT_MSG — using task-derived message");
+     }
+     match implement::decide(completed, guard, stage, msg) {
+diff --git a/bin/a2a-bridge/src/merge.rs b/bin/a2a-bridge/src/merge.rs
+index a4617e4a..fa62d832 100644
+--- a/bin/a2a-bridge/src/merge.rs
++++ b/bin/a2a-bridge/src/merge.rs
+@@ -462,7 +462,12 @@ pub fn merge_clone(
+                 );
+                 return MergeOutcome::Unlanded;
+             }
+-            let (msg, _) = commit_message(ck.original_message.clone(), &ck.task_brief);
++            let (msg, _) = commit_message(
++                ck.original_message.clone(),
++                None,
++                &ck.task_brief,
++                &ck.task_brief,
++            );
+             let rt = match reauthor_commit(clone, cur, &ck.base_commit, &msg, &op) {
+                 Ok(r) => r,
+                 Err(e) => {
+diff --git a/bin/a2a-bridge/src/tweak.rs b/bin/a2a-bridge/src/tweak.rs
+index 7664d7c6..57d1de37 100644
+--- a/bin/a2a-bridge/src/tweak.rs
++++ b/bin/a2a-bridge/src/tweak.rs
+@@ -256,8 +256,15 @@ pub async fn run_tweak_loop(
+                     }
+                 };
+                 // completed==true here, so `decide`'s only Abort cause is the head guard → Diverged.
+-                let action =
+-                    implement::decide(true, guard, stage, (original_message.to_string(), false));
++                let action = implement::decide(
++                    true,
++                    guard,
++                    stage,
++                    (
++                        original_message.to_string(),
++                        implement::CommitSource::Typed,
++                    ),
++                );
+                 match fix_step(&action) {
+                     FixDisposition::Amend => match implement::host_amend_commit(clone) {
+                         Ok(s) => {

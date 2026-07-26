@@ -1,0 +1,33 @@
+[bench] running 4 task(s): ['DES-02', 'DES-03', 'DES-04', 'DES-05']
+
+[bench] === DES-02 === ws=/private/tmp/des-g5x-ws/DES-02 dry_run=False model=claude-fable-5
+[bench] git clone --local /Users/wesleyjinks/code/slicing /private/tmp/des-g5x-ws/DES-02
+[bench] git -C /private/tmp/des-g5x-ws/DES-02 checkout bench/DES-02-pre
+[bench] git -C /private/tmp/des-g5x-ws/DES-02 remote remove origin
+[bench] evidence: git diff --quiet
+[bench] transcript: /Users/wesleyjinks/.codex/sessions/2026/07/04/rollout-2026-07-04T20-05-31-019f3006-112f-7d43-af71-844be1fbd84d.jsonl -> bench/out-des-gpt55xhigh/DES-02/transcript.jsonl
+[bench] DES-02: dry_run=False tests_passed_guess='pass' cost=$None out=bench/out-des-gpt55xhigh/DES-02
+
+[bench] === DES-03 === ws=/private/tmp/des-g5x-ws/DES-03 dry_run=False model=claude-fable-5
+[bench] git clone --local /Users/wesleyjinks/code/slicing /private/tmp/des-g5x-ws/DES-03
+[bench] git -C /private/tmp/des-g5x-ws/DES-03 checkout bench/DES-03-pre
+[bench] git -C /private/tmp/des-g5x-ws/DES-03 remote remove origin
+[bench] evidence: git diff --quiet
+[bench] transcript: /Users/wesleyjinks/.codex/sessions/2026/07/04/rollout-2026-07-04T20-16-00-019f300f-a7db-7280-bb27-6cec6637756f.jsonl -> bench/out-des-gpt55xhigh/DES-03/transcript.jsonl
+[bench] DES-03: dry_run=False tests_passed_guess='pass' cost=$None out=bench/out-des-gpt55xhigh/DES-03
+
+[bench] === DES-04 === ws=/private/tmp/des-g5x-ws/DES-04 dry_run=False model=claude-fable-5
+[bench] git clone --local /Users/wesleyjinks/code/slicing /private/tmp/des-g5x-ws/DES-04
+[bench] git -C /private/tmp/des-g5x-ws/DES-04 checkout bench/DES-04-pre
+[bench] git -C /private/tmp/des-g5x-ws/DES-04 remote remove origin
+[bench] evidence: git diff --quiet
+[bench] transcript: /Users/wesleyjinks/.codex/sessions/2026/07/04/rollout-2026-07-04T20-29-49-019f301c-4e28-7490-8bc8-f845eaff021b.jsonl -> bench/out-des-gpt55xhigh/DES-04/transcript.jsonl
+[bench] DES-04: dry_run=False tests_passed_guess='pass' cost=$None out=bench/out-des-gpt55xhigh/DES-04
+
+[bench] === DES-05 === ws=/private/tmp/des-g5x-ws/DES-05 dry_run=False model=claude-fable-5
+[bench] git clone --local /Users/wesleyjinks/code/slicing /private/tmp/des-g5x-ws/DES-05
+[bench] git -C /private/tmp/des-g5x-ws/DES-05 checkout bench/DES-05-pre
+[bench] git -C /private/tmp/des-g5x-ws/DES-05 remote remove origin
+[bench] evidence: git diff --quiet
+[bench] transcript: /Users/wesleyjinks/.codex/sessions/2026/07/04/rollout-2026-07-04T20-35-37-019f3021-a074-78a2-8e03-01a682b83c4e.jsonl -> bench/out-des-gpt55xhigh/DES-05/transcript.jsonl
+[bench] DES-05: dry_run=False tests_passed_guess='pass' cost=$None out=bench/out-des-gpt55xhigh/DES-05

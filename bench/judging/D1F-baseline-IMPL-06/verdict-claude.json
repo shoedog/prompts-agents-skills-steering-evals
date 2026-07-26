@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A's lone new test `rich_snapshot_folds_toolcall_interleaved` would fail on pre-change code (rich_snapshot_frames didn't exist), so it does catch the core interleave-fold regression \u2014 but it only asserts (seq,kind-tag) pairs, never checking the folded ToolCall's title/status content, and never exercises Plan-latest-only, an orphan ToolCallUpdate (no base), or cursor filtering against the merged list. Those paths ship untested in Arm A. Arm B ships the same golden (strengthened: also asserts tool_call_id/title/tool_kind/status, so a content-merge bug would be caught, not just an ordering bug) plus `rich_snapshot_plan_latest_orphan_update_and_cursor` \u2014 the strongest test in either arm: two Plan events (asserts only 'new' survives), an orphan update on a never-based id (asserts it emits as tool_call_update at its own seq), then reruns with cursor=2 to prove the plan frame is dropped too \u2014 direct evidence cursor filters once on the MERGED list per PFIX-H, which Arm A never verifies. Both arms' edits to pre-existing tests are mechanical (`folded`\u2192`folded.snap`), not new assertions. Weakest test overall: Arm A's sole golden (tag-only, no field checks, no edge cases).",
+  "rationale": "Both arms implement the same correct algorithm: FoldedSnapshot{snap,events} from one read, rich_snapshot_frames merging node+rich frames seq-sorted with a single cursor filter, had_base/orphan ToolCall(Update) folding by id, Plan-latest-only, both call sites swapped, sentinel re-derived from the merged list. No demonstrated bug distinguishes them functionally. The material gap is test rigor, which the task's TDD framing makes central: Arm B independently tests Plan-latest replacement, orphan-update handling, and \u2014 critically \u2014 that cursor filtering is applied once on the merged list (PFIX-H's key subtlety), plus verifies actual folded field values. Arm A ships only the required tag-only golden and leaves those paths unverified by its own suite, a real regression-detection gap even though its one test is sound."
+ },
+ "cost_usd": 0.6439548
+}

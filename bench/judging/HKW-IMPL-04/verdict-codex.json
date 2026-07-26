@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A tests would fail on pre-change code because WorkflowNodeToml has no retry field and load_workflows always maps retry: None. Strongest: workflow_node_retry_maps_into_graph, because it exercises the real RegistryConfig::load_workflows path and asserts WorkflowGraph.nodes[0].retry. Weakest: workflow_node_retry_parses, because it only proves TOML deserialization into the config struct and does not prove graph mapping; it also does not assert backoff_cap_ms. Arm B tests would also fail on pre-change code for the mandatory positive parse/mapping cases. Strongest: workflow_node_retry_maps_into_graph, for the same end-to-end mapping reason. Weakest: workflow_node_retry_missing_max_attempts_fails_to_parse, because pre-change code may already reject the unknown retry table depending on serde unknown-field behavior, so it is less directly tied to the intended new mapping path. B adds useful edge coverage for absent retry defaulting to None end-to-end and required max_attempts parsing.",
+  "rationale": "Both arms implement the requested RetryToml, optional WorkflowNodeToml.retry, and load_workflows mapping to bridge_workflow::graph::RetryPolicy. No WRONG findings in either diff. SMELL for Arm A: tests are exactly the required happy-path coverage and do not cover the absent/default path or required-field parse failure. Arm B keeps the same scoped implementation and adds relevant negative/default tests, making its test suite stronger without expanding production behavior. That is a material improvement because the task explicitly emphasizes default-off behavior and test rigor."
+ },
+ "tokens_used": 19995
+}

@@ -1,0 +1,86 @@
+{
+ "verdict": {
+  "gt_findings": [
+   {
+    "finding": "docs/README.md is too thin to be a navigation hub and doesn't distinguish canonical/historical/audience-specific docs",
+    "covered_by_candidate": true
+   },
+   {
+    "finding": "docs/README.md references CONSOLIDATED_PLAN.md, which does not exist",
+    "covered_by_candidate": true
+   },
+   {
+    "finding": "README.md ('5 Cognitive Frames') and docs/ARCHITECTURE.md ('4 cognitive frames') each assert a single fixed frame count that doesn't match runtime",
+    "covered_by_candidate": true
+   },
+   {
+    "finding": "profile.rs shows profile-dependent frame behavior: quick=none, standard=2 (bd,et), thorough/critical=5 (bd,bp,et,ca,od)",
+    "covered_by_candidate": true
+   },
+   {
+    "finding": "Verifier and judge are real runtime concepts in the code path that should be documented",
+    "covered_by_candidate": true
+   },
+   {
+    "finding": "Invoker backends (kiro, bedrock, bedrock-tools, claude-code) are part of the current CLI surface and should be documented",
+    "covered_by_candidate": false
+   },
+   {
+    "finding": "docs/POLICIES.md documents a smaller token budget than policies/base.json",
+    "covered_by_candidate": true
+   },
+   {
+    "finding": "docs/POLICIES.md duplicates operational rules that should derive from code/config or be marked narrative",
+    "covered_by_candidate": true
+   },
+   {
+    "finding": "Label/verdict behavior should align with pipeline/src/verdict.rs",
+    "covered_by_candidate": true
+   },
+   {
+    "finding": "docs/SETUP.md manual setup/config drifts from config/user-config.template.json; scripts/install.sh generated config differs from template",
+    "covered_by_candidate": false
+   },
+   {
+    "finding": "docs/EVALUATION.md documents a CLI command (kiro review --eval --golden-set) that does not exist in main.rs",
+    "covered_by_candidate": true
+   },
+   {
+    "finding": "docs/REQUIREMENTS.md says Terraform/Helm/Docker are out of scope, contradicted by repo's infra steering/rubrics",
+    "covered_by_candidate": false
+   },
+   {
+    "finding": "docs/RISKS.md and docs/troubleshooting.md still contain old orchestrator-era framing",
+    "covered_by_candidate": false
+   },
+   {
+    "finding": "sync-kiro.sh claims orchestrator/diff-analyzer were removed, but legacy agent configs/prompts are still present in-repo",
+    "covered_by_candidate": true
+   },
+   {
+    "finding": "Current navigation doesn't make clear which retained artifacts are legacy/reference-only vs live",
+    "covered_by_candidate": true
+   }
+  ],
+  "candidate_extra_findings_correct": [
+   "Docs frozen at v1.3.2 (2026-04-02) while code is at v1.5.2 with ~40 undocumented commits",
+   "Reconciliation is LLM-assisted batch clustering + RELATED synthesis (Haiku), not deterministic as docs claim; deterministic path is only a fallback",
+   "Docs claim R1/verifier run on Opus; actual configured models are Sonnet 4.6 (R1, verifier) and Haiku 4.5 (judge)",
+   "Product owner stage is hard-disabled in code (skip_po = true) but docs don't note this",
+   "Docs conflate a 15-field LLM reviewer contract with the 35-field internal Finding struct",
+   "LLM.md's Prism algorithm list is from a stale 13-algorithm era; current default set is 7 algorithms",
+   "Multiple additional dangling references beyond CONSOLIDATED_PLAN.md (docs/findings-schema.json, agents/final-verdict.json, stale example filenames)",
+   "Two completed HANDOFF-*.md docs sit at repo root and should be archived with resolution commit hashes",
+   "CLAUDE.md is an untracked duplicate of AGENTS.md; scripts/__pycache__ is tracked despite .gitignore",
+   "TEST_PLAN.md and TEST_COVERAGE.md give conflicting stale test counts and should be merged into one TESTING.md"
+  ],
+  "candidate_false_or_unsupported": [
+   "Task 5's proposed move destination repos/3096/eslint-config-recommendations.md names a specific repo ID not otherwise cross-referenced anywhere else in the doc"
+  ],
+  "format_ok": true,
+  "candidate_materially_better": true,
+  "ground_truth_materially_better": false,
+  "rationale": "Candidate independently reproduces the core runtime-vs-docs findings (profile-gated frame counts matching GT's exact bd/et/bp/ca/od breakdown, verifier/judge, POLICIES token-budget drift, verdict.rs alignment, legacy-artifact separation, EVALUATION.md CLI mismatch) with far more rigor: every claim is anchored to file:line/commit, plus a battery of additional confirmed-style findings GT never surfaces (version staleness, model mismatches, LLM-assisted reconciliation vs claimed determinism, schema conflation, discovery algorithm drift, dangling refs, repo hygiene). It misses SETUP.md/install.sh config drift, REQUIREMENTS.md scope claims, and troubleshooting.md content entirely, and doesn't add the new REPO_MAP.md GT calls for (arguing the existing skeleton suffices). Format is an exceptionally executable handoff (numbered tasks, verify commands, commit conventions, explicit decisions-needed section) \u2014 at least as strong as GT's structure. Net: candidate's depth/verifiability and extra correct findings outweigh its narrower gaps."
+ },
+ "cost_usd": 0.6673505999999999
+}

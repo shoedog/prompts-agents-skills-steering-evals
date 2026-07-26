@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms' core watchdog/select!/terminal logic is functionally equivalent and spec-compliant (PFIX-F/G/H/L satisfied by both). Differentiator is test rigor. In `watchdog_does_not_trip_active_or_unmodeled_turn`, A uses idle=100ms against only ~60-80ms of total scripted-update time; since idle_deadline on a 'bump-once-then-never-again' regression would be ~first-bump+100ms (~120ms), still above A's ~60-80ms runtime, that regression would NOT fail A's test. B tunes idle=150ms against ~200ms of runtime (10x20ms chunks) specifically so a bump-once bug WOULD blow the window before Done \u2014 genuine regression-catching margin, and it reuses the same tuning to stress the FIX-11 unmodeled-events case. B's hung-turn test additionally awaits `rec.cancel_seen.notified()`, positively confirming the watchdog arm sent CancelNotification (PFIX-F), while A only checks the terminal Err. B's byte-identical test also verifies the released turn completes normally (Done{end_turn}) afterward; A never checks that. Strongest: B's `watchdog_cancels_a_hung_turn_as_timed_out` (adds cancel_seen proof). Weakest: A's `watchdog_does_not_trip_active_or_unmodeled_turn` (margins too generous to discriminate the exact regression it's meant to catch); B's same-named test is its strongest for the opposite reason.",
+  "rationale": "Implementations are near-identical in logic: both correctly discard the inner cancel outcome (PFIX-F), use a Pending arm when disabled (PFIX-G), convert via tokio::time::Instant::from_std (PFIX-H), apply the saturating la_instant -1 sentinel undo (PFIX-L), teardown done_tx on every exit, and guard the Err(()) terminal so a natural Ok is never relabeled. B's small refactor of the pre-existing `watch` construction (extracting `watchdog_cfg`) is tightly tied to reusing config for the new spawn, not scope creep. The material gap is test quality: B's non-trip tests use margins that would actually fail under a plausible bump-once-not-per-event regression, while A's margins are too generous to discriminate that bug even though it's the exact behavior the test claims to cover. B also positively verifies CancelNotification was sent and that the byte-identical path still completes normally when released. Both are DONE and in-scope; B ships materially stronger verification of the keystone behavior."
+ },
+ "cost_usd": 0.6882009
+}

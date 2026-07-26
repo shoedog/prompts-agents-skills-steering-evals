@@ -1,0 +1,200 @@
+diff --git a/src/name_resolution/binding_lookup.rs b/src/name_resolution/binding_lookup.rs
+index d86d7c6..4fa5563 100644
+--- a/src/name_resolution/binding_lookup.rs
++++ b/src/name_resolution/binding_lookup.rs
+@@ -155,4 +155,67 @@ mod tests {
+             Some(InitExpr::Ctor(s)) if s == "X::new()"
+         ));
+     }
++
++    fn build_graph(src: &str) -> CallGraph {
++        let mut files = std::collections::BTreeMap::new();
++        files.insert(
++            "a.rs".to_string(),
++            ParsedFile::parse("a.rs", src, Rust).unwrap(),
++        );
++        let mut inputs = ScopeGraphBuildInputs::from_files_convention(&files);
++        inputs.cfg = RustCrateConfig {
++            crate_roots: files.keys().cloned().collect(),
++            ..RustCrateConfig::default()
++        };
++        CallGraph::build_with_scope_graph_inputs(&files, Some(&inputs))
++    }
++
++    #[test]
++    fn params_get_sequential_binding_ref_ordinals() {
++        // Inertness pin (Task-2.2 fix): the two params of `fn f(a, b)` must bind
++        // to DISTINCT `BindingRef` ordinals 0 and 1 — a single ordered
++        // `add_locals` pass. The per-param split regressed BOTH params to 0.
++        let cg = build_graph("fn f(a: i32, b: i32) {}\n");
++        let graph = cg.scope_graph.as_ref().expect("scope graph");
++
++        let ordinal_of = |name: &str| -> u32 {
++            graph
++                .bindings
++                .iter()
++                .find_map(|bd| match &bd.target {
++                    BindTarget::Resolved(Target::Local(r))
++                        if bd.name == name && bd.ns == NS_VALUE =>
++                    {
++                        Some(r.ordinal)
++                    }
++                    _ => None,
++                })
++                .unwrap_or_else(|| panic!("no local value binding named {name}"))
++        };
++
++        let ord_a = ordinal_of("a");
++        let ord_b = ordinal_of("b");
++        assert_eq!(ord_a, 0, "first param keeps ordinal 0");
++        assert_eq!(
++            ord_b, 1,
++            "second param must be ordinal 1, not 0 (inertness)"
++        );
++        assert_ne!(ord_a, ord_b, "param BindingRefs must be distinct");
++    }
++
++    #[test]
++    fn duplicate_same_rib_local_is_ambiguous_none() {
++        // Recall-safe: two same-name bindings in ONE rib, both visible at the
++        // use site, must return None (never pick a wrong same-name target).
++        let src = "fn f() { let x = 1; let x = 2; drop(x); }\n";
++        let cg = build_graph(src);
++        let graph = cg.scope_graph.as_ref().expect("scope graph");
++        let file = graph.file_paths["a.rs"];
++        let use_byte = src.rfind("x)").unwrap();
++
++        assert!(
++            lookup_visible_binding(graph, file, use_byte, "x").is_none(),
++            "ambiguous same-rib local must resolve to None"
++        );
++    }
+ }
+diff --git a/src/name_resolution/rust_populator/walk/items.rs b/src/name_resolution/rust_populator/walk/items.rs
+index f55a1dd..0d8a68b 100644
+--- a/src/name_resolution/rust_populator/walk/items.rs
++++ b/src/name_resolution/rust_populator/walk/items.rs
+@@ -330,7 +330,7 @@ fn bind_params(
+     file: FileId,
+     body_end: usize,
+ ) {
+-    let facts = with_node(b, path, params_nid, |pf, n| {
++    let collected = with_node(b, path, params_nid, |pf, n| {
+         let mut out = Vec::new();
+         let mut cursor = n.walk();
+         for c in n.children(&mut cursor) {
+@@ -357,7 +357,12 @@ fn bind_params(
+         }
+         out
+     });
+-    for (name, fact) in facts {
+-        add_locals(b, body_scope, file, body_end, &[name], fact);
++    // Attach each param's fact by def_byte — params carry distinct annotations, so
++    // they cannot share one fact. Then bind all params in a SINGLE ordered pass so
++    // the `BindingRef` ordinals stay 0,1,2,… (the per-param split collapsed them).
++    for ((_, def_byte), fact) in &collected {
++        b.add_local_fact(file, *def_byte, fact.clone());
+     }
++    let names: Vec<(String, usize)> = collected.into_iter().map(|(name, _)| name).collect();
++    add_locals(b, body_scope, file, body_end, &names, None);
+ }
+diff --git a/src/name_resolution/rust_populator/walk/locals.rs b/src/name_resolution/rust_populator/walk/locals.rs
+index 2905c9d..3e2fd79 100644
+--- a/src/name_resolution/rust_populator/walk/locals.rs
++++ b/src/name_resolution/rust_populator/walk/locals.rs
+@@ -87,11 +87,11 @@ fn walk_let(b: &mut Builder<'_>, path: &str, nid: &NodeId, scope: ScopeId, ctx:
+         ctx.file,
+         scope_end,
+         &names,
+-        LocalFact {
++        Some(LocalFact {
+             kind,
+             annotation,
+             init,
+-        },
++        }),
+     );
+     // The initializer expression may contain closures / blocks / macros.
+     if let Some(value_nid) = value_nid {
+@@ -182,11 +182,11 @@ fn walk_closure(b: &mut Builder<'_>, path: &str, nid: &NodeId, scope: ScopeId, c
+         ctx.file,
+         hi,
+         &names,
+-        LocalFact {
++        Some(LocalFact {
+             kind: BindingKind::Param,
+             annotation: None,
+             init: None,
+-        },
++        }),
+     );
+     if let Some(body_nid) = body_nid {
+         walk_expr(b, path, &body_nid, body_scope, ctx);
+@@ -215,11 +215,11 @@ fn walk_for(b: &mut Builder<'_>, path: &str, nid: &NodeId, scope: ScopeId, ctx:
+         ctx.file,
+         hi,
+         &names,
+-        LocalFact {
++        Some(LocalFact {
+             kind: BindingKind::Pattern,
+             annotation: None,
+             init: None,
+-        },
++        }),
+     );
+     if let Some(value_nid) = value_nid {
+         walk_expr(b, path, &value_nid, scope, ctx); // iterator expr is in outer scope
+@@ -267,11 +267,11 @@ fn walk_match(b: &mut Builder<'_>, path: &str, nid: &NodeId, scope: ScopeId, ctx
+             ctx.file,
+             hi,
+             &names,
+-            LocalFact {
++            Some(LocalFact {
+                 kind: BindingKind::Pattern,
+                 annotation: None,
+                 init: None,
+-            },
++            }),
+         );
+         if let Some(arm_value) = arm_value {
+             walk_expr(b, path, &arm_value, arm_scope, ctx);
+@@ -307,11 +307,11 @@ fn walk_if_while(b: &mut Builder<'_>, path: &str, nid: &NodeId, scope: ScopeId,
+         ctx.file,
+         hi,
+         &names,
+-        LocalFact {
++        Some(LocalFact {
+             kind: BindingKind::Pattern,
+             annotation: None,
+             init: None,
+-        },
++        }),
+     );
+     for blk in blocks {
+         walk_block_body(b, path, &blk, cond_scope, ctx);
+@@ -338,16 +338,23 @@ fn collect_match_pattern(pf: &ParsedFile, node: &Node, out: &mut Vec<(String, us
+ ///
+ /// A local's accessibility is its lexical extent, not a Rust `pub`; `VIS_PUB`
+ /// makes the policy's `visible()` return true (the gate is the `vis_extents`).
++///
++/// When `fact` is `Some`, the same fact is attached (keyed by def_byte) to every
++/// binding in `names`; call sites whose bindings carry per-name facts pass `None`
++/// and attach them themselves so a single ordered pass still assigns the
++/// insertion-order ordinals.
+ pub(in crate::name_resolution::rust_populator::walk) fn add_locals(
+     b: &mut Builder<'_>,
+     scope: ScopeId,
+     file: FileId,
+     scope_end: usize,
+     names: &[(String, usize)],
+-    fact: LocalFact,
++    fact: Option<LocalFact>,
+ ) {
+     for (i, (name, def_byte)) in names.iter().enumerate() {
+-        b.add_local_fact(file, *def_byte, fact.clone());
++        if let Some(fact) = &fact {
++            b.add_local_fact(file, *def_byte, fact.clone());
++        }
+         b.add_binding(
+             scope,
+             name.clone(),

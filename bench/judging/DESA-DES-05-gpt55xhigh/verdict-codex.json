@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": false,
+  "load_bearing_caveats_matched": true,
+  "scope_calibrated": true,
+  "would_have_prevented_wasted_work": false,
+  "probe_answer": "The memo correctly verifies the Python-only double-capture mechanism, rejects a JS/TS generalization, and recommends a central extraction/FunctionId-boundary fix rather than resolver-side dedup. Its decisive miss is canonical direction: it recommends dropping the decorated wrapper and keeping the inner function, while the settled fix kept the decorated wrapper as the single canonical FunctionId and taught readers to unwrap it. Following it would avoid broad JS/TS overreach and post-hoc candidate collapsing, but would still send implementation down the wrong canonical-identity path.",
+  "rationale": "Strong on diagnosis, blast radius, and language scoping, but not vindicated on the actual design choice. The wrapper-vs-inner decision was load-bearing in the landed history: inventory kept the decorated wrapper, CFG avoided wrapper+inner double-build, and field readers unwrapped the decorated wrapper. Because the memo explicitly chooses the opposite canonical FunctionId, it would not have prevented wasted implementation work around span/navigation/CFG semantics even though its scope was otherwise well calibrated."
+ },
+ "tokens_used": 19273
+}

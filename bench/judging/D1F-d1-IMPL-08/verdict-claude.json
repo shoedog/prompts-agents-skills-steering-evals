@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": false,
+  "arm_a_scope_ok": false,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Test files are byte-identical between arms, so rigor is equal. All 7 added tests assert real behavior (confidence/kind/resolved-file/pool-size), not trivial checks, and most flip RED\u2192GREEN vs pre-Task-5 code per the plan's own log (inherent+trait demote, unresolved-owner keep-all, both \u2460C shadow tests, the Pending-alias test). Strongest in each: scope_graph_pending_import_alias_over_colliding_pool_keeps_all \u2014 it pins a colliding pool AND explicitly discriminates the correct call-site-rib directness oracle from a plausible-but-wrong global-search oracle that would silently over-prune and drop a real edge. Weakest in each: scope_graph_two_crate_owner_collision_recovers_to_single_exact \u2014 per the plan's own RED notes this already passes pre-Task-5 (Task 4's graph_target_resolution alone yields 1\u2192Exact here), so it's more an end-to-end regression pin than a discriminator of Task 5's new wiring. Both arms also share a gap: neither added the brief's required 'mixed-edition keep-all' test (present in ground truth as scope_graph_non_uniform_edition_keeps_all), so the edition_uniform guard has no Task-5-level regression pin in either diff.",
+  "rationale": "Arm B matches the real ground-truth Task-5 commit (63c52c5) on the actual branch almost verbatim: same helper placement, same prune/fail-open logic, same tests. Arm A inserts an extra unrequested gate before the fail-open (drop when a separate qualified-edge query resolves to an empty id-set) that isn't in the plan's Step-3 code, is untested by either arm's identical test suite, and doesn't match how the project's real later trait-CHA regression was actually fixed (a follow-up commit checked ResolutionKind::TraitCha, not id-set emptiness). That's unauthorized scope creep on a task demanding 'exactly as specified' + 'STOP and report' on mismatch, risking a coincidental recall drop the spec exists to prevent. Both arms omit the brief's required 'mixed-edition keep-all' test equally."
+ },
+ "cost_usd": 1.4833571999999997
+}

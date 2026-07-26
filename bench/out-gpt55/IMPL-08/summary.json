@@ -1,0 +1,98 @@
+{
+  "id": "IMPL-08",
+  "ws": "/private/tmp/gpt55-ws/IMPL-08",
+  "dry_run": false,
+  "model": "gpt-5.5 (codex exec; the summary model field default is vestigial)",
+  "replay_preface": "Replay note: you are working in /private/tmp/gpt55-ws/IMPL-08 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged.",
+  "run_status": "ok",
+  "subtype": "success",
+  "api_error_status": null,
+  "returncode": 0,
+  "session_id": null,
+  "duration_ms": 300480,
+  "num_turns": null,
+  "usage": {
+    "tokens_used": 95402
+  },
+  "total_cost_usd": null,
+  "stop_reason": null,
+  "is_error": false,
+  "result_text": "Implemented Task 5 only, left edits uncommitted, and did not run git.\n\nModified files:\n- [src/resolution.rs](/private/tmp/gpt55-ws/IMPL-08/src/resolution.rs:562)\n- [tests/integration/resolution_test.rs](/private/tmp/gpt55-ws/IMPL-08/tests/integration/resolution_test.rs:1692)\n\nWhat changed:\n- Wired Rust `resolve_call_site_full` owner-method `::` sites through `ScopeResolution` prune.\n- Added the free-function guard, #120-only owner fail-open, `rust_scope_prune_owner`, and `owner_method_key`.\n- Added the Task 5 integration fixtures, including the replay-requested mixed-edition keep-all fixture.\n\nRED -> GREEN evidence:\n- `scope_graph_two_crate_owner_collision_recovers_to_single_exact`: already PASS at RED, PASS after implementation.\n- `scope_graph_free_fn_path_not_misrouted_to_colliding_method_pool`: already PASS at RED, PASS after implementation.\n- `scope_graph_inherent_plus_trait_owner_demotes_not_drops`: RED dropped `UnknownName`, GREEN PASS.\n- `scope_graph_unresolved_owner_path_keeps_full_pool_not_drop`: RED dropped `UnknownName`, GREEN PASS.\n- `scope_graph_block_local_glob_shadow_keeps_all`: RED failed keep-all NameOnly assertion, GREEN PASS.\n- `scope_graph_macro_wildcard_shadow_keeps_all`: RED failed keep-all NameOnly assertion, GREEN PASS.\n- `scope_graph_pending_import_alias_over_colliding_pool_keeps_all`: RED failed keep-all NameOnly assertion, GREEN PASS.\n- `scope_graph_mixed_edition_keeps_full_pool_not_drop`: RED dropped `UnknownName`, GREEN PASS.\n\nValidation:\n- `cargo fmt`: PASS\n- `cargo test --test integration resolution_test::scope_graph_`: PASS, 8 passed\n- Three drop invariants: all PASS\n- `cargo test --test integration resolution_test::`: PASS, 132 passed, 1 ignored\n- `cargo test --test integration`: PASS, 214 passed, 1 ignored\n- `cargo test --lib`: PASS, 332 passed\n- `cargo build --release`: PASS\n\nDeviation: I did not run Tier-A because the task explicitly said not to touch `eval/`. No `eval/` files were touched.",
+  "timed_out": false,
+  "parse_error": null,
+  "terminal_reason": null,
+  "tests_passed_guess": "pass",
+  "evidence_summary": [
+    {
+      "cmd": "cargo test --test integration scope_graph_",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": 8,
+      "matched_tests": 15,
+      "min_tests_satisfied": true
+    },
+    {
+      "cmd": "cargo test --test integration",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo test --lib",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo fmt --all --check",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo build --release",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    }
+  ],
+  "scaffold": {
+    "tracked_scaffold_paths": [
+      ".claude-plugin/marketplace.json",
+      ".claude-plugin/plugin.json",
+      "AGENTS.md",
+      "CLAUDE.md"
+    ],
+    "missing_on_disk_after_checkout": [],
+    "has_CLAUDE_md": true,
+    "has_dot_claude_dir": false,
+    "has_AGENTS_md": true,
+    "agents_md_shimmed": false,
+    "global_hooks_present": true,
+    "shim": {
+      "present": false,
+      "sha256_at_write": null,
+      "sha256_after_run": null,
+      "changed": false
+    }
+  },
+  "shim": {
+    "present": false,
+    "changed": false,
+    "sha256_at_write": null,
+    "sha256_after_run": null
+  },
+  "source_repo_touched": false,
+  "transcript_lookup_note": "matched codex rollout by cwd (1 candidate(s))",
+  "transcript_path": "bench/out-gpt55/IMPL-08/transcript.jsonl",
+  "executor": "codex",
+  "codex_effort": "high"
+}

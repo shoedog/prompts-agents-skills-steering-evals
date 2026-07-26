@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A tests would fail on pre-change code: the new SQLite batch methods/defaults would not persist, the schema/columns would be missing, and claim behavior would not produce the asserted child row behavior. Its strongest test is sqlite_claim_is_atomic_single_runner because it checks Created then ExistingWorking, verifies only one child row, and covers ExistingTerminal after set_terminal. Its weakest is sqlite_migration_idempotent_and_batch_roundtrip because it packs many behaviors into one broad test and only lightly checks ordering/list behavior. Arm B tests would also fail on pre-change code, and they cover more negative and edge cases as distinct assertions: missing batch returns None, duplicate create does not clobber, active filtering excludes completed, CAS miss preserves state, fail CAS preserves the first error, and task batch fields round-trip through create/get/list. Its strongest test is sqlite_batch_cas_transitions or sqlite_fail_batch_if_status; sqlite_fail_batch_if_status is especially strong because it asserts success, persisted failed status/error/timestamp, and no overwrite on CAS miss. Its weakest is sqlite_migration_idempotent_and_batch_roundtrip, which only re\u65e9?",
+  "rationale": "Both arms implement the requested 9 SQLite batch methods, add the batch schema, add tasks.batch_id/item_id round-tripping, add the partial unique index, and add tempfile as a dev dependency. I do not see a provable WRONG behavioral defect in either implementation from the diff. Arm A is solid and even exercises terminal reclaim, CAS, active batches, duplicate batch ID, and task field round-trip, but its tests are more concentrated in two broad tests. Arm B is materially better because it preserves the same functional implementation while adding more focused tests for missing records, duplicate insert non-clobbering, list ordering, active filtering, CAS miss behavior, failure error preservation, and create/list task-field round-trip. Arm B's migration placement is slightly less aligned with"
+ },
+ "tokens_used": 30539
+}

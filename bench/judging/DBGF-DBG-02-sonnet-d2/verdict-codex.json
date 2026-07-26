@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": false,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A mostly fixes materialized suppression: poisoned recovery keeps receiver_type None while receiver_recovery remains Some, so R3/R3b are suppressed, and its Python/TS tests would fail pre-fix. However its byte-before-call recovery is applied to Rust/Go too, violating the strict Python/JS/TS gate. Arm B directly models the root cause with ReceiverClassification plus CallSite.receiver_materialized, keeps poisoned materialization distinct from resolved type, preserves Rust/Go line behavior, and its regression tests cover both false-Exact cases plus scope-aware recovery and would fail pre-fix.",
+  "rationale": "B is materially better. WRONG in Arm A: receiver_type_in_fn/walk_receiver_bindings replace the line cutoff with start_byte for all languages, so Rust/Go are not byte-identical as required. Its implementation is otherwise close, but it reuses receiver_recovery as the materialized signal instead of adding a dedicated state. Arm B adds an explicit materialized classification, suppresses R3/R3b on poisoned Python/JS/TS bindings, scans before the import gate only for scoped languages, and applies byte/class-scope recovery only to Python/JS/TS. B's tests are stronger because they assert the new materialized signal, include wildcard poison, cover the TS import-shadowing false Exact, nested/same-line recovery, and a non-poisoned Exact control."
+ },
+ "tokens_used": 34064
+}

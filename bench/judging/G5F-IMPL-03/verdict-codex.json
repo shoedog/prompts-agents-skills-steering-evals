@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A tests would fail on pre-change code and are stronger overall. Strongest: sqlite_migration_idempotent_and_batch_roundtrip, because it checks batch round-trip, duplicate insert failure, task batch_id/item_id round-trip, CAS cancel/settle behavior, active_batches, fail_batch_if_status, error persistence, and list_batches. Weakest: sqlite_claim_is_atomic_single_runner, because it is sequential rather than a true concurrency race, though it still asserts Created/ExistingWorking, one child row, and ExistingTerminal. Arm B tests would also fail on pre-change code, but cover fewer edges. Strongest: sqlite_claim_is_atomic_single_runner, because it asserts real claim behavior and the single-child uniqueness effect. Weakest: sqlite_migration_idempotent_and_batch_roundtrip, because it only checks total/status after reopen and misses items_json/error/concurrency, task batch_id/item_id round-trip, list/active/CAS/fail behavior, and negative cases.",
+  "rationale": "WRONG in Arm A: claim_batch_child inserts rec.status.as_str() for a new child instead of forcing status='working'. Concrete failure: if the caller passes a TaskRecord with status Completed for a new batch item, Arm A returns Created but stores a completed child; the next claim reports ExistingTerminal instead of ExistingWorking, contrary to the task's required insert status. Arm B hard-codes 'working' and implements the requested methods, migration, task column round-trip, and fail_batch_if_status. SMELL in Arm B: its tests are much thinner than Arm A's, but the code is materially closer to the binding task."
+ },
+ "tokens_used": 74050
+}

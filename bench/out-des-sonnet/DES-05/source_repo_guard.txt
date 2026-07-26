@@ -1,0 +1,38 @@
+# source_repo: /Users/wesleyjinks/code/slicing
+# before: git -C <source_repo> status --porcelain
+?? .superpowers/
+?? docs/eval/tier-a/2026-07-04-prism.json
+?? docs/eval/tier-a/2026-07-04-prism.md
+?? docs/eval/tier-a/2026-07-04-ruff.json
+?? docs/eval/tier-a/2026-07-04-ruff.md
+?? eval/snapshots/prism-fb81481dafa7.json
+
+# before_returncode: 0
+
+# after: git -C <source_repo> status --porcelain
+?? .superpowers/
+?? docs/eval/tier-a/2026-07-04-black.json
+?? docs/eval/tier-a/2026-07-04-black.md
+?? docs/eval/tier-a/2026-07-04-caddy.json
+?? docs/eval/tier-a/2026-07-04-caddy.md
+?? docs/eval/tier-a/2026-07-04-cobra.json
+?? docs/eval/tier-a/2026-07-04-cobra.md
+?? docs/eval/tier-a/2026-07-04-etcd.json
+?? docs/eval/tier-a/2026-07-04-etcd.md
+?? docs/eval/tier-a/2026-07-04-httpx.json
+?? docs/eval/tier-a/2026-07-04-httpx.md
+?? docs/eval/tier-a/2026-07-04-mypy.json
+?? docs/eval/tier-a/2026-07-04-mypy.md
+?? docs/eval/tier-a/2026-07-04-prism.json
+?? docs/eval/tier-a/2026-07-04-prism.md
+?? docs/eval/tier-a/2026-07-04-prometheus.json
+?? docs/eval/tier-a/2026-07-04-prometheus.md
+?? docs/eval/tier-a/2026-07-04-ripgrep.json
+?? docs/eval/tier-a/2026-07-04-ripgrep.md
+?? docs/eval/tier-a/2026-07-04-ruff.json
+?? docs/eval/tier-a/2026-07-04-ruff.md
+?? docs/eval/tier-a/2026-07-04-zap.json
+?? docs/eval/tier-a/2026-07-04-zap.md
+?? eval/snapshots/prism-fb81481dafa7.json
+
+# after_returncode: 0

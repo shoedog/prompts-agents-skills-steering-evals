@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": true,
+  "load_bearing_caveats_matched": true,
+  "scope_calibrated": true,
+  "would_have_prevented_wasted_work": true,
+  "probe_answer": "The memo matches the vindicated shape: put a span-keyed class hierarchy on CallGraph, keep same-class lookup first, resolve inherited self/this only through proven in-repo bases, and avoid full Python C3. It also flags the critical soundness issue that bare class-name reuse would reintroduce collisions and that external bases must not bind to same-named in-repo classes. The main mismatch is that it allows ambiguity to demote to NameOnly, while the settled implementation treats ambiguous/external bases as barriers and drops rather than guessing; it also scopes slightly wider than the landed depth-1 direct-base slice by discussing import-proven cross-file chains. Still, following this memo would have steered the team away from the two rejected designs: full C3 and naive name-keyed owner lookup.",
+  "rationale": "Strong match. The recommendation is Option A/A-lite with CallGraph-owned hierarchy keyed by file plus class span, populated through build paths, and an explicit conservative exactness policy. It correctly says full C3 is not needed and sizes the buy as small, pushing a thin slice. Minor caveats: the settled result narrowed further to depth-1 direct base and barrier/drop behavior, whereas the memo leaves room for import-proven cross-file walking and NameOnly demotion on ambiguity."
+ },
+ "tokens_used": 18988
+}

@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A: the hung-turn timeout test would fail on pre-change code because no AgentTimedOut ever arrives. The active/unmodeled and no-watchdog tests mostly pass on pre-change code; they are negative regression tests, not TDD-red tests. Strongest: watchdog_cancels_a_hung_turn_as_timed_out. Weakest: watchdog_does_not_trip_active_or_unmodeled_turn, because the text/unmodeled streams finish before the idle window is really stressed and the unmodeled-only case can pass even if unmodeled activity never bumps last_activity_ms from 0. Arm B: the hung-turn timeout test would also fail on pre-change code. The no-watchdog test passes pre-change by design, and the active/unmodeled test is mostly a negative regression test. Strongest: watchdog_cancels_a_hung_turn_as_timed_out, with the extra cancel-notification assertion; the text branch of watchdog_does_not_trip_active_or_unmodeled_turn is also strong because total duration exceeds idle_timeout and it asserts all chunks. Weakest: the unmodeled-only subcase, because with last_activity_ms remaining 0 the idle watchdog is effectively deferred to wall clock, so it does not fully prove unmodeled updates bump activity.",
+  "rationale": "Both arms implement the requested watchdog task, disabled Pending arm, PFIX-F timeout terminal behavior, from_std conversion, saturating_sub last-activity math, and done_tx teardown, without obvious scope expansion. No WRONG finding stands out from the diffs. SMELL: Arm A's tests are weaker: the active case does not run longer than idle_timeout and it does not assert streamed chunk count, so it catches fewer idle-reset regressions. Arm B is materially better because its implementation is slightly cleaner via run_watchdog and its tests add stronger behavioral checks: cancel notification on timeout, all text chunks before Done, total active duration beyond idle_timeout, and cleanup/proof of Done after releasing the no-watchdog hung turn."
+ },
+ "tokens_used": 40454
+}

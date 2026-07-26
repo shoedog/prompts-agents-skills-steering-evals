@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Both arms make the 'materialized vs resolved' distinction: Arm A introduces a 3-state enum ReceiverClassification (Unmaterialized/MaterializedPoisoned/Recovered) with materialized()/recovered() accessors \u2014 a clean, spec-literal encoding of a 'state DISTINCT from receiver_type resolved.' Arm B keeps Option<RecoveredReceiver> and adds a poisoned:bool field plus resolved_type()/resolved_recovery() accessors, reaching the same semantics less explicitly. Both correctly drop the is_import(q) bail for Python/JS/TS so a shadowing binding is scanned first, both suppress R3/R3b on materialize (hit or poisoned-miss) via CallSite.receiver_materialized/receiver_binding, and both keep Rust/Go byte-identical. Scope-aware recovery is implemented identically: byte-based (call_start_byte) before-call pruning for Python/JS/TS, and skipping nested class-body nodes (class_definition/class_declaration/class); Arm A additionally recognizes TS abstract_class_declaration. Both ship faithful regression tests for all 3 repros (Python R3b false-Exact to 'class x', TS R3 false-Exact to './api', nested-class-body non-recovery), a wildcard-poison variant, and a positive control (clean typed param still Exact) \u2014 all asserting the exact pre-fix-failing condition (no QualifierOwner/ImportQualified/ConstructorLocal, NameOnly residue). Arm A additionally adds a JS nested-class-body test (via a static block) that would fail pre-fix; Arm B has no JS-specific test for this and its own notes concede the gap.",
+  "rationale": "The two fixes are functionally equivalent: same predicate additions, same suppression gate, same byte/class-body scope pruning, same required TDD repros plus wildcard + positive-control tests, Rust/Go untouched. Differences are modest and mostly favor A: an explicit 3-variant enum matching the spec's literal 'distinct state' request vs B's Option<Struct{bool}>; a genuine JS nested-class-body regression test in A that B skips; A also matches TS abstract_class_declaration in the class-skip. A `>=` vs `>` byte-boundary difference exists but has no realistic exploiting input. No demonstrated WRONG in either arm \u2014 differences are SMELL-level design/coverage gains for A, tipping it modestly ahead of parity."
+ },
+ "cost_usd": 0.8709515999999999
+}

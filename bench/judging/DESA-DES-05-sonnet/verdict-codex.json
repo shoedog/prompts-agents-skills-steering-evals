@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": false,
+  "load_bearing_caveats_matched": false,
+  "scope_calibrated": false,
+  "would_have_prevented_wasted_work": false,
+  "probe_answer": "The memo correctly verified the Python decorated-definition double-capture, recognized that a resolution/index dedup would not address caller-side double scanning, and correctly rejected the JS/TS decorator premise. But its recommended fix is the opposite canonical shape from the landed design: it keeps the inner function and drops the decorated wrapper, while the vindicated fix made the decorated wrapper the canonical FunctionId and unwrapped fields from it. It also over-scoped the slice to C++ templates instead of the settled Python-only fix with JS/TS canaries.",
+  "rationale": "This is a partial conceptual hit but not a conclusion match. The landed outcome was extraction-layer, wrapper-canonical, Python-only; the memo was extraction-layer but inner-canonical and generalized to C++. Those differences are load-bearing because the merged commits specifically preserve the decorated wrapper in navigation/inventory and avoid broad language changes. Following this memo would likely have avoided the naive JS/TS decorator work and post-hoc resolver-only dedup, but it would still send implementation down the wrong canonicalization path and broaden the slice beyond what reality validated."
+ },
+ "tokens_used": 24765
+}

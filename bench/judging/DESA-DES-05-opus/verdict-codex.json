@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": false,
+  "load_bearing_caveats_matched": true,
+  "scope_calibrated": true,
+  "would_have_prevented_wasted_work": false,
+  "probe_answer": "The memo correctly verified the Python decorated-method double-capture, scoped it Python-only, explained why JS/TS do not currently double-capture, and identified why resolver-only dedup would miss caller-side/index effects. Its central recommendation was not the vindicated design: it keeps the inner function as canonical and skips the decorated wrapper at index build, while the landed fix made the decorated wrapper the single canonical FunctionId at extraction and dropped the inner. So it would steer the team away from the settled wrapper-canonical extraction shape, even though its diagnosis and language scoping were strong.",
+  "rationale": "Diagnosis, scope, and anti-dedup caveats match the settled evidence, including Python-only JS/TS reasoning. The decisive mismatch is architectural: inner-canonical/id-layer skipping versus wrapper-canonical extraction. Following it would likely avoid the naive all-language and resolver-only mistakes, but still cause wasted work relative to the landed design because the canonical node choice and fix layer are wrong."
+ },
+ "tokens_used": 3938
+}

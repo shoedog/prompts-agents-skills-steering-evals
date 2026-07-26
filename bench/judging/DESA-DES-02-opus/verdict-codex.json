@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": true,
+  "load_bearing_caveats_matched": false,
+  "scope_calibrated": false,
+  "would_have_prevented_wasted_work": false,
+  "probe_answer": "The memo matches the main landed shape: a span-keyed `CallGraph` class hierarchy, direct-base inherited self lookup, no full C3, and barriers for ambiguous or external bases. Its main miss is that it recommends cross-file `NameOnly` edges and DFS ancestry, while the settled design narrowed harder to exact only for a single unambiguous first provider and drops external or ambiguous cases. It also incorrectly says the named Tier-A `inherited_override` case would not flip, contradicting the settled record that slice 1b landed around that conservative inherited-resolution path after repeated spec narrowing.",
+  "rationale": "Give credit for choosing Option A, preserving `(file,class_span)` identity, rejecting bare-name reuse, and explicitly avoiding full C3. Do not give full caveat/scope credit because the memo over-scopes beyond the shipped conservative rule by allowing cross-file NameOnly and multi-defining demotion instead of treating non-unambiguous first providers as barriers. Because following it would still have led through extra semantics the project later narrowed away after REWORKs, it would not fully have prevented the wasted design churn."
+ },
+ "tokens_used": 22377
+}

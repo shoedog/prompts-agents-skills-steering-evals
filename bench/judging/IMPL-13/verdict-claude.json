@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both implement the full suggested flag surface (A uses only --idle-timeout; B offers both --wait-seconds and --idle-timeout as mutually exclusive) and both correctly implement the safety default: handler nonzero exit or invalid-JSON stdout releases the claim and returns exit 1. Failure-mode coverage: invalid JSON and handler-nonzero are tested in both. max-deliveries is exercised in both but neither rigorously proves the cap stops early with extra pending work. Idle-timeout: A has a dedicated cold-start idle-timeout test; B mostly uses idle-timeout=0 combined with other assertions. Heartbeat: only B has a dedicated test proving heartbeats fire *while the handler subprocess is running* (>=2 'active' heartbeat events) and a real subprocess integration test proving the loop blocks/waits then processes a delivery that arrives later. A never heartbeats during handler execution (heartbeats only happen between claim attempts), so a slow handler lets the session heartbeat go stale. Also, A's handler 'release' action terminates the entire loop (explicitly to dodge livelock), whereas B tracks released delivery IDs to skip immediate re-claim and keeps serving other pending work \u2014 closer to the 'retry'-oriented continuous worker implied by the task title.",
+  "rationale": "Both arms satisfy the letter of the spec (full flag set modulo naming, correct release+nonzero-exit safety default, focused tests, doc updates). B is materially stronger on two functional axes central to a 'loop' worker: it keeps heartbeating throughout handler execution (A's heartbeat lapses for the full duration of any handler call), and it continues serving subsequent deliveries after a handler 'release' instead of shutting the whole worker down (A explicitly terminates the loop on release, by its own comment, to avoid livelock \u2014 a real capability gap for a persistent mailbox worker). B's test suite also includes genuine end-to-end proof of these behaviors (heartbeat-during-handler test, real subprocess persistent-wait-then-process test) that A lacks entirely. B does touch a couple of files beyond the minimal footprint (store.py for a needed exclude-list param, plus a one-line consistency fix in coordination_api.py) versus A's tighter cli.py-only change, but this is a minor scope/hygiene nit rather than a correctness problem, and doesn't offset B's stronger handling of the loop's core continuous-operation semantics."
+ },
+ "cost_usd": 0.8032973999999999
+}

@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": false,
+  "probe_answer": "Both arms wrote near-identical tests (byte-level same assertions, cosmetic helper differences only). Both would fail on pre-change code: the batch table/columns/index didn't exist and these trait methods had no Sqlite override, so create_batch/get_batch/claim_batch_child would either not compile against a real backing store or fail to persist \u2014 genuinely regression-catching for this task. Strongest test in each: sqlite_claim_is_atomic_single_runner \u2014 it exercises the actual concurrency invariant (two claims on the same batch/item resolve to (Created, ExistingWorking) and only one row exists), asserting real behavior, not a trivial pass. Weakest in each: sqlite_migration_idempotent_and_batch_roundtrip \u2014 it only checks one field (total==2) after reopen and doesn't verify batch_id/item_id round-trip on the tasks table or that the unique index actually rejects a duplicate insert outside the claim path. Neither arm tests the ExistingTerminal branch (claiming an item whose existing row has status != working) or error/negative paths (bad status string, missing batch). Coverage and rigor are equivalent between arms.",
+  "rationale": "The two diffs are functionally near-twins: identical schema, identical SQL for 8 of 9 methods, identical migration placement, identical tests. The one real design difference is in claim_batch_child's INSERT: Arm A hardcodes status='working' as a literal (matching the spec's literal wording), while Arm B parameterizes it from rec.status.as_str() (trusting the caller-supplied record, consistent with the method taking a full TaskRecord to insert). Neither is demonstrably WRONG within the given tests \u2014 both test helpers pass status=Working \u2014 so this is a SMELL-level judgment call, not a confirmed bug, and it's too marginal to call either arm materially better. Arm B's use of rusqlite::Transaction::new_unchecked (verified against the actual crate source as a real public API taking &Connection) vs Arm A's transaction_with_behavior via a mut MutexGuard are both valid, correct approaches to the 'no .await across the lock' constraint. Scope, completeness, and test rigor are equivalent \u2014 this is parity."
+ },
+ "cost_usd": 0.7238366999999999
+}

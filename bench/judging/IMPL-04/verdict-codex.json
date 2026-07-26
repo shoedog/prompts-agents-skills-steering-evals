@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": false,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Arm A is confined to the config layer and correctly parses retry TOML then maps it through RegistryConfig::load_workflows into WorkflowGraph.nodes[0].retry. Arm B also implements the required parsing and mapping, but it makes an extra out-of-scope edit in bridge-workflow/src/graph.rs, so it is not confined to the config layer.",
+  "rationale": "Both arms satisfy the functional T3 requirements: RetryToml is added, WorkflowNodeToml.retry defaults to None, load_workflows maps it into RetryPolicy, and the mandatory graph-mapping test is present. Arm A is cleaner because it touches only bin/a2a-bridge/src/config.rs as requested and its parse test uses RegistryConfig::parse, which better exercises the config entry point. Arm B's required behavior is correct, but it changes RetryPolicy::backoff_for in crates/bridge-workflow/src/graph.rs even though the task explicitly demanded config-layer scope only. The behavior change appears equivalent to the prior checked_mul/unwrap_or(u64::MAX), but it is still an unnecessary out-of-scope edit a reviewer should ask to remove."
+ },
+ "tokens_used": 19825
+}

@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms remove the collision at the root: bind_params now collects all params first and calls a single ordered pass (Arm A: add_locals(..., None) after pre-attaching facts by def_byte; Arm B: new add_local_bindings(...) helper) so ordinals come from one enumerate() over the full slice, restoring 0,1,2,... Each adds a test (fn f(a,b)) asserting distinct ordinals 0/1 that fails on the buggy per-param code. Inertness beyond the repair: Arm A changes add_locals's signature to Option<LocalFact>, forcing edits to all 5 other call sites (walk_let/closure/for/match/if_while) just to wrap facts in Some(...) \u2014 behavior-preserving but a wider, unnecessary blast radius for an inertness-critical PR, plus an extra clone() to read facts before consuming the same Vec for names. Arm B factors out add_local_bindings and leaves add_locals and all its other callers completely untouched \u2014 a strictly smaller, more surgical diff with no extra clone.",
+  "rationale": "Both fixes are correct and restore byte-identical BindingRef ordinals; no WRONG-tier defect in either. Arm B is the more disciplined fix for a task whose cardinal rule is inertness: it doesn't touch the 5 unrelated locals.rs call sites at all, avoids a needless clone, and its regression tests are stronger \u2014 the ambiguity test proves the lookup mechanism is non-vacuous (asserts Some before the second let, None after), and the ordinal regression is placed in tests/name_resolution/rust_populate_test.rs, matching the task's own cited `cargo test --test name_resolution` target, whereas Arm A's tests only run under `--lib`. These are real, if secondary, quality differences favoring B; nothing rises to a correctness blocker on either side."
+ },
+ "cost_usd": 0.4292895
+}

@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Both arms remove the collision at its root: bind_params now collects all params as an ordered (name, def_byte[, fact]) sequence and performs exactly one enumerate-based binding pass, so ordinals run 0,1,2,... matching parent 48f15d9, while LocalFacts still attach per param. Both add a positional-ordinal test (fn f(a,b) -> distinct BindingRefs, ordinals 0/1) that fails on the buggy per-param-add_locals code, plus a same-rib duplicate-name test asserting lookup returns None. Arm A achieves the fix by extracting a new add_local_bindings helper used only by bind_params, leaving add_locals's signature and all 5 other call sites (let/closure/for/match/if_while) byte-for-byte untouched - provably inert beyond the repair, and matching the task's literal suggested design (single ordered binding call + facts attached separately by def_byte). Arm B instead changes add_locals's signature to &[(String, usize, LocalFact)] and rewrites all 5 other call sites via a new locals_with_fact mapper; this is very likely behavior-preserving (same enumerate ordinal logic, cloned fact per element) but is not literally inert beyond the repair since it edits previously-correct, unrelated binding sites with no bug in them.",
+  "rationale": "Both fixes are functionally correct: single ordered pass restores positional BindingRef ordinals, per-binding facts are preserved, and each ships a failing-first ordinal test plus a same-rib ambiguity test. The task is explicitly an inertness fix with an operating-rule emphasis on scope discipline/YAGIN, and the probe asks directly whether the fix is inert beyond the repair. Arm A's approach (new add_local_bindings helper, add_locals signature unchanged) touches only the actually-buggy function and leaves the other 5 binding sites mechanically untouched - trivially inert. Arm B's refactor forces changes to 5 already-correct call sites to accommodate a signature change, which is unnecessary churn for this specific bug (a SMELL/risk-margin issue, not a demonstrated WRONG). Arm A's tests are also marginally stronger: the ambiguity test includes a sanity check that the lookup mechanism actually works before the collision (ruling out a vacuous None), and it DRYs up the existing test via a shared build() helper, whereas Arm B duplicates setup boilerplate. No correctness bugs found in either diff; the difference is scope/blast-radius discipline and test rigor, which is material given this task's specific inertness mandate."
+ },
+ "cost_usd": 0.6868506
+}

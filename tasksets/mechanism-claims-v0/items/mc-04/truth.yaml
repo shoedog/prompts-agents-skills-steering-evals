@@ -1,0 +1,45 @@
+# DRAFT v0 seed (2026-07-25) — not execution-verified.
+seeded: true
+defects:
+- id: mc-04-d1
+  defect_class: doc-comment mechanism contradiction (claims dot segments preserved, loop resolves them)
+  location: 'src/pathfold.ts: foldSegments() doc comment vs its loop body'
+  hunk_lines: the "preserved verbatim / non-resolving" doc-comment lines vs the `if (seg === ".")
+    continue;` and `if (seg === "..") { out.pop(); ... }` lines
+  description: 'The doc comment promises foldSegments is "purely lexical and non-resolving" with `.`
+    and `..` "preserved verbatim in the output". The loop does the opposite: `.` segments are skipped
+    (never emitted) and `..` pops the previously emitted segment — i.e. the function RESOLVES dot
+    segments. The alias-resolution stage written against the comment will never see a dot segment,
+    and `a/b/../c` folds equal to `a/c`.'
+  root_cause: the comment describes the intended stage separation, but the loop was written as a
+    standard normalizer; nobody re-read the five loop lines against the promise two paragraphs above
+    them.
+  bad_behavior: 'the alias-resolution stage written against the comment never receives a dot segment
+    to bind; and because pop() on an empty array is a no-op, leading `..` segments vanish entirely —
+    foldSegments("../../shared/x") equals foldSegments("shared/x"), so foldsUnder-based subtree
+    scoping treats paths that escape the root as if they lived inside it.'
+  minimal_trigger: 'foldSegments("a/./b/../c") returns ["a","c"], while the doc comment promises
+    ["a",".","b","..","c"].'
+  acceptable_match: any finding that the loop skips `.` and/or pops on `..` (resolution happens),
+    contradicting the preserved-verbatim / non-resolving doc claim. Naming either the skip or the pop
+    with the contradiction suffices; the leading-`..`-vanishes phrasing (pop on empty is a no-op) also
+    counts. CITATION REQUIRED — the finding must point at the implementing loop line(s) in
+    src/pathfold.ts, not only quote the doc comment.
+  reject_if: a finding that only asks for tests or types, flags style, or says the comment "seems
+    ambitious" without naming the skip/pop behavior; or a finding with no reference to the loop
+    line(s) (citation absent, or pointing only at the comment block).
+neutral_findings:
+- splitting an absolute path yields a leading empty segment which the `seg === ""` branch drops, so
+  absolute and repo-relative spellings collide; true of the new code, not the seeded doc-vs-loop
+  contradiction.
+provenance:
+  incident: '608a7a2a L1341 (ssot-agents orchestrator, 2026-07-21): "Confirmed — Sol is right and I
+    was wrong again. reduceRootSegments:28-33 skips `.` and pops `..`" — the orchestrator had read the
+    exact function and still misread it (forensics mode 2, read-but-misread). Distilled here into the
+    claim-embedded-in-diff form so tracing-vs-trusting is what the item measures.'
+  repo_ref: 'ssot-agents (project dir ~/code) — reduceRootSegments / foldedSegments symbols cited in
+    the session; item code is a reconstruction, not a copy'
+  detector_rows: 'mining/out/failure_signatures.jsonl: detector=admission session=608a7a2a
+    line_no=1341'
+rubric_emphasis: 'claim-has-citation AND citation-correct — credit requires naming the loop lines
+  that contradict the comment; quoting the comment back is not a trace.'

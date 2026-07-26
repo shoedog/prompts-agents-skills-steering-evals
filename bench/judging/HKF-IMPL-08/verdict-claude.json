@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "src/resolution.rs is byte-identical between arms (verified by diffing both applied worktrees) \u2014 the implementation ties exactly and matches the actual ground-truth Task 5 commit. Both arms share 7 tests. I applied each diff in a worktree at the true pre-Task-5 base commit (6148aee) and ran cargo test: 5 of the 7 shared tests are true RED->GREEN (inherent+trait demote, unresolved-owner collision demote, block-local-glob keep-all, macro-wildcard keep-all, pending-alias keep-all \u2014 all fail on old code, pass on new). 2 of the 7 (two-crate 'headline' recovery, free-fn-misroute guard) already PASS on unmodified pre-Task-5 code \u2014 the crate-scoped graph and the old unconditional graph-resolution path already handled those exact fixtures, so they're valid non-regression pins but don't prove new behavior; a shared weakness in both arms. Arm A adds one extra test, scope_graph_singleton_unresolved_owner_recovers_to_exact_not_drop (absent from B and from the ground truth's own 8 fixtures). I confirmed it is genuine RED (panics 'Some(UnknownName)' on old code) -> GREEN (Exact) on new code, and it pins a real, otherwise-untested branch: rust_scope_prune_owner can never itself mint Exact for a true singleton pool (early-returns None when pruned.len()==pool.len()==1), so singleton recovery depends entirely on the fail-open floor \u2014 only A verifies that floor's Exact branch; B only covers its NameOnly/collision branch. Strongest test: A's singleton fail-open test (real, verified gap). Weakest (shared): the two-crate 'headline' test, which doesn't actually fail on pre-change code.",
+  "rationale": "Both arms' resolution.rs are byte-identical and match the ground-truth Task 5 commit's logic exactly; fmt is clean and lib (332) + integration (A=214, B=213) all pass when built from the real pre-Task-5 base commit. Both omit the plan's 'mixed-edition keep-all' fixture (ground truth ships 8 tests including an edition-uniform guard test; neither arm has it) \u2014 a shared gap, not a differentiator. Arm A includes one additional test beyond B that I verified via a real worktree run to be true RED on pre-change code and GREEN after, pinning the fail-open path's singleton-Exact branch that no test in either arm otherwise exercises. Since the implementation code ties exactly, this verified, non-vacuous coverage gap makes Arm A's test suite materially stronger."
+ },
+ "cost_usd": 2.1932166
+}

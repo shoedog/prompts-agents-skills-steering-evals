@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": false,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Arm A: tests would fail on pre-change code because `WorkflowNodeToml.retry` would not exist for the parse assertion and `WorkflowNode.retry` would remain `None` in the graph mapping. Strongest test is `workflow_node_retry_maps_into_graph`, because it drives `RegistryConfig::load_workflows` and checks the real `WorkflowGraph` field. Weakest is `workflow_node_retry_parses`, which only checks happy-path deserialization and no cap/absence/invalid cases. Arm B: tests also would fail on pre-change code and the mapping test asserts real graph behavior. Strongest is likewise `workflow_node_retry_maps_into_graph`. Weakest is `workflow_node_retry_parses`, slightly weaker than A because it uses raw `toml::from_str` instead of the config parse entry used elsewhere, so it covers serde but less of the config path. Neither arm adds negative or edge-case tests beyond default `backoff_cap_ms = None`, but the requested tests were both happy-path focused.",
+  "rationale": "Both arms implement `RetryToml`, add `WorkflowNodeToml.retry`, and map it into `WorkflowNode.retry` with the required `RetryPolicy` fields. Both add the mandatory graph-build test. WRONG: none found in the requested T3 behavior. SMELL: Arm B edits `crates/bridge-workflow/src/graph.rs`, which is outside the T3 scope and explicitly outside the named touched file; the change appears behavior-equivalent, but it is unnecessary scope creep. SMELL: Arm B's parse test bypasses `RegistryConfig::parse`, making its first test marginally less integrated. Arm A is materially better because it stays scoped and uses the config parse path while covering the same required behavior."
+ },
+ "tokens_used": 20544
+}

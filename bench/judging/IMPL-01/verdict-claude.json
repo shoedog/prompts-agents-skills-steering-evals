@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both correctly gate the arm on `watchdog_fired`: `Pending` forever when `None` (disabled \u2192 no task spawned, byte-identical wait), and when enabled it only fires after BOTH hard_wall_clock and idle_timeout (via the la_instant sentinel-undo) are exceeded with no fresh activity, so an active or unmodeled-but-alive turn never trips it \u2014 implementation logic is equivalent in both arms. But Arm B's regression test actually proves this: its active/unmodeled scripts total 160ms of delay against a 100ms idle_timeout, so the turn only survives because each update genuinely resets the deadline \u2014 matching the task's explicit 'idle=100ms < total < wall=10s' spec. Arm A's equivalent test only accumulates 60ms of delay (< the 100ms idle_timeout), so it would pass even with a broken activity-reset (nothing was ever close to tripping), giving materially weaker coverage of the exact property being probed.",
+  "rationale": "Both arms implement PFIX-F/G/H/L identically and correctly: unconditional Err(())+timed_out_local discarding the inner cancel outcome, Pending-future disabled path with no task spawned, tokio::time::Instant::from_std, and saturating la_instant sentinel math. Teardown (drop(done_tx)) and the terminal match guard are equivalent. The material gap is test rigor: the task's own test skeleton mandates 'idle=100ms < total < wall=10s' for the FIX-11 unmodeled-activity case. Arm B's script (8\u00d720ms=160ms) satisfies this, genuinely exercising the idle-deadline-reset logic; Arm A's script (3\u00d720ms=60ms) stays under the 100ms idle_timeout, so its 'does not trip' assertion holds trivially regardless of whether per-event activity bumping works, understating coverage of the exact regression this test exists to catch. Arm B also uses a more realistic 150ms cancel_grace (vs Arm A's tight 25ms) and a longer no-timeout assertion window (300ms vs 150ms), both reducing CI flake risk. Arm B additionally documents the subtler invariants (why timed_out_local can't leak, why watchdog is armed post-registration) more thoroughly, aiding future maintenance though this alone wouldn't be material."
+ },
+ "cost_usd": 0.5369013
+}

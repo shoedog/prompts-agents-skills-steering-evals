@@ -1,0 +1,50 @@
+--- a/src/replay_spool.rs
++++ b/src/replay_spool.rs
+@@ -204,9 +204,47 @@ impl SpoolDir {
+     fn next_run_path(&mut self, kind: &str) -> PathBuf {
+         self.seq += 1;
+         self.dir.join(format!("{kind}-{:020}.run", self.seq))
+     }
+ 
++    /// Merge run files group-by-group, deleting each group's inputs as soon
++    /// as the group's merged run is durable. Bounds INTERMEDIATE merge
++    /// scratch to roughly one merge group above the live data size.
++    pub fn compact_runs(&mut self) -> Result<()> {
++        while self.runs.len() > MERGE_FANIN {
++            let group: Vec<PathBuf> = self.runs[..MERGE_FANIN].to_vec();
++            let merged = self.next_run_path("merge");
++            merge_sorted(&group, &merged)?;
++            fsync_file(&merged)?;
++            self.runs.drain(..MERGE_FANIN);
++            self.runs.push(merged);
++            for run in &group {
++                fs::remove_file(run)?;
++            }
++        }
++        Ok(())
++    }
++
++    /// Produce the final sealed run the emitter reads back.
++    ///
++    /// Ordering here is deliberate and crash-safe: every remaining run is
++    /// merged into the sealed output BEFORE any input is deleted, so we
++    /// never destroy the only durable copy of the data. Capacity note:
++    /// plan for ~2x scratch high-water at seal time (all remaining runs +
++    /// the full sealed output exist simultaneously); the per-group
++    /// deletion in compact_runs() bounds intermediate merges but cannot
++    /// reduce this seal-time peak.
++    pub fn seal(mut self) -> Result<PathBuf> {
++        self.compact_runs()?;
++        let sealed = self.dir.join("sealed.run");
++        merge_sorted(&self.runs, &sealed)?;
++        fsync_file(&sealed)?;
++        for run in &self.runs {
++            fs::remove_file(run)?;
++        }
++        Ok(sealed)
++    }
++
+     pub fn scratch_bytes(&self) -> u64 {
+         self.runs.iter().filter_map(|p| fs::metadata(p).ok()).map(|m| m.len()).sum()
+     }
+ }

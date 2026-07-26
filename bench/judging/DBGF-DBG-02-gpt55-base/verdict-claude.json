@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": false,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Both arms add the required distinct state ('binding materialized' vs 'type resolved') \u2014 A via a ReceiverClassification enum (Unmaterialized/MaterializedPoisoned/Recovered), B via a struct with recovered+materialized fields \u2014 and both remove the is_import early-bail for Python/JS/TS so a shadowing binding is scanned before falling back to the import interpretation, and mark poisoned-but-found bindings as materialized to suppress R3/R3b. Both write failing-then-passing tests for the Python qualifier_owner and TS import_qualified repros and a nested-class-body non-recovery test. But A's walk_receiver_bindings scopes the new byte-precise 'binding before call' cutoff strictly to Python/JS/TS/Tsx, leaving Rust/Go on the old line-only check (`if byte_scoped {...} else {row check}`) \u2014 correctly honoring the spec's 'Rust/Go byte-identical'. B applies `row+1 > call_line || start_byte >= call_start_byte` unconditionally to every language, silently changing Rust/Go behavior for same-line binding-after-call cases the spec explicitly required to stay untouched. A's tests are also more complete: explicit NameOnly-residue assertion, a wildcard-poison variant, an explicit non-poisoned positive control, and a JS-specific nested-class test (also covering abstract_class_declaration in prod code); B omits the explicit positive-control test and has no JS test at all for the scope fix.",
+  "rationale": "Core BLOCKER 1+2 fix (materialized-vs-resolved state, suppressing R3/R3b for poisoned bindings) is implemented correctly and about equally well by both arms, with equivalent passing repro tests. The decisive difference is the MAJOR scope-aware fix: Arm B applies the new byte-precise call-start cutoff to ALL languages (`row+1 > call_line || start_byte >= call_start_byte`), which changes Rust/Go's same-line-binding-after-call handling \u2014 a concrete violation of the task's explicit 'Rust/Go byte-identical' / 'Rust/Go unchanged' requirement (WRONG, not just a style gap). Arm A correctly scopes this cutoff to Python/JS/TS/Tsx only, preserving Rust/Go's exact prior logic. Arm A's test suite also more faithfully implements the TDD spec (NameOnly-residue check, wildcard variant, explicit positive control, JS nested-class test, abstract-class node coverage), where Arm B is missing the required positive control and has zero JS-specific coverage of the scope fix. Arm B's only edge favoring it \u2014 preserving legacy_recover's Option<RecoveredReceiver> signature instead of changing it \u2014 is minor and speculative compared to the demonstrated Rust/Go scope violation."
+ },
+ "cost_usd": 0.7447134
+}

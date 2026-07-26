@@ -1,0 +1,5 @@
+# git -C /private/tmp/des-opus-ws/DES-05 status --short
+?? docs/superpowers/specs/2026-07-04-python-decorated-method-double-capture-analysis.md
+
+# git -C /private/tmp/des-opus-ws/DES-05 diff
+

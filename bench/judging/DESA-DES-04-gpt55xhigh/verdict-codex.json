@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": true,
+  "load_bearing_caveats_matched": true,
+  "scope_calibrated": true,
+  "would_have_prevented_wasted_work": true,
+  "probe_answer": "The memo matches the vindicated design shape: a member-level tri-state, richer member rib outcome buckets, and continuation only when all bindings are provably Hidden. It carries the critical soundness caveat that Unknown/undecidable pub(in) must still poison, and it explicitly preserves the cardinal invariant against wrong singletons. It is also calibrated on sizing: 14,663 is treated as the target population for classification, not as guaranteed recall gain; the real buy is only hidden-continuation cases that later reach a valid result.",
+  "rationale": "Full match. The memo includes known-hidden / undecidable / member-multi splitting, a policy-owned tri-state rather than Rust-specific checks in the engine, fail-closed defaults for non-Rust policies, deferred-glob-only behavior, telemetry to distinguish hidden continuations from undecidable poisons, and acceptance checks for multi-target flatness. Its label of \u201coption B, backed by option A\u201d is not a substantive mismatch because the actual proposed mechanism is the landed runtime member-visibility tri-state plus richer probe shape."
+ },
+ "tokens_used": 19896
+}

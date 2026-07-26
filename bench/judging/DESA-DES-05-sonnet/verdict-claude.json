@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": false,
+  "load_bearing_caveats_matched": false,
+  "scope_calibrated": false,
+  "would_have_prevented_wasted_work": false,
+  "probe_answer": "The memo correctly identifies the wrapper+inner double-capture and its precision consequences, and correctly verifies (rather than assumes) that JS/TS decorators do not double-capture \u2014 matching that part of the settled reasoning. But it gets the two decisive specifics backwards: it recommends inner-canonical extraction, explicitly considering and rejecting wrapper-canonical (labeled 'Option C') as the design that actually shipped in #132 ('inventory keeps decorated wrapper'). It also broadens scope to include C++ template_declaration as an equally-in-scope second language, whereas the vindicated fix was Python-only. Following this memo would have produced the wrong canonical-node choice (requiring later reversal to match consumers built around wrapper-canonical semantics) plus unnecessary C++ scope work.",
+  "rationale": "Strong verification and mechanism analysis (including the caller-side double-scan the seed didn't anticipate) and correct JS/TS grammar-check discipline, but the core recommendation (inner-canonical) is the inverse of what shipped (wrapper-canonical), and the scope (Python+C++) doesn't match the Python-only settled outcome. Two of the oracle's three full-marks criteria are missed; only the JS/TS-checking criterion is met."
+ },
+ "cost_usd": 0.30097379999999996
+}

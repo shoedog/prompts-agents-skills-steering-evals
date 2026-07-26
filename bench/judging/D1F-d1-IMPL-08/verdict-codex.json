@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": false,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "The added tests are identical in both arms, so neither test suite is stronger. They cover meaningful positive and negative paths: headline owner collision recovery, inherent+trait demotion, unresolved-owner fail-open, block-local glob, macro wildcard, pending import alias, and free-function misroute. Not every test is TDD-red on the pre-change code: the free-function misroute guard likely passes before Task 5 because the old code still uses the shipped graph path, but it catches a bad owner-prune integration. Strongest in both arms: scope_graph_two_crate_owner_collision_recovers_to_single_exact for true pre-change regression value, with the free-fn misroute test strongest as an integration guard. Weakest in both arms: scope_graph_macro_wildcard_shadow_keeps_all, because it does not assert the colliding pool size or resolved cardinality, so it is less protected against vacuous success.",
+  "rationale": "Arm A is materially better. WRONG in Arm B: after rust_scope_prune_owner proves nothing, it always fails open to owner_lookup_in_modules. For a qualified owner call where the scope graph resolves a callable target but graph_target_ids is empty, such as a trait-signature/static-dispatch drop-invariant case, Arm B can revive the legacy owner-method pool instead of preserving the graph resolve-or-drop behavior. Arm A adds a targeted empty-id-set drop before fail-open, which is more likely to keep the requested drop invariants passing. SMELL in both: the required mixed-edition keep-all test is not present, and the three existing drop invariants are not explicitly reconfirmed in the diff; therefore neither arm is fully complete against the brief. Both stay within the requested files and Task 5/"
+ },
+ "tokens_used": 41430
+}

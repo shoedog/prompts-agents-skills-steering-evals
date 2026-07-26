@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A's rich golden is regression-catching: it would fail on pre-change code because the old path only emitted node snapshot frames and had no rich_snapshot_frames projection. Its strongest test is rich_snapshot_folds_toolcall_interleaved, which uses the real store/fold path and asserts required seq/tag ordering. Its weakest gap is that it never inspects the folded ToolCall payload, so a frame at seq 3 with stale in_progress status could pass; it also lacks orphan-update, latest-plan, and merged-cursor edge coverage. Arm B's tests are stronger. Its rich golden would also fail pre-change, and it additionally asserts the merged ToolCall status becomes completed. Strongest B test: rich_snapshot_folds_toolcall_interleaved. Strongest edge test: orphan ToolCallUpdate emits an update frame, not a fabricated ToolCall. Weakest B test: rich_snapshot_frames_applies_cursor_once_over_merged_list, because it uses a hand-built snapshot rather than the store path, but it still asserts real behavior.",
+  "rationale": "Both arms implement the requested shape: fold_or_typed_snapshot returns snap plus events, both reattach sites use rich_snapshot_frames, cursor filtering is applied after merge, SnapshotComplete seq is re-derived from the merged frames, and no-rich node frames should remain byte-identical. The reattach.rs edits are in scope because the task explicitly allowed removing the Task-7 dead_code allows once frame_from_orch is used. B is materially better because its implementation is essentially the same as A's but its tests are meaningfully stronger. SMELL in both: fold_rich_frames relies on the incoming events already being seq-ordered rather than sorting before folding; that is probably consistent with journal_fold_inputs, but the task explicitly phrases the fold as seq-order dependent. SMELL:\u540c"
+ },
+ "tokens_used": 23828
+}

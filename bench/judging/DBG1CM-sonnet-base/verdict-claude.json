@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "root_cause_match": true,
+  "fmt_issue_identified": false,
+  "fix_attempted": true,
+  "fix_shape_match": false,
+  "probe_answer": "The diff's guard is uniform: any manifest_hashes entry whose TOML fails to parse gets its dir inserted (unless dir==\"\"). It never distinguishes explicitly-declared non-glob members from glob-expanded discoveries, so it is not the 'union(parsed-package dirs, declared non-glob members)' shape of 16faa4e. Concrete divergence: with members=[\"crates/*\"] and a glob-matched dir crates/broken containing invalid TOML, the landed fix excludes it (preserves original glob-expansion behavior \u2014 only parsed-[package] glob dirs count), but this arm's guard inserts it anyway since it only checks emptiness, not glob-vs-explicit provenance. Also possible under-inclusion: a declared non-glob member with syntactically-valid TOML lacking [package] would be skipped by this arm (parse succeeds, no package branch adds nothing) but must be kept per the true union. Report text never says 'glob' or narrates the mechanism; understanding is inferable only from the code comment. On fmt: report only asserts 'cargo fmt --check is clean' post-hoc, never states a rustfmt violation was a distinct cause of the original CI failure, despite the diff visibly reformatting the assert! call.",
+  "rationale": "Diff comment ('still a concrete member dir ... the workspace root declared it') and the added negative test show real understanding that malformed-manifest dirs were being silently dropped from workspace_members \u2014 matches the core drop mechanism, so root_cause_match=true. But the fix applies to ANY parse-failing manifest regardless of glob vs non-glob provenance, unlike the landed union(parsed-package, declared-non-glob) fix that deliberately preserves glob-only inclusion \u2014 a real behavioral divergence (WRONG, concrete scenario given), so fix_shape_match=false. Code changed, so fix_attempted=true. Report never separately calls out a rustfmt violation as part of the original failure (only a post-fix 'clean' check), so fmt_issue_identified=false."
+ },
+ "cost_usd": 0.41921250000000004
+}

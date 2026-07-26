@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A adds ONE new test (rich_snapshot_folds_toolcall_interleaved), mirroring the task's suggested sketch: calls fold_or_typed_snapshot + rich_snapshot_frames directly and asserts the ToolCall/update merge+seq-interleave. It would fail without the merge logic, but it's the only rich-path test \u2014 Plan latest-only, orphan ToolCallUpdate (had_base=false), cursor-on-merged-list, and both call-site wirings are implemented but never exercised by a dedicated test. Arm B adds the same interleaved test PLUS four more: an orphan-update test (proves had_base=false branch, untested in A), a latest-plan-only test (proves Plan collapse, untested in A), a cursor-exclusion test (proves cursor applied once on the merged list per PFIX-H, untested in A), and two true end-to-end tests calling subscribe_to_task and inspecting the SSE body for terminal and working paths \u2014 these fail on pre-change code (no tool_call tag) and would catch a regression if either call site were left on bare snapshot_frames. Strongest A test: the interleaved fold test (solid but sole coverage). Weakest A test: same one, doing double duty. Strongest B test: the two end-to-end SSE tests, verifying actual wiring not just the helper. Weakest B test: the interleaved test, near-identical to A's/task sketch.",
+  "rationale": "Core fold/merge logic (ToolFold struct, Plan-latest-only, orphan-tolerant ToolCall merge, single cursor filter post-merge) is essentially identical and correct in both arms \u2014 no WRONG findings in either. The material difference is test rigor: Arm B has 5 new tests covering every item in the task's own self-review checklist (orphan-tolerant fold, Plan latest-only, both call sites swapped end-to-end, cursor applied once on merged list), while Arm A has only 1 new test covering the interleaved-fold happy path, leaving orphan-handling, Plan-collapse, cursor-interaction, and both call-site wirings unverified by any dedicated test. That's a concrete, demonstrable gap, not a stylistic one."
+ },
+ "cost_usd": 0.4700424
+}

@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms implement essentially identical fold logic (same ToolFold/ToolState struct, same latest-Plan and orphan-tolerant-by-id merge) and both add the task-specified golden test wired through a real store (record_node_started/record_event_sequenced/put_node_checkpoint_sequenced), which would fail on pre-change code since rich_snapshot_frames/fold_rich_frames don't exist yet \u2014 both are genuine regression tests, not trivial. But B adds three more targeted unit tests A lacks entirely: an orphan-ToolCallUpdate test (asserts a FrameKind::ToolCallUpdate, not a fabricated ToolCall, when no base exists), a latest-Plan-only test (stale plan@1 must not survive vs fresh plan@2), and a cursor-once-over-merged-list test that constructs a scenario (rich frame@3, node frame@4, cursor=3) specifically designed to fail if cursor filtering were applied per-source instead of on the merged list \u2014 this is the single most incisive test in either arm since it directly discriminates against a plausible near-miss implementation of PFIX-H. B's shared golden test is also strictly deeper: it additionally asserts frames[0]'s status == 'completed' (verifying the sparse-patch actually overwrote the base state), where A's equivalent golden test only checks (seq, kind) tags \u2014 a bug that left the base 'in_progress' status unpatched would still pass A's assertions since had_base=true guarantees the 'tool_call' tag and the update always advances last_seq regardless of whether the patch applied. Strongest in A: rich_snapshot_folds_toolcall_interleaved (the only new test, but real end-to-end coverage). Weakest in A: the same test, since it's structural-only (tags) and is the sole edge-case test A has. Strongest in B: rich_snapshot_frames_applies_cursor_once_over_merged_list. Weakest in B: fold_rich_frames_keeps_latest_plan_only (a simple, low-stakes pure-function unit test, though still non-trivial).",
+  "rationale": "Implementations are functionally equivalent \u2014 near-identical merge/fold algorithms, both correctly swap both reattach call sites, re-derive the sentinel from the merged list, preserve dedup_floor/cut_seq, and both achieve S6 byte-identity plus removal of the dead_code allows. No WRONG-tier correctness gap in either. The differentiator is test rigor, which the probe specifically asks about and which the task's own self-review checklist calls out (by-id merge, orphan-tolerance, Plan latest-only, sentinel re-derivation, cursor-once): B has dedicated, real regression tests for three of those checkpoints that A never separately verifies, plus a deeper content assertion in the shared golden test that A's version would not catch a patch-application bug with. This is a material, task-relevant advantage for B rather than a stylistic nit."
+ },
+ "cost_usd": 0.46229310000000007
+}

@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Both arms remove the per-param ordinal collision at the root by restoring a single ordered add_locals pass and attaching LocalFact afterward by def_byte. Both add an ambiguity-to-None regression. Arm A adds the ordinal regression in the existing name_resolution integration test path and resolves actual uses of a and b separately, so it is more likely to fail on the buggy code and to pin the intended resolver behavior. Arm B's ordinal test uses lookup_visible_binding at the same byte for both a and b; it still likely exposes the collision through the scope graph, but it is less direct and lives in the lower-level binding_lookup unit tests rather than the existing populate/resolve regression suite. Both fixes appear inert beyond the repair in the shown diff.",
+  "rationale": "WRONG: no clear correctness defect in either implementation from the shown diff. Both implementation changes match the required single ordered binding pass: build a Vec of names from the collected facts, call add_locals once, then add per-binding facts keyed by def_byte. SMELL: neither diff shows verification of other add_locals call sites, but neither introduces broader changes and the task-provided diff only exposes bind_params. Arm A is materially better because its ordinal test asserts through single_file_resolve on separate source uses and Target::Local ordinals, matching the acceptance language more closely. Arm B is acceptable but its ordinal test is less targeted because it asks for both bindings at the same lookup byte and does not exercise the existing integration test helper."
+ },
+ "tokens_used": 5664
+}

@@ -1,0 +1,53 @@
+--- a/src/replay_spool.rs
++++ b/src/replay_spool.rs
+@@ -204,9 +204,38 @@ impl SpoolDir {
+     fn next_run_path(&mut self, kind: &str) -> PathBuf {
+         self.seq += 1;
+         self.dir.join(format!("{kind}-{:020}.run", self.seq))
+     }
+ 
++    /// Merge run files group-by-group, deleting each group's inputs as soon
++    /// as the group's merged run is durable.
++    pub fn compact_runs(&mut self) -> Result<()> {
++        while self.runs.len() > MERGE_FANIN {
++            let group: Vec<PathBuf> = self.runs[..MERGE_FANIN].to_vec();
++            let merged = self.next_run_path("merge");
++            merge_sorted(&group, &merged)?;
++            fsync_file(&merged)?;
++            self.runs.drain(..MERGE_FANIN);
++            self.runs.push(merged);
++            for run in &group {
++                fs::remove_file(run)?;
++            }
++        }
++        Ok(())
++    }
++
++    /// Produce the final sealed run the emitter reads back.
++    pub fn seal(mut self) -> Result<PathBuf> {
++        self.compact_runs()?;
++        let sealed = self.dir.join("sealed.run");
++        merge_sorted(&self.runs, &sealed)?;
++        fsync_file(&sealed)?;
++        for run in &self.runs {
++            fs::remove_file(run)?;
++        }
++        Ok(sealed)
++    }
++
+     pub fn scratch_bytes(&self) -> u64 {
+         self.runs.iter().filter_map(|p| fs::metadata(p).ok()).map(|m| m.len()).sum()
+     }
+ }
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,2 +1,9 @@
+ # Changelog
+ 
++## Unreleased
++
++- Spool compaction deletes each merge group's inputs as soon as the group's
++  merged run is fsynced. Peak scratch usage is therefore bounded by one
++  merge group at every stage, including seal: the old 2x (all remaining
++  runs + full sealed output) high-water mark at seal time is gone.
++

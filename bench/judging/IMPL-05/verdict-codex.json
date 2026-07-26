@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": false,
+  "arm_a_scope_ok": false,
+  "arm_b_scope_ok": false,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Arm A updates the real commit_message call sites in main.rs and merge.rs and also updates the decide tuple type ripple into tweak.rs, which is necessary because CommitSource replaces the old bool. Its comment-only typed fallback to title is correct. Arm B updates main.rs and merge.rs, but leaves decide taking the old bool and adapts main back to (String, bool), so it does not complete the CommitSource re-spec/ripple through the existing decision path.",
+  "rationale": "Arm A is materially better because it carries the CommitSource type through decide and its existing tests, avoiding the old bool semantics after the return type was re-specified. Arm B preserves the old bool at the decide boundary in main.rs, so callers/tests using decide are not actually updated to the new CommitSource contract. Both arms are slightly out of scope in different ways: Arm A edits tweak.rs even though the task said tweak.rs is not a commit_message caller, but that edit is a necessary compile/ripple consequence if decide now accepts CommitSource; Arm B adds an extra oversize assertion beyond the requested test. Arm B's tests are marginally stronger because they assert CommitSource variants in the new precedence test and add oversize coverage, but that does not overcome the re"
+ },
+ "tokens_used": 21070
+}

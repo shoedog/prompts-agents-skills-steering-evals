@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Both arms remove the per-param ordinal collision at the root with a single ordered binding pass and add a regression that would fail on the buggy code. Arm A is narrower and pins the serialized scope-graph BindingRef directly. Arm B also fixes the bug, but through a broader add_locals signature refactor and a less direct resolution-based ordinal test. Both fixes appear inert beyond the intended repair.",
+  "rationale": "WRONG: No demonstrated blocker in either arm. Both preserve ordinal enumeration over the full parameter list and attach LocalFact by def_byte.\n\nSMELL: Arm B has more churn than needed, changing add_locals and all local binding call sites. It appears behavior-preserving, but it increases review surface relative to Arm A.\n\nSMELL: Arm B's ordinal regression checks resolved use-site candidates rather than directly inspecting scope-graph bindings. It should still fail on the buggy code, but Arm A's test more directly enforces the Phase-1 inertness contract.\n\nArm A is materially better because it is the smaller scoped repair and its regression directly asserts the serialized BindingRef ordinals."
+ },
+ "tokens_used": 22834
+}

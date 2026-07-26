@@ -1,0 +1,41 @@
+=== mc-04 witness run: 2026-07-25T15:39:02Z ===
+item dir : /Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/witnesses/mc-04/../../items/mc-04
+build dir: /private/tmp/claude-501/-Users-wesleyjinks/782c0297-efe4-408f-9b1a-07346a6a6c30/scratchpad/mcv/mc-04
+toolchain: node v26.0.0; tsc Version 6.0.3; git version 2.50.1 (Apple Git-155); patch: patch 2.0-12u11-Apple
+
+--- step 1: materialize shim harness ---
+base files:
+./trigger.ts
+
+--- step 2: git apply --check ---
+exit=0
+--- step 2b: patch -p1 --dry-run (cross-check) ---
+patching file 'src/pathfold.ts'
+exit=0
+--- step 2c: apply for real (git apply) ---
+exit=0
+post-apply tree:
+./src/pathfold.ts
+./trigger.ts
+
+--- step 3: tsc --strict --noEmit type/parse check of the diff's file alone ---
+exit=0
+
+--- step 3b: compile pathfold + trigger to JS ---
+exit=0
+compiled files:
+build/src/pathfold.js
+build/trigger.js
+
+--- step 4: minimal_trigger run ---
+foldSegments("a/./b/../c")            = ["a","c"]
+doc-comment promise ('preserved verbatim') = ["a",".","b","..","c"]
+doc contradicted (dot segments RESOLVED, not preserved): true
+foldSegments("../../shared/x") = ["shared","x"]
+foldSegments("shared/x")       = ["shared","x"]
+leading '..' vanish entirely (pop on empty array is a no-op): true
+foldsUnder("shared", "../../shared/x") = true  <- a path that escapes the root is scoped as if inside it
+
+VERDICT: foldSegments() skips '.' and pops on '..' (src/pathfold.ts loop) --
+the 'purely lexical and non-resolving / preserved verbatim' doc claim is FALSE.
+exit=0

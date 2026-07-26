@@ -1,0 +1,187 @@
+POST-RUN evidence (workspace after the Fable session)
+=====================================================
+
+$ cargo test -p bridge-a2a-inbound golden_two_node_run_wire_tuples
+  # the S6 golden — MUST still pass byte-identical for a no-rich task (the hard back-compat constraint)
+  # expect_min_tests=1 matched_tests=1 min_tests_satisfied=True
+  [exit 0, 0.078s]
+  --- stdout (tail) ---
+  
+  running 1 test
+  test server::tests::golden_two_node_run_wire_tuples ... ok
+  
+  test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 219 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.00s
+  
+  --- stderr (tail) ---
+      Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+       Running unittests src/lib.rs (target/debug/deps/bridge_a2a_inbound-2db27a9d02e18391)
+       Running tests/workflow_producer.rs (target/debug/deps/workflow_producer-c7098daf18426d6a)
+
+$ cargo test -p bridge-a2a-inbound rich_snapshot_folds_toolcall_interleaved
+  # the new rich-fold test named in the task prompt
+  # expect_min_tests=1 matched_tests=1 min_tests_satisfied=True
+  [exit 0, 0.068s]
+  --- stdout (tail) ---
+  
+  running 1 test
+  test server::tests::rich_snapshot_folds_toolcall_interleaved ... ok
+  
+  test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 219 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.00s
+  
+  --- stderr (tail) ---
+      Finished `test` profile [unoptimized + debuginfo] target(s) in 0.04s
+       Running unittests src/lib.rs (target/debug/deps/bridge_a2a_inbound-2db27a9d02e18391)
+       Running tests/workflow_producer.rs (target/debug/deps/workflow_producer-c7098daf18426d6a)
+
+$ cargo test -p bridge-a2a-inbound
+  # full bridge-a2a-inbound crate suite (217 unit + 47 integration per the reference session)
+  [exit 0, 0.45s]
+  --- stdout (tail) ---
+  test sse::tests::event_to_sse_produces_correct_event_names ... ok
+  test sse::tests::terminal_event_maps_to_status_update_with_terminal_state ... ok
+  test sse::tests::status_event_serializes_as_streamresponse_statusupdate ... ok
+  test sse::tests::usage_event_produces_no_sse_frame ... ok
+  test sse::tests::translator_pipeline_last_event_is_artifact_streamresponse ... ok
+  test workflow_sink::sink_tests::drain_awaits_node_finished_before_next ... ok
+  test workflow_sink::sink_tests::drain_aborts_on_sink_error ... ok
+  test workflow_sink::sink_tests::detached_progress_sink_write_error_aborts_drain ... ok
+  test workflow_sink::sink_tests::detached_progress_sink_persists_and_publishes ... ok
+  test workflow_sink::sink_tests::detached_node_journals_rich_before_nodefinished ... ok
+  test server::tests::early_cancel_before_peer_id_is_latched_then_applied ... ok
+  test server::tests::followup_uses_bound_backend_after_registry_edit ... ok
+  test server::tests::fanout_cancel_does_not_block_on_peer_id ... ok
+  test server::tests::fanout_caller_disconnect_cancels_all ... ok
+  test session_manager::tests::compact_summary_timeout_expires ... ok
+  test server::tests::warm_continue_reuses_session_no_binding_guard ... ok
+  test server::tests::cancel_task_fanout_cancels_both ... ok
+  test server::tests::inbound_cancel_on_active_delegated_stream_cancels_peer_exactly_once ... ok
+  test server::tests::fanout_cancel_cancels_all_sources_exactly_once ... ok
+  test server::tests::fanout_cancel_after_one_source_finished_cancels_only_survivor ... ok
+  
+  test result: ok. 220 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
+  
+  
+  running 47 tests
+  test cancel_terminal_detached_returns_true_state_not_recancel ... ok
+  test cancel_working_no_token_flips_to_canceled ... ok
+  test cancel_task_before_warm_workflow_token_registration_cancels_run ... ok
+  test detached_runner_checkpoint_write_failure_fails_task ... ok
+  test cancel_task_immediately_after_warm_stream_send_cancels_workflow ... ok
+  test detached_runner_checkpoints_each_node ... ok
+  test detached_runner_persists_completed_result ... ok
+  test detached_runner_persists_canceled_on_token_fire ... ok
+  test detached_runner_persists_failed_on_node_failure ... ok
+  test detached_runner_sequenced_terminal_and_hub_cleanup ... ok
+  test detached_submit_persists_session_cwd ... ok
+  test detached_submit_persists_input_and_spec ... ok
+  test detached_unknown_workflow_reject_sets_terminal_seq ... ok
+  test resume_cap_exhausted_interrupts ... ok
+  test resume_no_snapshot_interrupt_sets_terminal_seq ... ok
+  test resume_corrupt_session_cwd_interrupts ... ok
+  test resume_no_snapshot_interrupts ... ok
+  test resume_poison_task_terminates_at_cap ... ok
+  test resume_short_circuit_sets_terminal_seq ... ok
+  test resume_terminal_checkpoint_short_circuits ... ok
+  test detached_workflow_threads_cwd_to_every_node ... ok
+  test resume_unparseable_snapshot_interrupts ... ok
+  test resume_runs_only_pending_nodes ... ok
+  test resume_unknown_version_interrupts ... ok
+  test resume_restores_session_cwd ... ok
+  test session_cancel_workflow_parent_sweeps_children ... ok
+  test streaming_workflow_emits_node_status_synth_artifact_and_completed ... ok
+  test cancel_task_fires_workflow_token_stream_ends_canceled ... ok
+  test streaming_workflow_threads_cwd_to_every_node ... ok
+  test runner_panic_finalizes_failed_no_orphan ... ok
+  test submit_returns_working_before_completion_then_completes ... ok
+  test swept_interrupted_reports_failed_over_wire ... ok
+  test tasks_get_returns_completed_with_artifact ... ok
+  test tasks_list_returns_recent_newest_first ... ok
+  test unary_workflow_send_returns_working_task ... ok
+  test synth_receives_both_fan_out_reviews ... ok
+  test write_ahead_barrier ... ok
+  test resume_then_cancel_mid_run_finalizes_canceled ... ok
+  test workflow_with_failing_synth_ends_in_failed_state ... ok
+  test workflow_producer_normal_exit_frees_context ... ok
+  test workflow_producer_panic_frees_context ... ok
+  test concurrent_same_context_workflow_handle_busy ... ok
+  test active_session_cancel_propagates_child_backend_error ... ok
+  test cancel_task_warm_workflow_cancels_checked_out_child ... ok
+  test active_session_cancel_one_backend_cancel_per_child ... ok
+  test session_cancel_cancels_workflow_run ... ok
+  test session_cancel_keeps_context_busy_until_producer_exits ... ok
+  
+  test result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+  
+  --- stderr (tail) ---
+      Finished `test` profile [unoptimized + debuginfo] target(s) in 0.04s
+       Running unittests src/lib.rs (target/debug/deps/bridge_a2a_inbound-2db27a9d02e18391)
+       Running tests/workflow_producer.rs (target/debug/deps/workflow_producer-c7098daf18426d6a)
+     Doc-tests bridge_a2a_inbound
+
+$ cargo test --workspace --no-run
+  # workspace-wide compile check
+  [exit 0, 0.119s]
+  --- stderr (tail) ---
+      Finished `test` profile [unoptimized + debuginfo] target(s) in 0.09s
+    Executable unittests src/main.rs (target/debug/deps/a2a_bridge-eb0076f40e84212a)
+    Executable tests/e2e_acp_codex.rs (target/debug/deps/e2e_acp_codex-96b4f2bd2f5c3d4c)
+    Executable tests/e2e_acp_kiro.rs (target/debug/deps/e2e_acp_kiro-08341c925aa72c88)
+    Executable tests/e2e_delegate_bridge.rs (target/debug/deps/e2e_delegate_bridge-f49ebb575ed2e949)
+    Executable tests/e2e_fanout_bridge.rs (target/debug/deps/e2e_fanout_bridge-06b5c97ec7ff3149)
+    Executable tests/e2e_kiro.rs (target/debug/deps/e2e_kiro-82e1dd86e985132b)
+    Executable tests/e2e_registry.rs (target/debug/deps/e2e_registry-b0884f37dc3eb6c4)
+    Executable tests/integration_delegate.rs (target/debug/deps/integration_delegate-03a3fac1f365afce)
+    Executable tests/integration_fanout.rs (target/debug/deps/integration_fanout-2c81f392f61e29e5)
+    Executable tests/integration_inbound_kiro.rs (target/debug/deps/integration_inbound_kiro-45c9af045f4202be)
+    Executable tests/integration_run_workflow.rs (target/debug/deps/integration_run_workflow-f1033d9b78b8f478)
+    Executable unittests src/lib.rs (target/debug/deps/bridge_a2a_inbound-2db7cd1a0065311c)
+    Executable tests/workflow_producer.rs (target/debug/deps/workflow_producer-cc888d3d1255491b)
+    Executable unittests src/lib.rs (target/debug/deps/bridge_a2a_outbound-d60abc3f0ebcc1fe)
+    Executable unittests src/lib.rs (target/debug/deps/bridge_acp-758070898f8b8c4b)
+    Executable tests/corpus_replay.rs (target/debug/deps/corpus_replay-19e97bf09b464312)
+    Executable tests/golden_frames.rs (target/debug/deps/golden_frames-a9871046676a6cc8)
+    Executable unittests src/lib.rs (target/debug/deps/bridge_api-493eea86210ad795)
+    Executable tests/corpus_replay.rs (target/debug/deps/corpus_replay-bc0d2d78ca8f43ea)
+    Executable tests/deny_through_translator.rs (target/debug/deps/deny_through_translator-cdaf2e22a099aedb)
+    Executable tests/live_ollama.rs (target/debug/deps/live_ollama-f12c430ed9e026f3)
+    Executable tests/wiremock_turns.rs (target/debug/deps/wiremock_turns-e267a7054587f28b)
+    Executable unittests src/lib.rs (target/debug/deps/bridge_container-d745dbab68753249)
+    Executable unittests src/lib.rs (target/debug/deps/bridge_core-afa934b3288e1ef6)
+    Executable tests/compile_fail.rs (target/debug/deps/compile_fail-cd9e8ccc8b332b55)
+    Executable unittests src/lib.rs (target/debug/deps/bridge_observ-b90276162827038b)
+    Executable unittests src/lib.rs (target/debug/deps/bridge_policy-08f798c99cf7af34)
+    Executable unittests src/lib.rs (target/debug/deps/bridge_registry-cf12ce26f7837a22)
+    Executable unittests src/lib.rs (target/debug/deps/bridge_store-28cf68275e21d2d1)
+    Executable unittests src/lib.rs (target/debug/deps/bridge_workflow-5cdf1b98edeac9ec)
+    Executable unittests src/lib.rs (target/debug/deps/lsp_mcp-838ce99011fc518c)
+    Executable unittests src/main.rs (target/debug/deps/lsp_mcp-1c156b4507f8e416)
+    Executable tests/characterization.rs (target/debug/deps/characterization-3a28ef6398b354e0)
+    Executable tests/go_nav.rs (target/debug/deps/go_nav-bcf9884fec2c0fc4)
+    Executable tests/integration.rs (target/debug/deps/integration-bd01d98cf2521c93)
+    Executable tests/lang_detect.rs (target/debug/deps/lang_detect-cfb302276cac821f)
+    Executable tests/python_nav.rs (target/debug/deps/python_nav-52021e93cb8bbefa)
+
+$ cargo fmt --all --check
+  # formatting gate
+  [exit 0, 0.285s]
+
+$ cargo clippy -p bridge-a2a-inbound --all-targets -- -D warnings
+  # clippy gate scoped to the touched crate
+  [exit 0, 0.125s]
+  --- stderr (tail) ---
+      Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.08s

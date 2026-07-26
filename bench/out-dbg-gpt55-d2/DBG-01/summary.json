@@ -1,0 +1,80 @@
+{
+  "id": "DBG-01",
+  "ws": "/private/tmp/dbg-g5d2-ws/DBG-01",
+  "dry_run": false,
+  "model": "claude-fable-5",
+  "replay_preface": "Replay note: you are working in /private/tmp/dbg-g5d2-ws/DBG-01 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged.",
+  "run_status": "ok",
+  "subtype": "success",
+  "api_error_status": null,
+  "returncode": 0,
+  "session_id": null,
+  "duration_ms": 378650,
+  "num_turns": null,
+  "usage": {
+    "tokens_used": 127451
+  },
+  "total_cost_usd": null,
+  "stop_reason": null,
+  "is_error": false,
+  "result_text": "**Investigation Result**\n\nRoot cause for the failing snapshot in this clone is `src/repo_loader.rs` narrowing `workspace_members` to only successfully parsed `[package]` manifest dirs. That fixed glob workspace members, but it dropped declared non-glob workspace members whose manifests are malformed. The failing test\u2019s fixture declares `members = [\"good\", \"bad\"]`, but `bad/Cargo.toml` is intentionally malformed, so current code returns only `[\"good\"]`.\n\nRelevant local evidence:\n- Local `HEAD`: `04c6b0b fix(repo_loader): expand workspace member globs to concrete dirs`\n- Current GitHub PR #124 is already merged at `16faa4e`, with green checks from June 22, 2026, so the live PR has moved past this failing isolated snapshot.\n- Format failure: `cargo fmt --check` wants only a rustfmt reflow in [src/repo_loader.rs](/private/tmp/dbg-g5d2-ws/DBG-01/src/repo_loader.rs:1035).\n- Test failure: [tests/name_resolution/build_wiring_test.rs](/private/tmp/dbg-g5d2-ws/DBG-01/tests/name_resolution/build_wiring_test.rs:356) fails with `left: [\"good\"]`, `right: [\"bad\", \"good\"]`.\n- Cause location: [src/repo_loader.rs](/private/tmp/dbg-g5d2-ws/DBG-01/src/repo_loader.rs:399) inserts only parsed `[package]` manifest dirs into `workspace_members`.\n\n**Running Log**\n\n1. Hypothesis: clone is pinned to the failing PR snapshot. Result: yes, detached at `04c6b0b`; clean worktree.\n2. Alternative considered: format and tests could be independent. Result: format failure is only rustfmt in `repo_loader.rs`; test failure is workspace-member specific.\n3. Alternative considered: resolver/cross-crate logic caused the test failure. Result: fixture/code inspection rules that out; `bad` is dropped before resolver behavior matters.\n4. Hypothesis: last commit introduced this by replacing declared members with parsed package dirs. Result: yes, parent code inserted `[workspace].members`; `HEAD` does parsed `[package]` dirs only.\n5. Hypothesis: full suite has only this local failure. Result: `cargo test` aborted at `name_resolution`; completed binaries totaled `1348 passed, 1 failed, 1 ignored` before abort.\n6. Hypothesis: live PR still failed. Result: falsified; PR #124 is merged and checks are green at newer head `16faa4e`.\n\n**Recommended Fix**\n\nUse the union of:\n- parsed `[package]` dirs, for glob expansion safety, and\n- declared `[workspace].members` entries that are non-glob, so malformed declared members still survive.\n\nThen run `cargo fmt --all -- --check`, the malformed-member test, the glob regression test, and the full relevant suite.\n\nI did not edit files in this investigation pass.\n\n",
+  "timed_out": false,
+  "parse_error": null,
+  "terminal_reason": null,
+  "tests_passed_guess": "fail",
+  "evidence_summary": [
+    {
+      "cmd": "cargo fmt --all --check",
+      "returncode": 1,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo test malformed_member_manifest",
+      "returncode": 101,
+      "timed_out": false,
+      "expect_min_tests": 1,
+      "matched_tests": 0,
+      "min_tests_satisfied": false
+    },
+    {
+      "cmd": "cargo test",
+      "returncode": 101,
+      "timed_out": false,
+      "expect_min_tests": 2000,
+      "matched_tests": 2318,
+      "min_tests_satisfied": true
+    }
+  ],
+  "scaffold": {
+    "tracked_scaffold_paths": [
+      ".claude-plugin/marketplace.json",
+      ".claude-plugin/plugin.json",
+      "AGENTS.md",
+      "CLAUDE.md"
+    ],
+    "missing_on_disk_after_checkout": [],
+    "has_CLAUDE_md": true,
+    "has_dot_claude_dir": false,
+    "has_AGENTS_md": true,
+    "agents_md_shimmed": false,
+    "global_hooks_present": true,
+    "shim": {
+      "present": false,
+      "sha256_at_write": null,
+      "sha256_after_run": null,
+      "changed": false
+    }
+  },
+  "shim": {
+    "present": false,
+    "changed": false,
+    "sha256_at_write": null,
+    "sha256_after_run": null
+  },
+  "source_repo_touched": false,
+  "transcript_lookup_note": "matched codex rollout by cwd (1 candidate(s))",
+  "transcript_path": "bench/out-dbg-gpt55-d2/DBG-01/transcript.jsonl"
+}

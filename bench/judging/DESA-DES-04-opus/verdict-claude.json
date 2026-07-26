@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": true,
+  "load_bearing_caveats_matched": true,
+  "scope_calibrated": true,
+  "would_have_prevented_wasted_work": true,
+  "probe_answer": "The memo correctly recommends the tri-state (hidden/undecidable/multi) design with continue-only-if-all-provably-Hidden and poison-on-Unknown, matching exactly what landed as design-of-record. It explicitly states the cardinal invariant and never allows continuation on undecidable pub(in). It also correctly frames the 14663 figure as a target population, not a guaranteed recall buy, and proposes a two-stage sizing plan (known-hidden vs undecidable split, then continue\u2192resolves vs continue\u2192unresolved via kind_exact delta) \u2014 precisely the caveat the settled outcome calls decisive. It scopes the change to the glob-expansion member arm only, matching the vindicated design's read-inert staged rollout via telemetry additions before any behavior change.",
+  "rationale": "Memo's architecture (hook (a) + probe (b) composed) aligns with the shipped VisibilityDecision/member_visible tri-state hook design. Telemetry buckets (member_multi/member_hidden_continued/member_undecidable) mirror the shipped glob_stats split. No unsound continue-on-Unknown rule proposed anywhere in the doc."
+ },
+ "cost_usd": 0.1807773
+}

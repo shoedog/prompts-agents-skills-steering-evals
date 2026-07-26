@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Arm A tests would fail on pre-change code, at minimum because the old 2-arg signature and bool return do not match. Strongest test: commit_precedence_and_comment_only_falls_back_to_title, because it checks typed/file/title precedence, comment-only fallback, CommitSource values, and adds an oversize candidate edge. Weakest test: the derived bounding check still only asserts prefix/length rather than the exact truncated subject. Arm B tests would also fail on pre-change code for the same signature/enum reasons. Strongest test: commit_precedence_and_comment_only_falls_back_to_title covers the main precedence and comment-only title fallback. Weakest test: that new test asserts only .0, so source/warning regressions for Typed/Title could pass; it also lacks Arm A's oversize candidate edge.",
+  "rationale": "Both arms implement the required call-site ripple in main.rs and merge.rs and keep scope limited to the requested files. SMELL (Arm B): commit_candidate bounds after NUL/comment stripping, so a raw candidate over 64 KiB hidden inside comments can still be accepted; the brief's read_commit_msg_file mirror points more toward Arm A's raw candidate bound. SMELL (Arm B tests): source values are only partly tested, so the Derived-warning contract is less protected. SMELL (Arm A): it adapts CommitSource back to a bool for decide instead of fully carrying the enum through that internal tuple, but the required warning and resolved message behavior are still preserved. Arm A is materially better because its tests are stricter and it is closer to the stated bounding model."
+ },
+ "tokens_used": 30262
+}

@@ -1,0 +1,79 @@
+{
+  "id": "IMPL-03",
+  "ws": "/private/tmp/gpt55-ws/IMPL-03",
+  "dry_run": false,
+  "model": "gpt-5.5 (codex exec; the summary model field default is vestigial)",
+  "replay_preface": "Replay note: you are working in /private/tmp/gpt55-ws/IMPL-03 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged.",
+  "run_status": "ok",
+  "subtype": "success",
+  "api_error_status": null,
+  "returncode": 0,
+  "session_id": null,
+  "duration_ms": 292251,
+  "num_turns": null,
+  "usage": {
+    "tokens_used": 92800
+  },
+  "total_cost_usd": null,
+  "stop_reason": null,
+  "is_error": false,
+  "result_text": "Modified files:\n- `crates/bridge-store/src/sqlite.rs` \u2014 added batch migration, batch task columns, SQLite batch methods, transactional `claim_batch_child`, mappers, and tests.\n- `crates/bridge-store/Cargo.toml` \u2014 added `tempfile` dev-dependency.\n- `Cargo.lock` \u2014 lockfile updated for bridge-store\u2019s `tempfile` dev-dependency.\n\nTest result:\n- FAIL: `cargo test -p bridge-store sqlite_claim 2>&1 | tail -20`\n- It failed on a `row_to_batch(row)?` error conversion; I fixed that afterward, but did not rerun due to the one-test cap.\n\n",
+  "timed_out": false,
+  "parse_error": null,
+  "terminal_reason": null,
+  "tests_passed_guess": "pass",
+  "evidence_summary": [
+    {
+      "cmd": "cargo test -p bridge-store sqlite_migration_idempotent_and_batch_roundtrip",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo test -p bridge-store sqlite_claim_is_atomic_single_runner",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo build --workspace",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    }
+  ],
+  "scaffold": {
+    "tracked_scaffold_paths": [
+      "AGENTS.md"
+    ],
+    "missing_on_disk_after_checkout": [],
+    "has_CLAUDE_md": false,
+    "has_dot_claude_dir": false,
+    "has_AGENTS_md": true,
+    "agents_md_shimmed": true,
+    "global_hooks_present": true,
+    "shim": {
+      "present": true,
+      "sha256_at_write": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53",
+      "sha256_after_run": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53",
+      "changed": false
+    }
+  },
+  "shim": {
+    "present": true,
+    "changed": false,
+    "sha256_at_write": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53",
+    "sha256_after_run": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53"
+  },
+  "source_repo_touched": false,
+  "transcript_lookup_note": "matched codex rollout by cwd (1 candidate(s))",
+  "transcript_path": "bench/out-gpt55/IMPL-03/transcript.jsonl",
+  "executor": "codex",
+  "codex_effort": "high"
+}

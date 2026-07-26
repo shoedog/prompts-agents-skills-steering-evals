@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": false,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A: both new tests would fail on the pre-change code because `WorkflowNodeToml` had no `retry` field and graph construction hard-coded `retry: None`. Strongest test is `workflow_node_retry_maps_into_graph`, since it exercises `RegistryConfig::load_workflows` and asserts the real `WorkflowGraph.nodes[0].retry` value. Weakest test is `workflow_node_retry_parses`, since it only proves TOML deserialization and does not cover graph mapping; Arm A does at least assert omitted `backoff_cap_ms` defaults to `None`. It does not add negative or edge-case coverage such as explicit cap, absent retry, or invalid retry fields, but those were not explicitly required.\n\nArm B: both new tests would also fail on the pre-change code for the same reasons, and the mapping test asserts real behavior rather than a tautology. Strongest test is also `workflow_node_retry_maps_into_graph`. Weakest test is `workflow_node_retry_parses`, and it is slightly weaker than Arm A's version because it does not assert that omitted `backoff_cap_ms` defaults to `None`. It likewise lacks negative/edge-case coverage beyond the required happy path.",
+  "rationale": "Both arms satisfy the required config model, deserialize `retry`, map it into `WorkflowNode.retry` through `load_workflows`, and include the mandatory parser and graph-mapping tests. WRONG: no concrete behavioral bug is evident in either implementation from the diff. SMELL: Arm A changes `crates/bridge-workflow/src/graph.rs`, which is outside T3's requested `bin/a2a-bridge/src/config.rs` scope. The change appears behaviorally equivalent, but it is unnecessary scope expansion under a strict task brief. Arm A's tests are marginally stronger because the parse test also checks `backoff_cap_ms` defaulting to `None`. Arm B is materially better overall because it stays scoped while implementing the same required behavior; Arm A's small test advantage does not outweigh the unrelated graph.rs edit."
+ },
+ "tokens_used": 21058
+}

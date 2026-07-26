@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": false,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Both arms' new tests reference symbols (RetryToml, WorkflowNodeToml.retry, RetryPolicy) that don't exist pre-change, so all would fail to compile against pre-change code \u2014 expected for TDD on new fields. Arm A: 4 tests. `workflow_node_retry_parses` (weakest \u2014 boilerplate deser check mirroring the task's literal example). `workflow_node_retry_maps_into_graph` (strongest, PR-FIX-9-mandated) drives the real `RegistryConfig::parse`+`load_workflows` path and asserts `WorkflowGraph.nodes[0].retry` equals the exact `RetryPolicy`, proving the mapping isn't dead code. Two extra tests add real edge coverage: `..._absent_defaults_to_none_end_to_end` proves the `None` arm of the `.map()` also survives into the graph (a distinct path from the Some case), and `..._missing_max_attempts_fails_to_parse` proves `max_attempts` has no serde default \u2014 a genuine requiredness assertion, not tautological. Arm B: 2 tests \u2014 a functionally identical `_parses` (weakest, though it adds a `backoff_cap_ms==None` check Arm A omits) and an identical `_maps_into_graph` (strongest, same PR-FIX-9 assertion as Arm A). Arm B never exercises the retry-absent or missing-required-field paths. Both arms' PR-FIX-9 tests assert real behavior via concrete struct equality against actual graph output, not trivial passes. Net: Arm A has broader edge/negative coverage; Arm B is narrower but not weaker on the mandated test itself.",
+  "rationale": "Both arms implement identical RetryToml + WorkflowNodeToml.retry + graph-mapping code in config.rs, and both include the PR-FIX-9-mandated `workflow_node_retry_maps_into_graph` test verifying the real load_workflows path. Arm A stays entirely within config.rs as the task specifies and adds two extra in-scope edge tests (negative required-field test, absent->None end-to-end). Arm B additionally edits crates/bridge-workflow/src/graph.rs, changing `checked_mul().unwrap_or(MAX)` to `saturating_mul` in `backoff_for` \u2014 a behaviorally-equivalent simplification, but out of scope for a task explicitly scoped to config.rs 'no more'; that touches prior-task (T2) code this task shouldn't modify. That scope violation (SMELL, not a correctness bug) plus Arm A's stronger, broader test coverage make Arm A materially better overall."
+ },
+ "cost_usd": 0.2993559
+}

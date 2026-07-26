@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": false,
+  "probe_answer": "Both arms are byte-identical in RetryToml, the retry field, and the graph-mapping closure at config.rs:970 \u2014 full task + PR-FIX-9 compliance. Tests are structurally identical: workflow_node_retry_parses only exercises toml::from_str, so it would still pass even if the graph-mapping site were never touched (i.e. it does NOT regression-catch the actual bug this task fixes) \u2014 weakest test in both arms. workflow_node_retry_maps_into_graph drives RegistryConfig::parse + load_workflows and asserts g.nodes[0].retry == Some(RetryPolicy{3,250,None}) \u2014 this WOULD fail on pre-change code (retry: None hardcoded) and is the strongest test in both arms, correctly satisfying PR-FIX-9's mandate that deser-only testing is insufficient. Neither arm adds negative/edge-case tests (missing retry defaulting to None, malformed retry TOML, backoff_cap_ms populated) but the task spec only mandated these two positive-path tests, so neither is deficient relative to scope. Only observed diff: prompt-file fixture content ('x' vs 'review {{input}}') and a local variable name (map vs wfs) \u2014 both cosmetic, no behavioral difference in test rigor.",
+  "rationale": "The two diffs are functionally identical: same RetryToml struct, same #[serde(default)] retry field, same graph-mapping closure with identical field-by-field construction, and the same two tests with identical assertions. The only differences are a placeholder prompt-file string and a local variable name, neither of which affects correctness, scope, or test strength. This is a clear parity case."
+ },
+ "cost_usd": 0.1912584
+}

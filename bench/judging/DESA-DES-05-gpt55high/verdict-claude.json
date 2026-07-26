@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": false,
+  "load_bearing_caveats_matched": false,
+  "scope_calibrated": true,
+  "would_have_prevented_wasted_work": false,
+  "probe_answer": "The memo correctly verifies the double-capture is Python-only (two FunctionIds, same name/owner, decorated_definition + function_definition), correctly refutes it for JS/TS via actual fixture tests rather than assumption, and correctly maps the resolver arms (self_receiver, R3b, R6, free local) and the wide consumer blast radius (CallGraph, CPG, DFG, navigation, inventory, FastAPI/Flask, taint). That verification and scoping matches the settled Python-only framing well. But its central architectural decision is inverted: it recommends making the inner function_definition canonical and dropping the wrapper ('logical_functions() ... filters Python decorated_definition wrappers in favor of the inner'), whereas the merged fix (#132) did the opposite \u2014 decorated wrapper is canonical, inner is dropped, with unwrap_decorated used only for field readers ('inventory keeps decorated wrapper, preserves nested defs'; 'unwrap_decorated for decorated-fn field readers'). The memo even cites inventory.rs's pre-fix wrapper-dropping behavior as evidence for its choice, which is precisely the behavior the shipped fix reversed.",
+  "rationale": "Verification depth, blast-radius mapping, and Python-only/JS-TS-empirical scoping are all strong and match the settled outcome's shape and sizing. However the memo's Option A recommendation picks inner-as-canonical, the mirror image of the vindicated and shipped wrapper-as-canonical design \u2014 a load-bearing reversal, not a minor detail, since it drives decorator-line navigation, FastAPI/Flask wrapper-based detection, and taint's wrapper-anchored assumptions. Implementing this memo as written would have required building the wrong canonicalization direction and then reworking it once the wrapper-based consumers broke, so it would not have prevented rework despite otherwise solid analysis."
+ },
+ "cost_usd": 0.2167203
+}

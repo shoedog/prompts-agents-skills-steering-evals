@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Yes for both arms on the sketched golden path (node_started@1, tool_call@2, tool_call_update@3, node_finished@4): tracing each fold, snapshot_frames(snap,None) yields only (4,node_finished) [start collapsed], the tool_call+update fold to one merged (3,tool_call) frame carrying the patched final status, sort_by_key(seq) (stable) yields [(3,tool_call),(4,node_finished)] with no duplicate or reordered entries in either implementation. For no-rich runs both never append rich frames so the merged list is exactly snapshot_frames' output, preserving S6 byte-identity. No divergence between arms on this dimension.",
+  "rationale": "Both implement the same correct algorithm (single journal_fold_inputs read -> {snap,events}, merge node+folded rich frames, cursor-filter once, re-derive sentinel from merged last frame) and both swap both reattach call sites correctly. Arm A is materially stronger on two fronts a reviewer would flag: (1) test coverage \u2014 Arm A adds a second test (rich_snapshot_plan_latest_orphan_update_and_cursor) exercising Plan latest-only replacement, orphan ToolCallUpdate handling, and cursor-applied-once-on-the-merged-list \u2014 all three are explicit PFIX-H requirements that Arm B's single test never touches, leaving those behaviors unverified; (2) Arm A removes the now-stale `#[allow(dead_code)]` attributes on FrameKind::{Plan,ToolCall,ToolCallUpdate} and frame_from_orch in reattach.rs, which the task explicitly instructs ('Remove the Task-7 scoped dead_code allow if frame_from_orch is now used') and which Arm B leaves in place despite also calling frame_from_orch. Neither issue breaks functionality, but both are concrete, spec-cited gaps a reviewer would insist Arm B close."
+ },
+ "cost_usd": 0.5846541
+}

@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A: (a) yes, bind_params now does one ordered binding pass for the full parameter list via add_locals_with_facts, so ordinals are positional again; (b) yes, the fn f(a, b) scope-graph test would fail on the buggy per-param code because both ordinals would be 0; (c) mostly yes, the change is narrowly scoped and preserves local_facts, with only a small helper abstraction added. Arm B: (a) yes, bind_params now calls one binding pass over all params and attaches facts separately by def_byte; (b) yes, its positional ordinal test would fail on the buggy code; (c) yes, it is minimal and inert, with binding creation separated from fact recording without changing other add_locals call behavior.",
+  "rationale": "Both arms correctly remove the root cause and add the required ordinal regression. SMELL: Arm A's ambiguity test is more synthetic because it clones an existing binding in the graph rather than using two source-level same-rib lets, so it is a weaker pin for the requested duplicate-local scenario. Arm B's ambiguity test exercises actual same-block duplicate locals and includes a non-vacuous pre-ambiguity lookup check. Arm A does additionally assert local_facts for params, but Arm B's tests better match the shipped requirements and its helper split more directly documents the ordinal invariant, so Arm B is materially stronger overall."
+ },
+ "tokens_used": 27457
+}

@@ -1,0 +1,43 @@
+# DRAFT v0 seed (2026-07-25) — not execution-verified.
+seeded: true
+defects:
+- id: mc-02-d1
+  defect_class: false capacity claim (per-group deletion does not reduce the seal-time peak)
+  location: 'CHANGELOG.md claim vs src/replay_spool.rs: seal()'
+  hunk_lines: the changelog "high-water mark at seal time is gone" lines vs the seal() body (merge_sorted
+    over all remaining runs, then the remove_file loop)
+  description: 'The changelog claims peak scratch is now "bounded by one merge group at every stage,
+    including seal" and that the 2x seal-time high-water "is gone". But seal() merges ALL remaining runs
+    into one full-size sealed.run BEFORE deleting any input: at the moment merge_sorted returns, scratch
+    simultaneously holds every remaining run (jointly ~the full dataset after compact_runs) plus the
+    complete sealed output. The 2x high-water at seal is unchanged; compact_runs only bounds the
+    intermediate merges.'
+  root_cause: the changelog generalizes the per-group delete-after-merge of compact_runs() to the seal
+    step without tracing the ordering inside seal() — merge everything, fsync, only then delete inputs.
+  bad_behavior: 'an operator provisioning scratch per the changelog (dataset + one merge group) hits
+    ENOSPC at seal on any spool larger than ~half the volume: seal needs dataset + full sealed copy.'
+  minimal_trigger: 'spool 100 GiB of runs onto a 150 GiB volume: compact_runs stays within bounds, then
+    seal() fails (or stalls the volume) at ~200 GiB demand while the changelog promises ~112 GiB peak.'
+  acceptable_match: any finding that seal() holds all remaining runs plus the full sealed output on disk
+    at once (merge-then-delete ordering), so the 2x seal-time peak persists and the changelog claim is
+    false. CITATION REQUIRED — the finding must point at the implementing seal() line(s) (the
+    merge_sorted-over-self.runs call and/or the post-merge remove_file loop), not only at the changelog
+    hunk.
+  reject_if: a finding that only questions deleting files in general, praises or restates the bounded-peak
+    claim, says "the changelog may overstate" without naming seal()'s merge-then-delete ordering, or cites
+    only CHANGELOG.md with no reference to the implementing line(s) in src/replay_spool.rs.
+neutral_findings:
+- seal() re-runs merge_sorted even when compact_runs left exactly one run, paying an avoidable full copy;
+  true of the new code but not the seeded false-capacity-claim defect.
+- sealed.run has a fixed name, so re-sealing into the same scratch dir would clobber a prior sealed run;
+  real edge case, out of scope for the seeded defect.
+provenance:
+  incident: 'f57999e7 L7679 (stockTrading orchestrator, 2026-07-25): Fable spec review W-1 — "the
+    merge-deletion bonus claim is false. seal() unconditionally merges all remaining runs into one
+    full-size sealed run before deleting inputs -> the ~40 GiB 2x high-water is at seal, which per-group
+    deletion in compact_runs doesn''t touch." The orchestrator''s own spec had shipped the false claim.'
+  repo_ref: 'stockTrading crates/tools/historical-backfill/src/canonical/g4c_replay_spool.rs —
+    G4cReplaySpool::seal() (line ~798), compact_runs() (line ~778) (symbols, not copied code)'
+  detector_rows: 'mining/out/failure_signatures.jsonl: detector=admission session=f57999e7 line_no=7679'
+rubric_emphasis: 'claim-has-citation AND citation-correct — credit requires naming seal()''s
+  merge-then-delete lines; a changelog-only citation fails.'

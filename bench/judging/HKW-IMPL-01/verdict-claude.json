@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both suites' new tests would fail on pre-Task-5 code except 'no_watchdog_config_is_byte_identical' (identical to current no-op behavior in both arms, so it doesn't discriminate old vs new). Arm A strongest: 'watchdog_does_not_trip_active_or_unmodeled_turn' \u2014 real FIX-11 coverage (unmodeled events still bump activity), asserts genuine stream progression. Arm A weakest/gap: no test isolates idle<<wall firing (its hung test uses idle=10s>>wall=50ms, so only wall-clock ever discriminates) \u2014 this hides a real bug: Arm A's loop reads la==0 on its first check (before send_request even fires, virtually guaranteed) and per the literal formula locks the sleep to wall_deadline; once activity starts then stalls, the loop never wakes early to re-derive a shorter idle deadline, so idle_timeout degenerates to always firing at hard_wall_clock. Arm B strongest: 'watchdog_fired_cancel_honored_within_grace_is_still_timed_out' \u2014 directly proves the PFIX-F KEYSTONE (agent honors cancel, returns Done{cancelled} within grace, yet result is still AgentTimedOut), which Arm A never exercises (its hung test never lets the agent respond). Arm B also has a dedicated 'watchdog_idle_timeout_fires_after_activity_goes_silent' (idle=60ms, wall=5s) that would very likely FAIL against Arm A's implementation, since Arm A anchors la==0 to wall while Arm B anchors it to Instant::now()+idle_timeout. Arm B weakest: its own 'no_watchdog_config_is_byte_identical' \u2014 same shallow 200ms-poll style as Arm A's equivalent.",
+  "rationale": "WRONG (Arm A): the watchdog task's first loop iteration observes last_activity_ms==0 (essentially guaranteed, since it's read before the prompt is even sent) and, per the literal pseudocode, sets the sleep deadline to hard_wall_clock in that branch. Because the loop only re-derives the deadline on wake, once activity starts and later goes silent the task keeps sleeping to wall_deadline \u2014 idle_timeout never fires on its own timescale, only at the wall-clock ceiling. Concrete failure: idle_timeout=60ms/hard_wall_clock=5s, one activity chunk then silence \u2192 fires at ~5s not ~60ms. Arm B sidesteps this by anchoring the la==0 branch to Instant::now()+idle_timeout, and is the only arm with a test proving idle fires independently of a much larger wall clock, plus the only arm testing the PFIX-F KEYSTONE (honored-cancel-within-grace is still AgentTimedOut). Both arms match PFIX-G/H/L and scope discipline identically otherwise."
+ },
+ "cost_usd": 0.7464422999999999
+}

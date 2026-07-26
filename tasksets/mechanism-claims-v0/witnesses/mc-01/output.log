@@ -1,0 +1,85 @@
+=== mc-01 witness run: 2026-07-25T15:37:55Z ===
+item dir : /Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/witnesses/mc-01/../../items/mc-01
+build dir: /private/tmp/claude-501/-Users-wesleyjinks/782c0297-efe4-408f-9b1a-07346a6a6c30/scratchpad/mcv/mc-01
+toolchain: cargo 1.94.0 (85eff7c80 2026-01-15); git version 2.50.1 (Apple Git-155); patch: patch 2.0-12u11-Apple
+
+--- step 1: materialize shim base files ---
+base files:
+./Cargo.toml
+./docs/spool-format.md
+./src/bin/trigger.rs
+./src/lib.rs
+
+--- step 2: git apply --check (header/structure validation) ---
+exit=0
+--- step 2b: patch -p1 --dry-run (cross-check) ---
+patching file 'src/replay_spool.rs'
+patching file 'docs/spool-format.md'
+exit=0
+--- step 2c: apply for real (git apply) ---
+exit=0
+post-apply tree:
+./Cargo.toml
+./docs/spool-format.md
+./src/bin/trigger.rs
+./src/lib.rs
+./src/replay_spool.rs
+
+--- step 3: cargo build (compile check) ---
+    Updating crates.io index
+     Locking 21 packages to latest compatible versions
+      Adding generic-array v0.14.7 (available: v0.14.9)
+      Adding serde v1.0.228 (available: v1.0.229)
+      Adding serde_core v1.0.228 (available: v1.0.229)
+      Adding serde_derive v1.0.228 (available: v1.0.229)
+      Adding serde_json v1.0.150 (available: v1.0.151)
+      Adding sha2 v0.10.9 (available: v0.11.0)
+ Downloading crates ...
+  Downloaded quote v1.0.47
+  Downloaded proc-macro2 v1.0.107
+  Downloaded libc v0.2.189
+   Compiling version_check v0.9.5
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.24
+   Compiling typenum v1.20.1
+   Compiling quote v1.0.47
+   Compiling libc v0.2.189
+   Compiling serde_core v1.0.228
+   Compiling zmij v1.0.23
+   Compiling serde v1.0.228
+   Compiling serde_json v1.0.150
+   Compiling memchr v2.8.3
+   Compiling cfg-if v1.0.4
+   Compiling itoa v1.0.18
+   Compiling generic-array v0.14.7
+   Compiling syn v2.0.119
+   Compiling cpufeatures v0.2.17
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling serde_derive v1.0.228
+   Compiling mc01 v0.1.0 (/private/tmp/claude-501/-Users-wesleyjinks/782c0297-efe4-408f-9b1a-07346a6a6c30/scratchpad/mcv/mc-01)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.85s
+exit=0
+
+--- step 4: minimal_trigger run ---
+total run bytes written        : 302
+RUN_MAGIC prefix present       : true
+u32 BE length prefix (framing) : 244
+
+DOC CLAIM (docs/spool-format.md hunk in this diff):
+  'Record payloads use our compact custom binary codec; there is no JSON
+   anywhere on the write path. Protobuf bar bytes are stored raw' ->
+  predicted record ~= 20 raw bar bytes + tokens/ordinal + framing.
+
+ACTUAL framed record payload (244 bytes) is UTF-8 JSON text:
+{"market_bar":[10,18,8,155,196,3,17,113,61,10,215,163,112,69,64,25,0,0,248,66],"source_ordinal":7,"close_token":"C-2026-07-24","closeadj_token":"CA-2026-07-24","raw_row_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+
+market_bar (20 raw protobuf bytes) rendered as a JSON integer array:
+  [10,18,8,155,196,3,17,113,61,10,215,163,112,69,64,25,0,0,248,66] => 64 characters for 20 bytes = 3.20x blow-up
+
+VERDICT: the payload encoder is serde_json (encode_entry -> serde_json::to_writer,
+src/replay_spool.rs); the market_bar protobuf bytes are NOT stored raw. The doc's
+'compact custom binary codec / no JSON anywhere on the write path' claim is FALSE.
+exit=0

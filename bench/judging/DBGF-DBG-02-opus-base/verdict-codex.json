@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": false,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A: it does make materialized-vs-resolved distinct and suppresses R3/R3b for poisoned Python plus TS import-shadow cases, and its required repro tests would fail pre-fix; however its scope-aware byte cutoff is applied to Rust/Go too. Arm B: yes; it models Unmaterialized vs MaterializedPoisoned vs Recovered, suppresses R3/R3b even with poisoned types, keeps scope-aware recovery gated to Python/JS/TS, and its regression tests reproduce both false-Exact cases and would fail pre-fix.",
+  "rationale": "Arm B is materially better. Both arms address the root blocker shape and add meaningful tests. WRONG in Arm A: walk_receiver_bindings now prunes by start_byte for every language, so a Rust/Go same-line binding after a call that the old line-based logic counted is now ignored, violating the explicit Rust/Go byte-identical requirement. Arm B preserves Rust/Go line behavior while using byte cutoff and class-scope skipping for Python/JS/TS. B's tests are also stronger: they assert receiver_materialized on poisoned sites, include an unshadowed TS import control, and add JS class-scope coverage. Arm A's tests cover the required repros, but it misses the non-regression gate."
+ },
+ "tokens_used": 37172
+}

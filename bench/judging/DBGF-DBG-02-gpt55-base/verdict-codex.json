@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": false,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": false,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Arm A: yes. It creates a distinct materialized-vs-resolved classifier state, carries receiver_materialized onto CallSite, and suppresses R3/R3b for Python/JS/TS when either a recovered type or poisoned materialized binding exists. Its regression tests cover the Python poisoned R3b false Exact, the TS import-shadow false Exact, nested-class recovery, same-line-after-call recovery, wildcard poison, and a non-poisoned TypedParam control. Arm B: partially. It also separates materialized from recovered and fixes the two false-Exact repros, but its scope recovery applies the byte cutoff to Rust/Go too, violating the strict Python/JS/TS gate. Its tests would fail pre-fix for the Python and TS false-Exact cases, but they are weaker and miss JS nested-class coverage and an added positive control.",
+  "rationale": "Arm A is materially better: it models the state cleanly with Unmaterialized, MaterializedPoisoned, and Recovered, preserves old receiver_type-based suppression as a compatibility fallback, gates byte-aware recovery to Python/JS/TS, and has broader regression coverage. SMELL: Arm A changes the public legacy_recover return type, which is broader API churn than necessary, but not enough to outweigh the implementation quality.\n\nWRONG: Arm B applies node.start_byte() >= call_start_byte in walk_receiver_bindings for every language. For Rust/Go nodes on the call line but after the call start, the old line-based traversal would still scan them; Arm B now drops them, violating the explicit Rust/Go byte-identical requirement. SMELL: Arm B's tests do not assert receiver_materialized for the poisoned-"
+ },
+ "tokens_used": 42959
+}

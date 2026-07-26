@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms remove the per-param ordinal collision at the root by restoring a single ordered parameter binding pass, and both add an ordinal regression that would fail on the buggy per-param code. Arm B is cleaner and more inert: it factors binding creation into add_local_bindings so bind_params can add one ordered binding slice while attaching per-param facts separately, without inventing a dummy LocalFact. Arm A also repairs the root bug, but its bind_params call passes a synthetic Param LocalFact with annotation/init None into add_locals, then overwrites facts by def_byte; this is probably behavior-equivalent if add_local_fact overwrites, but it is a more coupled and less clearly inert shape. Both add the duplicate same-rib ambiguity regression; Arm B's version is stronger because it proves the fixture is non-vacuous by checking lookup succeeds before the duplicate is introduced.",
+  "rationale": "Arm A is likely complete: it collects all params, calls add_locals once with the full ordered slice, then writes per-binding facts by def_byte. The ordinal test asserts a=0 and b=1 from scope graph BindingRefs, and the ambiguity test covers same-rib duplicate fall-through. Scope is acceptable because it only touches task-relevant files.\n\nArm B is materially better. It preserves add_locals behavior for existing same-fact callers and introduces add_local_bindings for the binding-only pass, making the param fix explicit and avoiding a temporary placeholder LocalFact. That is closer to the task's inertness requirement and less dependent on add_local_fact overwrite semantics. Its ambiguity regression also avoids a vacuous pass by asserting the first binding is visible before the duplicate. No B"
+ },
+ "tokens_used": 7097
+}

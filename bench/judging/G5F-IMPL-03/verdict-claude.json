@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Both tests would fail on pre-change code (no `batch` table/methods exist yet). Arm A strongest test: sqlite_migration_idempotent_and_batch_roundtrip \u2014 verifies migration idempotency via close+reopen, create_batch/get_batch round trip, duplicate-PK rejection, batch_id/item_id round-trip through the plain create()/get() task path (an explicit spec requirement Arm B never exercises), full CAS chain working->canceling->canceled with idempotency, active_batches inclusion/exclusion, fail_batch_if_status error text + idempotency, and list_batches count \u2014 real, concrete assertions throughout. Arm A weakest: sqlite_claim_is_atomic_single_runner \u2014 good (covers Created/ExistingWorking/ExistingTerminal) but sequential, not truly concurrent, so 'atomic' isn't proven under a race. Arm B strongest: its claim test (Created/ExistingWorking tuple + child count/identity) \u2014 solid but misses the ExistingTerminal reclaim path. Arm B weakest: sqlite_migration_idempotent_and_batch_roundtrip \u2014 only checks reopen idempotency plus a bare create_batch/get_batch total/status; leaves cancel_batch_if_working, settle_batch_if_status, fail_batch_if_status, active_batches, list_batches, and batch_id/item_id round-trip via create/get completely untested despite all being implemented.",
+  "rationale": "Both implementations are complete, in-scope, and implement all 9 methods plus migration correctly on inspection. The decisive difference is test rigor: Arm A's tests exercise nearly every new code path (CAS transitions for cancel/settle/fail with idempotency, active_batches filtering, list_batches, uniqueness-violation rejection, and batch_id/item_id round-trip via the ordinary create/get path, which the spec explicitly requires) while Arm B's tests cover only the bare minimum named in the plan, leaving five of nine new methods and an explicit spec requirement completely unverified. Arm A's claim_batch_child inserts rec.status rather than the spec's literal 'working' (Arm B hardcodes it correctly) \u2014 a real but likely-latent deviation (SMELL, since test/plausible callers pass Working) not exercised by any shown caller. This one item doesn't offset Arm A's substantially broader, more assertion-rich test suite, which directly addresses the probe's test-rigor focus."
+ },
+ "cost_usd": 0.6774236999999999
+}

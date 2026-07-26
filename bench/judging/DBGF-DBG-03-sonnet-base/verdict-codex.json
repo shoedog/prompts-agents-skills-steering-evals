@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Arm A: yes. It removes the per-param ordinal collision at the root by separating the binding-only pass from fact insertion, calling one ordered binding pass for all params, and attaching per-param facts by def_byte. Its ordinal regression inspects the scope graph BindingRefs directly and would fail on the buggy per-param implementation; its ambiguity test also has a non-vacuous positive check. Arm B: mostly yes. It also calls add_locals once over the ordered param slice, so the ordinal collision is removed, and its ordinal test would fail on the buggy code. However it uses add_locals with a synthetic default Param fact and then overwrites facts afterward, which is less exact than the task\u2019s requested shape and depends on add_local_fact overwrite semantics. That is a smell, not a proven wrong result from the diff alone.",
+  "rationale": "A is materially better because it implements the intended primitive: add bindings once in source order, then add per-binding facts separately by def_byte. That avoids transient or semantic dependence on dummy LocalFact writes. A\u2019s regression is also closer to the acceptance text because it asserts directly against scope-graph bindings and checks distinct BindingRefs with ordinals 0 and 1. B appears to fix the root ordinal bug and has a failing regression for the buggy code, but its dummy-fact add_locals call is a weaker, more fragile implementation, and its duplicate-ambiguity test can pass for more vacuous reasons than A\u2019s. Neither arm appears to introduce unrelated file churn in the shown diff."
+ },
+ "tokens_used": 47833
+}

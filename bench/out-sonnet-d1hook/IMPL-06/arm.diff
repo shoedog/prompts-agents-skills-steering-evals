@@ -1,0 +1,743 @@
+diff --git a/crates/bridge-a2a-inbound/src/reattach.rs b/crates/bridge-a2a-inbound/src/reattach.rs
+index 3cf20ef..35b614e 100644
+--- a/crates/bridge-a2a-inbound/src/reattach.rs
++++ b/crates/bridge-a2a-inbound/src/reattach.rs
+@@ -38,11 +38,9 @@ impl TerminalOutcome {
+ #[derive(Clone, Debug, Serialize)]
+ #[serde(tag = "kind", rename_all = "snake_case")]
+ pub(crate) enum FrameKind {
+-    #[allow(dead_code)] // Task 7 lands before the rich sink/projection callers.
+     Plan {
+         entries: Vec<PlanEntry>,
+     },
+-    #[allow(dead_code)] // Task 7 lands before the rich sink/projection callers.
+     ToolCall {
+         tool_call_id: String,
+         title: String,
+@@ -52,7 +50,6 @@ pub(crate) enum FrameKind {
+         locations: Vec<String>,
+         content_preview: Option<String>,
+     },
+-    #[allow(dead_code)] // Task 7 lands before the rich sink/projection callers.
+     ToolCallUpdate {
+         tool_call_id: String,
+         #[serde(skip_serializing_if = "Option::is_none")]
+@@ -96,7 +93,6 @@ pub(crate) struct WorkflowProgressFrame {
+     pub kind: FrameKind,
+ }
+ 
+-#[allow(dead_code)] // Task 7 lands before the rich sink/projection callers.
+ pub(crate) fn frame_from_orch(
+     kind: &OrchEventKind,
+     phase: Phase,
+diff --git a/crates/bridge-a2a-inbound/src/server.rs b/crates/bridge-a2a-inbound/src/server.rs
+index 429de03..1624a4e 100644
+--- a/crates/bridge-a2a-inbound/src/server.rs
++++ b/crates/bridge-a2a-inbound/src/server.rs
+@@ -1021,11 +1021,11 @@ async fn subscribe_to_task(
+             if rec.status.is_terminal() {
+                 // --- Terminal-task flow (Task 8) --- read the snapshot and replay it
+                 // as a FINITE SSE stream (snapshot → SnapshotComplete → Terminal → close).
+-                let snap = match fold_or_typed_snapshot(&srv.task_store, &task_id).await {
+-                    Ok(s) => s,
++                let folded = match fold_or_typed_snapshot(&srv.task_store, &task_id).await {
++                    Ok(f) => f,
+                     Err(_) => return bridge_err_to_jsonrpc(id, &BridgeError::StoreFailure),
+                 };
+-                terminal_sse_response(&snap, cursor)
++                terminal_sse_response(&folded.snap, &folded.events, cursor)
+             } else {
+                 // --- Working-task flow (Task 9) --- subscribe-first, then snapshot,
+                 // then live-tail the hub until the Terminal frame.
+@@ -1048,10 +1048,11 @@ async fn subscribe_to_task(
+ /// reader-trap suggesting more may come).
+ fn terminal_sse_response(
+     snap: &bridge_core::task_store::TaskProgressSnapshot,
++    events: &[bridge_core::orch::OrchEvent],
+     cursor: Option<i64>,
+ ) -> Response {
+-    // Build snapshot frames (cursor-filtered, seq-ordered).
+-    let mut frames = snapshot_frames(snap, cursor);
++    // Build merged, cursor-filtered, seq-ordered snapshot frames (node + rich).
++    let mut frames = rich_snapshot_frames(snap, events, cursor);
+ 
+     // Append SnapshotComplete sentinel (seq = max snapshot frame seq or cut_seq).
+     let sentinel_seq = frames.last().map(|f| f.seq).unwrap_or(snap.cut_seq);
+@@ -1099,10 +1100,19 @@ fn terminal_sse_response(
+     Sse::new(sse_stream).into_response()
+ }
+ 
++/// The node-resume snapshot AND the raw journal events, from the SAME
++/// `journal_fold_inputs` read (PFIX-H: one consistent read feeds both the node-frame
++/// projection (`snapshot_frames`) and the rich-fold projection
++/// (`rich_snapshot_frames`), rather than re-reading the journal separately).
++struct FoldedSnapshot {
++    snap: bridge_core::task_store::TaskProgressSnapshot,
++    events: Vec<bridge_core::orch::OrchEvent>,
++}
++
+ async fn fold_or_typed_snapshot(
+     store: &Arc<dyn bridge_core::task_store::TaskStore>,
+     task: &TaskId,
+-) -> Result<bridge_core::task_store::TaskProgressSnapshot, BridgeError> {
++) -> Result<FoldedSnapshot, BridgeError> {
+     let fi = store.journal_fold_inputs(task).await?;
+     let is_terminal = matches!(
+         fi.scalars.status,
+@@ -1112,11 +1122,15 @@ async fn fold_or_typed_snapshot(
+             | bridge_core::task_store::TaskRecordStatus::Interrupted
+     );
+     let eligible = fi.complete_from_birth && (!is_terminal || fi.scalars.terminal_seq.is_some());
+-    if eligible {
+-        bridge_core::task_store::fold_journal_to_snapshot(&fi.events, &fi.scalars)
++    let snap = if eligible {
++        bridge_core::task_store::fold_journal_to_snapshot(&fi.events, &fi.scalars)?
+     } else {
+-        store.progress_snapshot(task).await
+-    }
++        store.progress_snapshot(task).await?
++    };
++    Ok(FoldedSnapshot {
++        snap,
++        events: fi.events,
++    })
+ }
+ 
+ /// Build the streaming working SSE response: subscribe to the task's live progress
+@@ -1157,7 +1171,7 @@ async fn working_sse_response(
+             return match srv.task_store.get(task_id).await {
+                 Ok(Some(rec)) if rec.status.is_terminal() => {
+                     match fold_or_typed_snapshot(&srv.task_store, task_id).await {
+-                        Ok(snap) => terminal_sse_response(&snap, cursor),
++                        Ok(folded) => terminal_sse_response(&folded.snap, &folded.events, cursor),
+                         Err(_) => bridge_err_to_jsonrpc(id, &BridgeError::StoreFailure),
+                     }
+                 }
+@@ -1177,22 +1191,25 @@ async fn working_sse_response(
+     let rx = hub.subscribe();
+ 
+     // Read the durable snapshot.
+-    let snap = match fold_or_typed_snapshot(&srv.task_store, task_id).await {
+-        Ok(s) => s,
++    let folded = match fold_or_typed_snapshot(&srv.task_store, task_id).await {
++        Ok(f) => f,
+         Err(_) => return bridge_err_to_jsonrpc(id, &BridgeError::StoreFailure),
+     };
+ 
+     // I5: the task finished during/just-before the snapshot read → replay the
+     // terminal snapshot (do NOT rely on `rx` Closed; the runner may have published
+     // its Terminal frame before we subscribed).
+-    if snap.status.is_terminal() {
+-        return terminal_sse_response(&snap, cursor);
++    if folded.snap.status.is_terminal() {
++        return terminal_sse_response(&folded.snap, &folded.events, cursor);
+     }
+ 
+-    // Snapshot phase: cursor-filtered, seq-ordered frames + a SnapshotComplete
+-    // sentinel (seq = max snapshot frame seq, else cut_seq).
+-    let mut snapshot_vec = snapshot_frames(&snap, cursor);
+-    let sentinel_seq = snapshot_vec.last().map(|f| f.seq).unwrap_or(snap.cut_seq);
++    // Snapshot phase: merged (node + rich), cursor-filtered, seq-ordered frames +
++    // a SnapshotComplete sentinel (seq = max snapshot frame seq, else cut_seq).
++    let mut snapshot_vec = rich_snapshot_frames(&folded.snap, &folded.events, cursor);
++    let sentinel_seq = snapshot_vec
++        .last()
++        .map(|f| f.seq)
++        .unwrap_or(folded.snap.cut_seq);
+     snapshot_vec.push(crate::reattach::WorkflowProgressFrame {
+         v: 1,
+         seq: sentinel_seq,
+@@ -1202,7 +1219,7 @@ async fn working_sse_response(
+ 
+     // Dedup floor: a cursor-less subscriber keeps seq 0, and the snapshot↔live
+     // overlap is deduped (drop live frames already covered by the snapshot cut).
+-    let dedup_floor = cursor.unwrap_or(-1).max(snap.cut_seq);
++    let dedup_floor = cursor.unwrap_or(-1).max(folded.snap.cut_seq);
+ 
+     // Build the streaming SSE body: the snapshot vec first, then the live tail from
+     // `rx`. `async_stream::stream!` lets us write the imperative snapshot-then-tail
+@@ -1319,6 +1336,139 @@ fn snapshot_frames(
+     frames
+ }
+ 
++/// Build the merged, seq-ordered `Vec<WorkflowProgressFrame>` for the snapshot
++/// phase: the S6 node frames (`snapshot_frames`, byte-identical for a no-rich run)
++/// merged with the folded rich frames (latest `Plan`; `ToolCall`/`ToolCallUpdate`
++/// folded per `tool_call_id` — PFIX-H), then cursor-filtered ONCE on the merged
++/// list (not twice — filtering the node frames alone would double-apply the cursor).
++fn rich_snapshot_frames(
++    snap: &bridge_core::task_store::TaskProgressSnapshot,
++    events: &[bridge_core::orch::OrchEvent],
++    cursor: Option<i64>,
++) -> Vec<crate::reattach::WorkflowProgressFrame> {
++    let pass = |seq: i64| cursor.is_none_or(|k| seq > k);
++
++    let mut frames = snapshot_frames(snap, None);
++    frames.extend(fold_rich_events(events));
++    frames.retain(|f| pass(f.seq));
++    frames.sort_by_key(|f| f.seq);
++    frames
++}
++
++/// Fold rich `OrchEvent`s (seq order) into ONE frame per logical entity: keep only
++/// the LATEST `Plan` (complete-replace); per `tool_call_id`, merge `ToolCall` (the
++/// base) and `ToolCallUpdate` (a sparse patch) into the current state, emitting ONE
++/// `ToolCall` frame at the last-applied seq if a base `ToolCall` was seen, else a
++/// `ToolCallUpdate` frame (an orphan update, no prior base) at its last-applied seq.
++fn fold_rich_events(
++    events: &[bridge_core::orch::OrchEvent],
++) -> Vec<crate::reattach::WorkflowProgressFrame> {
++    use bridge_core::orch::OrchEventKind;
++
++    #[derive(Default)]
++    struct ToolCallFold {
++        title: Option<String>,
++        kind: Option<String>,
++        status: Option<String>,
++        locations: Option<Vec<String>>,
++        content: Option<bridge_core::orch::ContentSummary>,
++        last_seq: i64,
++        had_base: bool,
++    }
++
++    let mut latest_plan: Option<(i64, Vec<bridge_core::orch::PlanEntry>)> = None;
++    let mut tool_calls: HashMap<String, ToolCallFold> = HashMap::new();
++
++    for event in events {
++        match &event.kind {
++            OrchEventKind::Plan { entries } => {
++                latest_plan = Some((event.seq, entries.clone()));
++            }
++            OrchEventKind::ToolCall {
++                tool_call_id,
++                title,
++                kind,
++                status,
++                locations,
++                content,
++            } => {
++                let fold = tool_calls.entry(tool_call_id.clone()).or_default();
++                fold.title = Some(title.clone());
++                fold.kind = Some(kind.clone());
++                fold.status = Some(status.clone());
++                fold.locations = Some(locations.clone());
++                fold.content = content.clone();
++                fold.last_seq = event.seq;
++                fold.had_base = true;
++            }
++            OrchEventKind::ToolCallUpdate {
++                tool_call_id,
++                title,
++                kind,
++                status,
++                locations,
++                content,
++            } => {
++                let fold = tool_calls.entry(tool_call_id.clone()).or_default();
++                if title.is_some() {
++                    fold.title = title.clone();
++                }
++                if kind.is_some() {
++                    fold.kind = kind.clone();
++                }
++                if status.is_some() {
++                    fold.status = status.clone();
++                }
++                if locations.is_some() {
++                    fold.locations = locations.clone();
++                }
++                if content.is_some() {
++                    fold.content = content.clone();
++                }
++                fold.last_seq = event.seq;
++            }
++            _ => {}
++        }
++    }
++
++    let mut frames = Vec::new();
++    if let Some((seq, entries)) = latest_plan {
++        frames.push(crate::reattach::frame_from_orch(
++            &OrchEventKind::Plan { entries },
++            crate::reattach::Phase::Snapshot,
++            seq,
++        ));
++    }
++    for (tool_call_id, fold) in tool_calls {
++        let seq = fold.last_seq;
++        let kind = if fold.had_base {
++            OrchEventKind::ToolCall {
++                tool_call_id,
++                title: fold.title.unwrap_or_default(),
++                kind: fold.kind.unwrap_or_default(),
++                status: fold.status.unwrap_or_default(),
++                locations: fold.locations.unwrap_or_default(),
++                content: fold.content,
++            }
++        } else {
++            OrchEventKind::ToolCallUpdate {
++                tool_call_id,
++                title: fold.title,
++                kind: fold.kind,
++                status: fold.status,
++                locations: fold.locations,
++                content: fold.content,
++            }
++        };
++        frames.push(crate::reattach::frame_from_orch(
++            &kind,
++            crate::reattach::Phase::Snapshot,
++            seq,
++        ));
++    }
++    frames
++}
++
+ /// Spawn the local-backend producer for an already-resolved [`LocalDispatch`]: drive
+ /// the translator on the bound backend and forward each translated event into the
+ /// mpsc channel. Stops if the receiver is dropped (client disconnect).
+@@ -8865,7 +9015,7 @@ mod tests {
+         let typed_frames = snapshot_frames(&typed, None);
+         let store_dyn: std::sync::Arc<dyn bridge_core::task_store::TaskStore> = store.clone();
+         let folded = fold_or_typed_snapshot(&store_dyn, &task_id).await.unwrap();
+-        let folded_frames = snapshot_frames(&folded, None);
++        let folded_frames = snapshot_frames(&folded.snap, None);
+         assert_eq!(
+             serialize_frames(&typed_frames),
+             serialize_frames(&folded_frames)
+@@ -8901,7 +9051,7 @@ mod tests {
+         let typed_frames = snapshot_frames(&typed, None);
+         let store_dyn: std::sync::Arc<dyn bridge_core::task_store::TaskStore> = store.clone();
+         let folded = fold_or_typed_snapshot(&store_dyn, &task_id).await.unwrap();
+-        let folded_frames = snapshot_frames(&folded, None);
++        let folded_frames = snapshot_frames(&folded.snap, None);
+         assert_eq!(
+             serialize_frames(&typed_frames),
+             serialize_frames(&folded_frames)
+@@ -8942,7 +9092,7 @@ mod tests {
+         assert_eq!(typed_frames.len(), 1, "legacy typed checkpoint is required");
+         let store_dyn: std::sync::Arc<dyn bridge_core::task_store::TaskStore> = store;
+         let folded = fold_or_typed_snapshot(&store_dyn, &task_id).await.unwrap();
+-        let folded_frames = snapshot_frames(&folded, None);
++        let folded_frames = snapshot_frames(&folded.snap, None);
+         assert_eq!(
+             serialize_frames(&typed_frames),
+             serialize_frames(&folded_frames)
+@@ -9032,6 +9182,417 @@ mod tests {
+         );
+     }
+ 
++    /// Extract `(seq, kind)` tags from a `Vec<WorkflowProgressFrame>` for assertions
++    /// (mirrors `collect_sse_wire_tuples`'s `kind` extraction, but over in-memory
++    /// frames rather than a serialized SSE body).
++    fn tags(frames: &[crate::reattach::WorkflowProgressFrame]) -> Vec<(i64, String)> {
++        frames
++            .iter()
++            .map(|f| {
++                let v = serde_json::to_value(f).unwrap();
++                (f.seq, v["kind"].as_str().unwrap().to_string())
++            })
++            .collect()
++    }
++
++    /// A rich run: `node_started(1)`, `tool_call(2,t1,in_progress)`,
++    /// `tool_call_update(3,t1->completed)`, `node_finished(4)`. The merged snapshot
++    /// projection collapses the node start (it finished) and folds the tool call to
++    /// its LATEST state at the last-applied seq (3), interleaved by seq with the
++    /// node_finished frame (4).
++    #[tokio::test]
++    async fn rich_snapshot_folds_toolcall_interleaved() {
++        let store = std::sync::Arc::new(bridge_core::task_store::MemoryTaskStore::new());
++        let task_id = bridge_core::ids::TaskId::parse("task-rich-fold").unwrap();
++        store
++            .create(&working_record("task-rich-fold"))
++            .await
++            .unwrap();
++        let node = bridge_core::ids::NodeId::parse("node-a").unwrap();
++        let op = operation_id_for_task(&task_id);
++        let now = crate::workflow_sink::now_ms();
++
++        let s1 = store
++            .record_node_started(&task_id, &node, &op, now)
++            .await
++            .unwrap();
++        let s2 = store
++            .record_event_sequenced(
++                &task_id,
++                &op,
++                now,
++                bridge_core::orch::OrchEventKind::ToolCall {
++                    tool_call_id: "t1".into(),
++                    title: "Reading file".into(),
++                    kind: "read".into(),
++                    status: "in_progress".into(),
++                    locations: vec![],
++                    content: None,
++                },
++            )
++            .await
++            .unwrap();
++        let s3 = store
++            .record_event_sequenced(
++                &task_id,
++                &op,
++                now,
++                bridge_core::orch::OrchEventKind::ToolCallUpdate {
++                    tool_call_id: "t1".into(),
++                    title: None,
++                    kind: None,
++                    status: Some("completed".into()),
++                    locations: None,
++                    content: None,
++                },
++            )
++            .await
++            .unwrap();
++        let s4 = store
++            .put_node_checkpoint_sequenced(&task_id, &node, &op, "out-a", true, now)
++            .await
++            .unwrap();
++        assert_eq!((s1, s2, s3, s4), (1, 2, 3, 4));
++
++        let store_dyn: std::sync::Arc<dyn bridge_core::task_store::TaskStore> = store;
++        let folded = fold_or_typed_snapshot(&store_dyn, &task_id).await.unwrap();
++        let frames = rich_snapshot_frames(&folded.snap, &folded.events, None);
++        assert_eq!(
++            tags(&frames),
++            vec![
++                (3, "tool_call".to_string()),
++                (4, "node_finished".to_string()),
++            ],
++            "the node start collapses (finished); the tool call folds to its latest \
++             state at the last-applied seq, interleaved by seq: {frames:?}"
++        );
++    }
++
++    /// A `ToolCallUpdate` with NO prior `ToolCall` for its `tool_call_id` (an orphan
++    /// update — e.g. the base landed in a journal window this snapshot doesn't cover)
++    /// must fold to a `ToolCallUpdate` frame, NOT a `ToolCall` frame, at its own seq.
++    /// This exercises the `had_base == false` branch of `fold_rich_events`, which the
++    /// interleaved-fold test above never reaches.
++    #[tokio::test]
++    async fn rich_snapshot_folds_orphan_toolcall_update() {
++        let store = std::sync::Arc::new(bridge_core::task_store::MemoryTaskStore::new());
++        let task_id = bridge_core::ids::TaskId::parse("task-rich-orphan").unwrap();
++        store
++            .create(&working_record("task-rich-orphan"))
++            .await
++            .unwrap();
++        let op = operation_id_for_task(&task_id);
++        let now = crate::workflow_sink::now_ms();
++
++        let s1 = store
++            .record_event_sequenced(
++                &task_id,
++                &op,
++                now,
++                bridge_core::orch::OrchEventKind::ToolCallUpdate {
++                    tool_call_id: "orphan-1".into(),
++                    title: None,
++                    kind: None,
++                    status: Some("completed".into()),
++                    locations: None,
++                    content: None,
++                },
++            )
++            .await
++            .unwrap();
++        assert_eq!(s1, 1);
++
++        let store_dyn: std::sync::Arc<dyn bridge_core::task_store::TaskStore> = store;
++        let folded = fold_or_typed_snapshot(&store_dyn, &task_id).await.unwrap();
++        let frames = rich_snapshot_frames(&folded.snap, &folded.events, None);
++        assert_eq!(
++            tags(&frames),
++            vec![(1, "tool_call_update".to_string())],
++            "an orphan ToolCallUpdate (no prior base) must fold to a tool_call_update \
++             frame, not tool_call: {frames:?}"
++        );
++    }
++
++    /// Two `Plan` events at different seqs: only the LATEST survives the fold
++    /// (complete-replace semantics), emitted at the latest event's own seq.
++    #[tokio::test]
++    async fn rich_snapshot_keeps_latest_plan_only() {
++        let store = std::sync::Arc::new(bridge_core::task_store::MemoryTaskStore::new());
++        let task_id = bridge_core::ids::TaskId::parse("task-rich-plan").unwrap();
++        store
++            .create(&working_record("task-rich-plan"))
++            .await
++            .unwrap();
++        let op = operation_id_for_task(&task_id);
++        let now = crate::workflow_sink::now_ms();
++
++        let s1 = store
++            .record_event_sequenced(
++                &task_id,
++                &op,
++                now,
++                bridge_core::orch::OrchEventKind::Plan {
++                    entries: vec![bridge_core::orch::PlanEntry {
++                        content: "step one".into(),
++                        priority: "high".into(),
++                        status: "pending".into(),
++                    }],
++                },
++            )
++            .await
++            .unwrap();
++        let s2 = store
++            .record_event_sequenced(
++                &task_id,
++                &op,
++                now,
++                bridge_core::orch::OrchEventKind::Plan {
++                    entries: vec![bridge_core::orch::PlanEntry {
++                        content: "step one".into(),
++                        priority: "high".into(),
++                        status: "completed".into(),
++                    }],
++                },
++            )
++            .await
++            .unwrap();
++        assert_eq!((s1, s2), (1, 2));
++
++        let store_dyn: std::sync::Arc<dyn bridge_core::task_store::TaskStore> = store;
++        let folded = fold_or_typed_snapshot(&store_dyn, &task_id).await.unwrap();
++        let frames = rich_snapshot_frames(&folded.snap, &folded.events, None);
++        assert_eq!(
++            frames.len(),
++            1,
++            "only the LATEST Plan may survive the fold: {frames:?}"
++        );
++        assert_eq!(
++            frames[0].seq, 2,
++            "the surviving Plan must be at the latest seq"
++        );
++        match &frames[0].kind {
++            crate::reattach::FrameKind::Plan { entries } => {
++                assert_eq!(entries[0].status, "completed");
++            }
++            other => panic!("expected a Plan frame, got {other:?}"),
++        }
++    }
++
++    /// A cursor must exclude a folded rich frame the same way it excludes a node
++    /// frame: reusing the interleaved-fold journal (node_started(1), tool_call(2),
++    /// tool_call_update(3->completed), node_finished(4)), `cursor=3` drops the folded
++    /// `tool_call` frame (its last-applied seq is 3, not > 3) but keeps
++    /// `node_finished` (seq 4). Guards the "cursor-filtered ONCE on the MERGED list"
++    /// invariant — a bug that filtered only the node-frame portion (or forgot to
++    /// filter rich frames at all) would leak the tool_call frame through here.
++    #[tokio::test]
++    async fn rich_snapshot_frames_cursor_excludes_covered_rich_frame() {
++        let store = std::sync::Arc::new(bridge_core::task_store::MemoryTaskStore::new());
++        let task_id = bridge_core::ids::TaskId::parse("task-rich-cursor").unwrap();
++        store
++            .create(&working_record("task-rich-cursor"))
++            .await
++            .unwrap();
++        let node = bridge_core::ids::NodeId::parse("node-a").unwrap();
++        let op = operation_id_for_task(&task_id);
++        let now = crate::workflow_sink::now_ms();
++
++        store
++            .record_node_started(&task_id, &node, &op, now)
++            .await
++            .unwrap();
++        store
++            .record_event_sequenced(
++                &task_id,
++                &op,
++                now,
++                bridge_core::orch::OrchEventKind::ToolCall {
++                    tool_call_id: "t1".into(),
++                    title: "Reading file".into(),
++                    kind: "read".into(),
++                    status: "in_progress".into(),
++                    locations: vec![],
++                    content: None,
++                },
++            )
++            .await
++            .unwrap();
++        store
++            .record_event_sequenced(
++                &task_id,
++                &op,
++                now,
++                bridge_core::orch::OrchEventKind::ToolCallUpdate {
++                    tool_call_id: "t1".into(),
++                    title: None,
++                    kind: None,
++                    status: Some("completed".into()),
++                    locations: None,
++                    content: None,
++                },
++            )
++            .await
++            .unwrap();
++        store
++            .put_node_checkpoint_sequenced(&task_id, &node, &op, "out-a", true, now)
++            .await
++            .unwrap();
++
++        let store_dyn: std::sync::Arc<dyn bridge_core::task_store::TaskStore> = store;
++        let folded = fold_or_typed_snapshot(&store_dyn, &task_id).await.unwrap();
++        let frames = rich_snapshot_frames(&folded.snap, &folded.events, Some(3));
++        assert_eq!(
++            tags(&frames),
++            vec![(4, "node_finished".to_string())],
++            "cursor=3 must exclude the folded tool_call frame (seq 3) but keep \
++             node_finished (seq 4): {frames:?}"
++        );
++    }
++
++    /// End-to-end: SUBSCRIBE_TO_TASK on a TERMINAL task whose journal has a rich
++    /// ToolCall/ToolCallUpdate interleaved with node frames. Exercises the
++    /// `terminal_sse_response` call site's wiring to `rich_snapshot_frames` — before
++    /// Task 8 this call site used bare `snapshot_frames`, which silently drops every
++    /// rich event, so this test would fail (no "tool_call" tag) on the pre-change code.
++    #[tokio::test]
++    async fn subscribe_terminal_task_includes_rich_toolcall_frame() {
++        let store = std::sync::Arc::new(bridge_core::task_store::MemoryTaskStore::new());
++        let task_id = seed_task_record(&store, "t-rich-terminal").await;
++        let node = bridge_core::ids::NodeId::parse("node-a").unwrap();
++        let op = operation_id_for_task(&task_id);
++        let now = crate::workflow_sink::now_ms();
++
++        let s1 = store
++            .record_node_started(&task_id, &node, &op, now)
++            .await
++            .unwrap();
++        let s2 = store
++            .record_event_sequenced(
++                &task_id,
++                &op,
++                now,
++                bridge_core::orch::OrchEventKind::ToolCall {
++                    tool_call_id: "t1".into(),
++                    title: "Reading file".into(),
++                    kind: "read".into(),
++                    status: "in_progress".into(),
++                    locations: vec![],
++                    content: None,
++                },
++            )
++            .await
++            .unwrap();
++        let s3 = store
++            .record_event_sequenced(
++                &task_id,
++                &op,
++                now,
++                bridge_core::orch::OrchEventKind::ToolCallUpdate {
++                    tool_call_id: "t1".into(),
++                    title: None,
++                    kind: None,
++                    status: Some("completed".into()),
++                    locations: None,
++                    content: None,
++                },
++            )
++            .await
++            .unwrap();
++        let s4 = store
++            .put_node_checkpoint_sequenced(&task_id, &node, &op, "out-a", true, now)
++            .await
++            .unwrap();
++        let s5 = store
++            .set_terminal_sequenced(
++                &task_id,
++                &op,
++                bridge_core::task_store::TaskRecordStatus::Completed,
++                Some("done"),
++                None,
++                now,
++            )
++            .await
++            .unwrap();
++        assert_eq!((s1, s2, s3, s4, s5), (1, 2, 3, 4, 5));
++
++        let srv = build_with_task_store(store);
++        let resp = call_subscribe(&srv, "t-rich-terminal", None).await;
++        assert_eq!(resp.status(), StatusCode::OK);
++        let frames = collect_sse_frames(resp).await;
++        assert_eq!(
++            frames,
++            vec![
++                (3, "tool_call".to_string()),
++                (4, "node_finished".to_string()),
++                (4, "snapshot_complete".to_string()),
++                (5, "terminal".to_string()),
++            ],
++            "terminal-task reattach must surface the folded rich tool_call frame: {frames:?}"
++        );
++    }
++
++    /// End-to-end: SUBSCRIBE_TO_TASK on a WORKING task (hub registered, snapshot
++    /// phase read before the live tail) whose durable journal already has a rich
++    /// `ToolCall` (no update — the base-only fold branch) interleaved with a node
++    /// checkpoint. Exercises the `working_sse_response` call site's wiring to
++    /// `rich_snapshot_frames` — before Task 8 this call site used bare
++    /// `snapshot_frames` on the snapshot phase, which silently dropped the rich
++    /// event, so this test would fail (no "tool_call" tag) on the pre-change code.
++    #[tokio::test]
++    async fn subscribe_working_snapshot_includes_rich_toolcall_frame() {
++        let store = std::sync::Arc::new(bridge_core::task_store::MemoryTaskStore::new());
++        let task_id = seed_task_record(&store, "t-rich-working").await;
++        let node = bridge_core::ids::NodeId::parse("node-a").unwrap();
++        let op = operation_id_for_task(&task_id);
++        let now = crate::workflow_sink::now_ms();
++
++        let s1 = store
++            .record_node_started(&task_id, &node, &op, now)
++            .await
++            .unwrap();
++        let s2 = store
++            .record_event_sequenced(
++                &task_id,
++                &op,
++                now,
++                bridge_core::orch::OrchEventKind::ToolCall {
++                    tool_call_id: "t1".into(),
++                    title: "Reading file".into(),
++                    kind: "read".into(),
++                    status: "in_progress".into(),
++                    locations: vec![],
++                    content: None,
++                },
++            )
++            .await
++            .unwrap();
++        let s3 = store
++            .put_node_checkpoint_sequenced(&task_id, &node, &op, "out-a", true, now)
++            .await
++            .unwrap();
++        assert_eq!((s1, s2, s3), (1, 2, 3));
++
++        let srv = build_with_task_store(store);
++        let hub = insert_hub(&srv, &task_id).await;
++        let resp = call_subscribe(&srv, "t-rich-working", None).await;
++        assert_eq!(resp.status(), StatusCode::OK);
++        // End the stream so the collected body is finite.
++        hub.publish(live_terminal(4));
++
++        let frames = collect_sse_frames(resp).await;
++        assert_eq!(
++            frames,
++            vec![
++                (2, "tool_call".to_string()),
++                (3, "node_finished".to_string()),
++                (3, "snapshot_complete".to_string()),
++                (4, "terminal".to_string()),
++            ],
++            "working-task reattach snapshot phase must surface the folded rich \
++             tool_call frame: {frames:?}"
++        );
++    }
++
+     /// (8a) Terminal task with 2 checkpoints (seqs 1, 2) + terminal_seq 3, no cursor.
+     /// Expected frames: [(1,"node_finished"),(2,"node_finished"),(2,"snapshot_complete"),(3,"terminal")]
+     #[tokio::test]

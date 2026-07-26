@@ -1,0 +1,6 @@
+POST-RUN evidence (workspace after the Fable session)
+=====================================================
+
+$ git diff --quiet
+  # READ-ONLY design task - workspace must be unmodified.
+  [exit 0, 0.01s]

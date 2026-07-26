@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "root_cause_match": true,
+  "fmt_issue_identified": true,
+  "fix_attempted": false,
+  "fix_shape_match": false,
+  "probe_answer": "The report correctly diagnoses the non-glob declared workspace member being dropped when its manifest fails parsing, and separately identifies the rustfmt failure. It did not attempt a code fix, so the fix-shape criterion is false.",
+  "rationale": "Root cause matches: the engineer explains that 04c6b0b derives workspace_members only from manifests that parse and contain [package], so a declared malformed member like bad is skipped while good remains. Format issue matches: they identify a separate cargo fmt --check diff in the new test. No fix was attempted; the report explicitly says no changes were made, so there is no union-style code change to grade as matching."
+ },
+ "tokens_used": 16175
+}

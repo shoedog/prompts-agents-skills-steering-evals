@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms wire the fail-open path identically: rust_graph_qualified_target_is_free_fn, rust_scope_prune_owner, owner_method_key, and the resolve_call_site_full branch are functionally line-for-line the same \u2014 has_bare_pool gates the free-fn guard then the owner-prune, and when the prune proves nothing, control routes ONLY to owner_lookup_in_modules (never the legacy stem block) before falling to a drop. Fixture coverage: both cover the headline two-crate CliTest recovery, inherent+trait demote, unresolved-owner fail-open, block-local-glob keep-all, macro-wildcard keep-all, pending-alias-over-colliding-pool keep-all, and the free-fn misroute guard (7 tests, same assertions). Arm B adds an 8th test, scope_graph_non_uniform_edition_keeps_all, using build_rust_complete to directly flip scope_graph.edition_uniform=false and confirm the mixed-edition guard keeps the full pool through the actual resolve_call_site_full integration path \u2014 this is one of the exact fixtures the brief enumerates ('the mixed-edition keep-all'). Arm A has no such test and never invokes build_rust_complete or build_without_scope_graph at all, despite the brief naming them as fixture-specific helpers to use.",
+  "rationale": "The implementation in src/resolution.rs is substantively identical between arms \u2014 same free-fn guard, same owner-prune, same fail-open routed exclusively to owner_lookup_in_modules, never the stem heuristic. Arm A's comments are considerably more verbose/didactic but add no functional difference. The decisive gap is test coverage: the brief explicitly lists 'the mixed-edition keep-all' among the exact fixtures to add. Arm B implements it (scope_graph_non_uniform_edition_keeps_all, flipping edition_uniform=false via build_rust_complete) and thereby verifies the edition-non-uniform guard through the real integration path. Arm A omits this fixture entirely and never touches build_rust_complete/build_without_scope_graph, both named in the brief. That is a concrete coverage gap against an explicitly enumerated requirement, not a stylistic difference \u2014 a reviewer would ask Arm A to add the missing test."
+ },
+ "cost_usd": 0.3919629
+}

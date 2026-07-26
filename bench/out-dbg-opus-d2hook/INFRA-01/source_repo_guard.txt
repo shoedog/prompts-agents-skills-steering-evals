@@ -1,0 +1,8 @@
+# source_repo: /Users/wesleyjinks/code/automation-api-server
+# before: git -C <source_repo> status --porcelain
+
+# before_returncode: 0
+
+# after: git -C <source_repo> status --porcelain
+
+# after_returncode: 0

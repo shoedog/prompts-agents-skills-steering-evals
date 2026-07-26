@@ -1,0 +1,14 @@
+# git -C /private/tmp/dbg-opusd2-ws/DBG-02 status --short
+A  VERIFICATION.md
+M  src/ast.rs
+M  src/call_graph.rs
+M  src/cpg_cache.rs
+M  src/resolution.rs
+M  src/resolution_disproof.rs
+M  tests/lang/python/typed_receiver_test.rs
+M  tests/lang/typescript/typed_receiver_test.rs
+M  tests/name_resolution/consumer_test.rs
+M  tests/navigation/scoped_calls_test.rs
+
+# git -C /private/tmp/dbg-opusd2-ws/DBG-02 diff
+

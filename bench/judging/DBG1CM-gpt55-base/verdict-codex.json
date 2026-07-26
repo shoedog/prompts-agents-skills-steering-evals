@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "root_cause_match": true,
+  "fmt_issue_identified": true,
+  "fix_attempted": false,
+  "fix_shape_match": false,
+  "probe_answer": "Diagnosis-only report: it correctly identified the non-glob workspace member drop and the independent rustfmt failure, but made no code change.",
+  "rationale": "The report explicitly says workspace_members were recorded only from successfully parsed package manifests, dropping malformed declared non-glob members like bad while preserving good, which matches the ground-truth root cause. It separately reproduces cargo fmt --check failing on a rustfmt reflow. The arm states it did not modify the worktree, so fix_attempted is false. Per grading instructions, fix_shape_match is false when no fix was attempted, even though the suggested fix shape is directionally correct."
+ },
+ "tokens_used": 15766
+}

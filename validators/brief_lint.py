@@ -26,15 +26,30 @@ Rules (each traces to an evidenced incident in
 
 Modes:
   brief_lint.py FILE [--role review|implement] [--strict]
-  brief_lint.py --hook          PreToolUse hook mode: reads the hook JSON on stdin,
-                                lints Task/Agent tool_input prompt text, ALWAYS
-                                exits 0 (warn-only feedback via permissionDecision
-                                "allow" + reason). Never blocks a spawn.
-  brief_lint.py --self-test     embedded fixtures; exits nonzero on any mismatch.
+  brief_lint.py --hook          Claude Code PreToolUse hook mode: reads the hook
+                                JSON on stdin, lints Task/Agent tool_input prompt
+                                text, ALWAYS exits 0 (warn-only feedback via
+                                permissionDecision "allow" + reason). Never blocks.
+  brief_lint.py --codex-hook    Codex CLI PreToolUse hook mode (spawn_agent /
+                                "Agent"): warn-only via hookSpecificOutput
+                                additionalContext + top-level systemMessage.
+                                NEVER emits permissionDecision (cannot deny);
+                                always exits 0. Codex ignores plain stdout for
+                                PreToolUse; only the JSON contract is parsed.
+  brief_lint.py --kiro-hook     Kiro CLI preToolUse hook mode (delegate tool):
+                                Kiro's preToolUse wire contract is exit-code
+                                based (0 allow; 2 block + stderr to the LLM; any
+                                OTHER nonzero shows stderr as a warning and still
+                                allows the tool). Warn-only therefore = findings
+                                on stderr + exit 1. This mode never exits 2.
+  brief_lint.py --self-test     embedded fixtures incl. synthetic Claude, Codex,
+                                and Kiro hook payloads; exits nonzero on mismatch.
 """
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 import re
 import sys
@@ -123,6 +138,89 @@ def hook_mode() -> int:
     return 0
 
 
+# --- codex / kiro adapters -------------------------------------------------
+# Agent-dispatch tool names across providers (payload tool_name, lowercased).
+# The hooks.json / agent-config matcher already restricts which tools reach the
+# hook; this set is defense-in-depth against matcher drift.
+AGENTISH = {"task", "agent", "spawn_agent", "delegate", "subagent", "subagents"}
+
+
+def _collect_strings(node, depth: int = 0) -> list[str]:
+    """Bounded recursive harvest of string values (for undocumented shapes)."""
+    if depth > 4:
+        return []
+    if isinstance(node, str):
+        return [node]
+    if isinstance(node, dict):
+        return [s for v in node.values() for s in _collect_strings(v, depth + 1)]
+    if isinstance(node, list):
+        return [s for v in node for s in _collect_strings(v, depth + 1)]
+    return []
+
+
+def _agent_prompt_text(payload) -> str:
+    """Prompt-bearing text from an agent-dispatch tool_input, provider-blind.
+
+    claude Task/Agent: description+prompt. codex spawn_agent (v1/v2, verified
+    against codex-rs multi_agents_spec.rs): message (+ items for v1 structured
+    input). kiro delegate: shape undocumented -> harvest all strings.
+    """
+    if str(payload.get("tool_name", "")).lower() not in AGENTISH:
+        return ""
+    ti = payload.get("tool_input")
+    if not isinstance(ti, dict):
+        return ""
+    parts = [str(ti[k]) for k in ("description", "prompt", "message", "task", "instructions")
+             if isinstance(ti.get(k), str) and ti[k]]
+    parts += _collect_strings(ti.get("items"))
+    if not parts:  # unknown shape (e.g. kiro delegate): harvest everything
+        parts = _collect_strings(ti)
+    return " ".join(parts)
+
+
+def codex_hook_mode() -> int:
+    """Codex PreToolUse hook: warn-only. Never emits permissionDecision — this
+    adapter cannot deny. Always exits 0. Empty stdout when clean."""
+    try:
+        payload = json.load(sys.stdin)
+    except Exception:
+        return 0  # never interfere on malformed input
+    text = _agent_prompt_text(payload)
+    if not text.strip():
+        return 0
+    findings = lint(text, role="review")
+    if findings:
+        body = render(findings, "subagent dispatch (codex spawn_agent)")[:4000]
+        print(json.dumps({
+            "systemMessage": f"brief-lint (warn-only): {len(findings)} finding(s) in the dispatch brief",
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "additionalContext": body + "\n(warn-only brief-lint: the spawn proceeds "
+                                            "regardless; fix the brief if the findings hold.)",
+            },
+        }))
+    return 0
+
+
+def kiro_hook_mode() -> int:
+    """Kiro preToolUse hook: warn-only. Findings -> stderr + exit 1 (Kiro shows
+    stderr as a warning for non-0/non-2 exits and still runs the tool). Clean,
+    non-matching, or malformed input -> quiet exit 0. NEVER exits 2 (2 blocks)."""
+    try:
+        payload = json.load(sys.stdin)
+    except Exception:
+        return 0
+    text = _agent_prompt_text(payload)
+    if not text.strip():
+        return 0
+    findings = lint(text, role="review")
+    if not findings:
+        return 0
+    print(render(findings, "subagent dispatch (kiro delegate)")
+          + "\n(warn-only brief-lint: dispatch proceeds regardless.)", file=sys.stderr)
+    return 1
+
+
 GOOD_OPEN_BRIEF = """This is deliberately an OPEN brief. You are given evidence, not a question with
 options. If the investigation has mis-cut the problem, re-cut it. Proposed action (mine): a
 mill-aware tolerance floor. Pressure-test this hard and independently verify against the live
@@ -133,6 +231,44 @@ BAD_GIVEN_DATA = """The ADR's evidence table is first-hand observation. You cann
 so treat the observed facts as given data. Review the reasoning built on them."""
 BAD_IMPL_ANCHORS = """Modify crates/bridge-a2a-inbound/src/server.rs:3049 and bin/a2a-bridge/src/main.rs:6210.
 The fix is to add the retry config. All findings are addressed in the plan; just implement task 3."""
+
+
+def _run_hook(fn, stdin_text: str) -> tuple[int, str, str]:
+    """Run a hook mode against a synthetic stdin payload; capture stdout+stderr."""
+    old_stdin = sys.stdin
+    out, err = io.StringIO(), io.StringIO()
+    try:
+        sys.stdin = io.StringIO(stdin_text)
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            rc = fn()
+    finally:
+        sys.stdin = old_stdin
+    return rc, out.getvalue(), err.getvalue()
+
+
+# Synthetic hook payloads (shapes per each platform's documented contract).
+CLAUDE_PAYLOAD = {"hook_event_name": "PreToolUse", "session_id": "self-test",
+                  "tool_name": "Task",
+                  "tool_input": {"description": "review panel", "prompt": BAD_GIVEN_DATA}}
+CODEX_PAYLOAD_V2 = {"hook_event_name": "PreToolUse", "session_id": "self-test",
+                    "cwd": "/tmp", "model": "gpt-5.5", "tool_name": "spawn_agent",
+                    "tool_use_id": "tu_1",
+                    "tool_input": {"task_name": "review_panel", "message": BAD_ANCHORED_PANEL}}
+CODEX_PAYLOAD_V1_ITEMS = {"hook_event_name": "PreToolUse", "session_id": "self-test",
+                          "cwd": "/tmp", "tool_name": "spawn_agent", "tool_use_id": "tu_2",
+                          "tool_input": {"items": [{"type": "text", "text": BAD_GIVEN_DATA}],
+                                         "fork_context": False}}
+CODEX_PAYLOAD_CLEAN = {"hook_event_name": "PreToolUse", "session_id": "self-test",
+                       "cwd": "/tmp", "tool_name": "spawn_agent", "tool_use_id": "tu_3",
+                       "tool_input": {"task_name": "open_brief", "message": GOOD_OPEN_BRIEF}}
+CODEX_PAYLOAD_OTHER_TOOL = {"hook_event_name": "PreToolUse", "session_id": "self-test",
+                            "cwd": "/tmp", "tool_name": "Bash", "tool_use_id": "tu_4",
+                            "tool_input": {"command": "echo the root cause is the resolver gate"}}
+KIRO_PAYLOAD = {"hook_event_name": "preToolUse", "cwd": "/tmp", "session_id": "self-test",
+                "tool_name": "delegate",
+                "tool_input": {"task": BAD_GIVEN_DATA, "agents": ["worker"]}}
+KIRO_PAYLOAD_CLEAN = {"hook_event_name": "preToolUse", "cwd": "/tmp", "session_id": "self-test",
+                      "tool_name": "delegate", "tool_input": {"task": GOOD_OPEN_BRIEF}}
 
 
 def self_test() -> int:
@@ -150,6 +286,58 @@ def self_test() -> int:
         if got != expect:
             failures += 1
         print(f"  {status}: {name} -> {sorted(got)} (expected {sorted(expect)})")
+
+    def check(name: str, cond: bool, detail: str = "") -> None:
+        nonlocal failures
+        if not cond:
+            failures += 1
+        print(f"  {'ok' if cond else 'FAIL'}: {name}{(' — ' + detail) if (detail and not cond) else ''}")
+
+    # Claude hook mode (synthetic Claude PreToolUse payload).
+    rc, out, err = _run_hook(hook_mode, json.dumps(CLAUDE_PAYLOAD))
+    j = json.loads(out) if out.strip() else {}
+    check("claude hook dirty -> rc0, allow+reason with R1/R4",
+          rc == 0 and err == ""
+          and j.get("hookSpecificOutput", {}).get("permissionDecision") == "allow"
+          and "R1" in j.get("hookSpecificOutput", {}).get("permissionDecisionReason", "")
+          and "R4" in j["hookSpecificOutput"]["permissionDecisionReason"],
+          f"rc={rc} out={out!r}")
+
+    # Codex hook mode: dirty v2 payload -> JSON warn, no permissionDecision ever.
+    rc, out, err = _run_hook(codex_hook_mode, json.dumps(CODEX_PAYLOAD_V2))
+    j = json.loads(out) if out.strip() else {}
+    hso = j.get("hookSpecificOutput", {})
+    check("codex hook dirty(v2) -> rc0, valid JSON, additionalContext R1+R2",
+          rc == 0 and err == "" and set(j) == {"systemMessage", "hookSpecificOutput"}
+          and set(hso) == {"hookEventName", "additionalContext"}
+          and hso.get("hookEventName") == "PreToolUse"
+          and "R1" in hso.get("additionalContext", "") and "R2" in hso["additionalContext"],
+          f"rc={rc} out={out!r}")
+    check("codex hook never denies (no permissionDecision/deny in output)",
+          "permissionDecision" not in out and '"deny"' not in out, out[:200])
+    rc, out, err = _run_hook(codex_hook_mode, json.dumps(CODEX_PAYLOAD_V1_ITEMS))
+    check("codex hook dirty(v1 items) -> R4 found in items text",
+          rc == 0 and "R4" in out, f"rc={rc} out={out!r}")
+    rc, out, err = _run_hook(codex_hook_mode, json.dumps(CODEX_PAYLOAD_CLEAN))
+    check("codex hook clean -> rc0, EMPTY stdout", rc == 0 and out == "" and err == "",
+          f"rc={rc} out={out!r}")
+    rc, out, err = _run_hook(codex_hook_mode, json.dumps(CODEX_PAYLOAD_OTHER_TOOL))
+    check("codex hook non-agent tool -> rc0, quiet", rc == 0 and out == "" and err == "",
+          f"rc={rc} out={out!r}")
+    rc, out, err = _run_hook(codex_hook_mode, "{not json")
+    check("codex hook malformed -> rc0, quiet", rc == 0 and out == "" and err == "")
+
+    # Kiro hook mode: warn channel is stderr + exit 1; never 2; stdout stays empty.
+    rc, out, err = _run_hook(kiro_hook_mode, json.dumps(KIRO_PAYLOAD))
+    check("kiro hook dirty -> rc1 (not 2), findings on stderr, stdout empty",
+          rc == 1 and rc != 2 and out == "" and "R4" in err and "R1" in err,
+          f"rc={rc} err={err!r}")
+    rc, out, err = _run_hook(kiro_hook_mode, json.dumps(KIRO_PAYLOAD_CLEAN))
+    check("kiro hook clean -> rc0, quiet", rc == 0 and out == "" and err == "",
+          f"rc={rc} err={err!r}")
+    rc, out, err = _run_hook(kiro_hook_mode, "{not json")
+    check("kiro hook malformed -> rc0, quiet", rc == 0 and out == "" and err == "")
+
     print("self-test:", "PASS" if failures == 0 else f"{failures} FAILURES")
     return 0 if failures == 0 else 1
 
@@ -159,15 +347,24 @@ def main() -> int:
     ap.add_argument("file", nargs="?", help="brief file to lint")
     ap.add_argument("--role", choices=("review", "implement"), default="review")
     ap.add_argument("--strict", action="store_true", help="exit 1 on VIOLATIONs")
-    ap.add_argument("--hook", action="store_true", help="PreToolUse hook mode (stdin JSON, always exit 0)")
+    ap.add_argument("--hook", action="store_true",
+                    help="Claude Code PreToolUse hook mode (stdin JSON, always exit 0)")
+    ap.add_argument("--codex-hook", action="store_true",
+                    help="Codex CLI PreToolUse hook mode (warn-only additionalContext, always exit 0)")
+    ap.add_argument("--kiro-hook", action="store_true",
+                    help="Kiro CLI preToolUse hook mode (warn-only: findings->stderr+exit 1, never 2)")
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
     if args.self_test:
         return self_test()
     if args.hook:
         return hook_mode()
+    if args.codex_hook:
+        return codex_hook_mode()
+    if args.kiro_hook:
+        return kiro_hook_mode()
     if not args.file:
-        ap.error("FILE required unless --hook/--self-test")
+        ap.error("FILE required unless --hook/--codex-hook/--kiro-hook/--self-test")
     findings = lint(Path(args.file).read_text(encoding="utf-8", errors="replace"), args.role)
     if findings:
         print(render(findings, args.file))

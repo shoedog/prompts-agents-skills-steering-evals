@@ -1,0 +1,220 @@
+POST-RUN evidence (workspace after the Fable session)
+=====================================================
+
+$ cargo test --lib binding_lookup
+  # the module under fix
+  # expect_min_tests=1 matched_tests=2 min_tests_satisfied=True
+  [exit 0, 0.348s]
+  --- stdout (tail) ---
+  
+  running 2 tests
+  test name_resolution::binding_lookup::tests::lookup_visible_binding_duplicate_same_rib_returns_none ... ok
+  test name_resolution::binding_lookup::tests::lookup_visible_binding_returns_binding_by_name_and_byte ... ok
+  
+  test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 271 filtered out; finished in 0.20s
+  
+  --- stderr (tail) ---
+  warning: unused import: `BTreeSet`
+      --> src/type_providers/go.rs:1602:38
+       |
+  1602 |     use std::collections::{BTreeMap, BTreeSet};
+       |                                      ^^^^^^^^
+       |
+       = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+  
+  warning: `prism` (lib test) generated 1 warning (run `cargo fix --lib -p prism --tests` to apply 1 suggestion)
+      Finished `test` profile [unoptimized + debuginfo] target(s) in 0.10s
+       Running unittests src/lib.rs (target/debug/deps/prism-67b1e8306ecba215)
+
+$ cargo test
+  # full suite green after the ordinal fix
+  # expect_min_tests=1500 matched_tests=2237 min_tests_satisfied=True
+  [exit 0, 81.859s]
+  --- stdout (tail) ---
+  test callees_test::callees_emits_each_resolved_definition_for_one_call_site ... ok
+  test callers_test::callers_direct_hit_scores_1_0_and_hop2_decays ... ok
+  test callees_test::callees_depth_zero_has_no_expansion ... ok
+  test callers_test::callers_depth_zero_has_no_expansion ... ok
+  test callers_test::callers_query_emits_collision_warning_for_dropped_sites ... ok
+  test callers_test::callers_reports_caller_and_call_site_line ... ok
+  test callees_test::callees_reports_callee_and_line ... ok
+  test callees_test::callees_resolves_qualified_import ... ok
+  test callees_test::exact_callee_scores_1_0_with_resolution_reason ... ok
+  test callees_test::demoted_callee_scores_0_6_with_resolution_reason ... ok
+  test ego_test::ego_edges_reject_unknown_name ... ok
+  test index_test::line_range_index_resolves_innermost ... ok
+  test inventory_test::test_python_decorated_function_emits_one_record ... ok
+  test ego_test::ego_edges_trim_whitespace ... ok
+  test inventory_test::test_python_nested_same_name_functions_both_emit_records ... ok
+  test ego_test::ego_includes_seed_and_call_edge ... ok
+  test inventory_test::test_sorted_with_resolved_kind_names ... ok
+  test index_test::name_index_keeps_all_same_name_defs ... ok
+  test ego_test::ego_location_seed_centers_exact_variable_node ... ok
+  test loader_test::built_in_names_take_precedence_over_symlinks ... ok
+  test loader_test::missing_root_is_an_error ... ok
+  test loader_test::severe_parse_errors_are_recorded_as_parse_failed ... ok
+  test callers_test::ego_graph_does_not_emit_collision_warning_when_call_edges_not_collected ... ok
+  test callers_test::ego_graph_emits_collision_warning_for_seed ... ok
+  test loader_test::loads_supported_files_and_records_skips ... ok
+  test module_graph_test::module_deps_aggregates_file_pair_with_max_resolution_score ... ok
+  test module_graph_test::module_deps_skipped_or_unknown_file_warns_not_errors ... ok
+  test module_graph_test::module_deps_non_rust_is_byte_identical_when_scope_graph_is_present ... ok
+  test nodes_at_test::nodes_at_includes_enclosing_function ... ok
+  test nodes_at_test::nodes_at_enclosing_function_location_carries_function_bytes ... ok
+  test module_graph_test::module_deps_python_cross_file_call_and_import ... ok
+  test module_graph_test::module_deps_uses_resolution_score_and_reason ... ok
+  test nodes_at_test::nodes_at_skipped_path_warns_empty ... ok
+  test module_graph_test::module_deps_rust_without_authoritative_scope_graph_keeps_existing_fallback ... ok
+  test nodes_at_test::nodes_at_skipped_file_reports_skip_reason ... ok
+  test module_graph_test::repo_map_emits_whole_repo_file_graph ... ok
+  test scoped_calls_test::callees_resolves_scoped_dispatch ... ok
+  test scoped_calls_test::callers_finds_scoped_dispatcher ... ok
+  test scoped_calls_test::external_crate_path_does_not_resolve_without_stem_match ... ok
+  test scoped_calls_test::multi_segment_scoped_path_uses_last_module_segment ... ok
+  test scoped_calls_test::module_deps_and_repo_map_include_scoped_edge ... ok
+  test scoped_calls_test::scoped_call_to_wrong_stem_does_not_resolve ... ok
+  test module_graph_test::module_deps_rust_resolves_named_type_external_and_glob_imports ... ok
+  test module_graph_test::module_deps_rust_reexport_chain_targets_defining_file ... ok
+  test scoped_calls_test::callers_excludes_other_stem_scoped_call ... ok
+  test types_test::evidence_with_graph_serializes_payload ... ok
+  test types_test::evidence_serializes_to_expected_shape ... ok
+  test scoped_calls_test::reserved_keyword_hints_do_not_resolve ... ok
+  test types_test::evidence_without_graph_omits_key ... ok
+  test scoped_calls_test::scoped_mod_fn_resolves_cross_file_rust ... ok
+  test scoped_calls_test::scoped_ns_fn_resolves_cross_file_cpp ... ok
+  test seed_test::resolves_symbol_unique ... ok
+  test seed_test::resolves_location_to_enclosing ... ok
+  test scoped_calls_test::unscoped_resolution_is_unchanged ... ok
+  test seed_test::location_resolves_to_innermost_nested_function ... ok
+  test seed_test::ambiguous_symbol_errors_with_candidates ... ok
+  test cache_test::corrupt_cache_bin_rebuilds_successfully ... ok
+  test cache_test::file_add_invalidates ... ok
+  test cache_test::build_cached_writes_then_hits_with_equal_query_output ... ok
+  test cache_test::two_repos_same_base_are_isolated ... ok
+  
+  test result: ok. 63 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+  
+  
+  running 1 test
+  test mermaid_snapshot_test::mermaid_report_snapshot_taint_finding ... ok
+  
+  test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+  
+  
+  running 1 test
+  test smoke_test::taint_trace_reachability_end_to_end ... ok
+  
+  test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+  
+  --- stderr (tail) ---
+     |
+  20 | pub use std::path::Path;
+     |         ^^^^^^^^^^^^^^^
+  
+  warning: unused import: `prism::access_path::AccessPath`
+   --> tests/algo/theoretical/../../common/mod.rs:5:9
+    |
+  5 | pub use prism::access_path::AccessPath;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+  
+  warning: unused import: `prism::data_flow::DataFlowGraph`
+    --> tests/algo/theoretical/../../common/mod.rs:10:9
+     |
+  10 | pub use prism::data_flow::DataFlowGraph;
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  
+  warning: unused import: `prism::output`
+    --> tests/algo/theoretical/../../common/mod.rs:13:9
+     |
+  13 | pub use prism::output;
+     |         ^^^^^^^^^^^^^
+  
+  warning: unused imports: `MultiReviewOutput` and `to_review_output`
+    --> tests/algo/theoretical/../../common/mod.rs:14:25
+     |
+  14 | pub use prism::output::{to_review_output, MultiReviewOutput};
+     |                         ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+  
+  warning: unused imports: `DiagramWarningKind`, `DiagramWarning`, `MultiSliceResult`, `SliceFinding`, and `SliceResult`
+    --> tests/algo/theoretical/../../common/mod.rs:16:5
+     |
+  16 |     DiagramWarning, DiagramWarningKind, MultiSliceResult, SliceConfig, SliceFinding, SliceResult,
+     |     ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^               ^^^^^^^^^^^^  ^^^^^^^^^^^
+  
+  warning: unused import: `std::path::Path`
+    --> tests/algo/theoretical/../../common/mod.rs:20:9
+     |
+  20 | pub use std::path::Path;
+     |         ^^^^^^^^^^^^^^^
+  
+  warning: `prism` (test "lang_python") generated 9 warnings (run `cargo fix --test "lang_python" -p prism` to apply 9 suggestions)
+  warning: `prism` (test "cli") generated 4 warnings (run `cargo fix --test "cli" -p prism` to apply 4 suggestions)
+  warning: `prism` (test "integration") generated 4 warnings (run `cargo fix --test "integration" -p prism` to apply 4 suggestions)
+  warning: `prism` (test "lang_terraform") generated 7 warnings (run `cargo fix --test "lang_terraform" -p prism` to apply 7 suggestions)
+  warning: `prism` (test "algo_taxonomy") generated 9 warnings (run `cargo fix --test "algo_taxonomy" -p prism` to apply 9 suggestions)
+  warning: `prism` (test "lang_bash") generated 7 warnings (run `cargo fix --test "lang_bash" -p prism` to apply 7 suggestions)
+  warning: `prism` (test "lang_c") generated 5 warnings (run `cargo fix --test "lang_c" -p prism` to apply 5 suggestions)
+  warning: `prism` (test "frameworks") generated 9 warnings (run `cargo fix --test "frameworks" -p prism` to apply 9 suggestions)
+  warning: `prism` (test "algo_theoretical") generated 6 warnings (run `cargo fix --test "algo_theoretical" -p prism` to apply 6 suggestions)
+      Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s
+       Running unittests src/lib.rs (target/debug/deps/prism-67b1e8306ecba215)
+       Running unittests src/main.rs (target/debug/deps/prism-677b1f196faa0135)
+       Running tests/algo/novel/main.rs (target/debug/deps/algo_novel-edc564dc3e1f8c61)
+       Running tests/algo/paper/main.rs (target/debug/deps/algo_paper-240d9d66a6d44a8b)
+       Running tests/algo/taxonomy/main.rs (target/debug/deps/algo_taxonomy-5dcf1bf432a0d47d)
+       Running tests/algo/theoretical/main.rs (target/debug/deps/algo_theoretical-30bf6d110b49e3cc)
+       Running tests/ast/main.rs (target/debug/deps/ast-1b1aa5136b01a610)
+       Running tests/cli/main.rs (target/debug/deps/cli-54f5534934ed596e)
+       Running tests/frameworks/main.rs (target/debug/deps/frameworks-7b0948fa714a711f)
+       Running tests/infra/main.rs (target/debug/deps/infra-8c917b5ac8b5d9d4)
+       Running tests/integration/main.rs (target/debug/deps/integration-d5351dc850a24cc9)
+       Running tests/lang/bash/main.rs (target/debug/deps/lang_bash-dace945e68bed73a)
+       Running tests/lang/c/main.rs (target/debug/deps/lang_c-6d5a93e0aac0e5f4)
+       Running tests/lang/cpp/main.rs (target/debug/deps/lang_cpp-a29fe528bdbcd691)
+       Running tests/lang/go/main.rs (target/debug/deps/lang_go-36c3b19ee2a513aa)
+       Running tests/lang/java/main.rs (target/debug/deps/lang_java-121498a74b4dffad)
+       Running tests/lang/javascript/main.rs (target/debug/deps/lang_javascript-65584d5546f6f651)
+       Running tests/lang/lua/main.rs (target/debug/deps/lang_lua-170d9a66d383a04a)
+       Running tests/lang/python/main.rs (target/debug/deps/lang_python-8cd3077691409f49)
+       Running tests/lang/rust/main.rs (target/debug/deps/lang_rust-b20a7995e75f66d4)
+       Running tests/lang/terraform/main.rs (target/debug/deps/lang_terraform-c89c77698f7326bb)
+       Running tests/lang/tsx/main.rs (target/debug/deps/lang_tsx-c9b246633c19e962)
+       Running tests/lang/typescript/main.rs (target/debug/deps/lang_typescript-1ec893e4152666e1)
+       Running tests/name_resolution/main.rs (target/debug/deps/name_resolution-3f1d806f0e660d51)
+       Running tests/navigation/main.rs (target/debug/deps/navigation-919488aa7ba9eb5c)
+       Running tests/output/main.rs (target/debug/deps/output-ee5f0124f4c8e523)
+       Running tests/reasoning/main.rs (target/debug/deps/reasoning-0214a6e2a473125a)
+     Doc-tests prism
+
+$ cargo build
+  # build clean
+  [exit 0, 9.512s]
+  --- stderr (tail) ---
+     Compiling regex-syntax v0.8.10
+     Compiling regex-automata v0.4.14
+     Compiling regex v1.12.3
+     Compiling tree-sitter v0.25.10
+     Compiling prism v3.1.2 (/private/tmp/dbg-d2h-ws/DBG-03)
+  warning: function `cleansed_categories_for_source` is never used
+       --> src/algorithms/taint.rs:10697:15
+        |
+  10697 | pub(crate) fn cleansed_categories_for_source(
+        |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        |
+        = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+  
+  warning: function `sanitizer_category_str` is never used
+       --> src/algorithms/taint.rs:10722:4
+        |
+  10722 | fn sanitizer_category_str(c: crate::frameworks::SanitizerCategory) -> &'static str {
+        |    ^^^^^^^^^^^^^^^^^^^^^^
+  
+  warning: `prism` (lib) generated 2 warnings
+      Finished `dev` profile [unoptimized + debuginfo] target(s) in 9.49s

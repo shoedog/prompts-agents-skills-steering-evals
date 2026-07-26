@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": false,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A: its main tests would likely fail on the pre-change code for the headline two-crate recovery, fail-open demote, block-local/macro keep-all, pending import keep-all, and free-function misroute. The strongest test is the cross-module free-function misroute guard because it asserts the resolved file and pins the colliding method bucket. The weakest area is missing required plan coverage: no mixed-edition keep-all and no explicit re-confirmation of the three existing drop invariants; also no singleton fail-open test. Arm B: same core tests would fail on pre-change code, and it adds a meaningful singleton fail-open test that exercises the Exact branch distinct from the colliding NameOnly demote. Its strongest test is also the cross-module free-function misroute guard, with the singleton unresolved-owner test close behind. Its weakest area is still missing required mixed-edition keep-all and explicit three-drop-invariant re-confirmation.",
+  "rationale": "WRONG in Arm A: rust_graph_qualified_target_is_free_fn treats an empty graph_target_ids set as a free function because it checks only that no id is in method_owners. The task explicitly required a non-empty id-set all not in method_owners. That can route an empty qualified graph target to resolve-or-drop instead of the owner-prune/fail-open path, causing a false drop where Task 5 intended recall-safe fail-open. Arm B implements the non-empty guard correctly. Both arms implement the owner-prune/fail-open integration shape and stay within the intended files, but both are incomplete against the test brief because they do not add the mixed-edition keep-all test or explicitly re-confirm the three existing drop invariants in the diff. Arm B is materially better because it fixes the concrete free"
+ },
+ "tokens_used": 30757
+}

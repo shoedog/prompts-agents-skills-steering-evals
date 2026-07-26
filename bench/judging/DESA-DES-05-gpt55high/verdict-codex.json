@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": false,
+  "load_bearing_caveats_matched": true,
+  "scope_calibrated": true,
+  "would_have_prevented_wasted_work": false,
+  "probe_answer": "The memo correctly verified the Python-only double-capture mechanism and rejected a naive all-language JS/TS fix, which matches the settled scope. Its main miss is decisive: it recommends making the inner function_definition canonical, while the landed fix made the decorated_definition wrapper canonical and dropped the inner. Following it would likely still avoid broad language-scope waste, but it would send implementation down the wrong canonical-span/API path versus the merged design.",
+  "rationale": "Strong diagnosis and scope calibration, including Python-only treatment and JS/TS canaries. However, the vindicated architecture was wrapper-canonical extraction; the memo's recommended Option A is extraction-level but inner-canonical, with follow-on DFG/inventory changes based on that choice. Because the canonical side was load-bearing in the merged commits, the recommendation does not match the settled design and would not fully prevent rework."
+ },
+ "tokens_used": 12074
+}

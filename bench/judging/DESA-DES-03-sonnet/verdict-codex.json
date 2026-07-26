@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": false,
+  "load_bearing_caveats_matched": false,
+  "scope_calibrated": false,
+  "would_have_prevented_wasted_work": false,
+  "probe_answer": "The memo correctly identified import-binding narrowing as a real mechanism to extend and recognized that naive fuzzy import matching needed tightening. But its actual recommendation was to ship same-directory/same-module Exact first, which is the approach the settled outcome rejected as unsound for Python/JS because sibling files are not in scope unless imported. Its shadowing guard addresses one false-positive mode, but misses the decisive scope rule that made A invalid.",
+  "rationale": "Vindicated shape was B: import-qualified/binding-based narrowing with fail-open behavior, and explicit rejection of same-dir/same-package Exact. This memo instead makes A the primary thin slice, adds a SameModule rung, and treats it as safe after shadow checks. That would have sent the team into implementing the unshipped, unsound design before the landed import-member rung."
+ },
+ "tokens_used": 22307
+}

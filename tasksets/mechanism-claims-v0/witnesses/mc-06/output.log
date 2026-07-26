@@ -1,0 +1,80 @@
+=== mc-06 witness run: 2026-07-25T15:39:03Z ===
+item dir : /Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/witnesses/mc-06/../../items/mc-06
+build dir: /private/tmp/claude-501/-Users-wesleyjinks/782c0297-efe4-408f-9b1a-07346a6a6c30/scratchpad/mcv/mc-06
+toolchain: cargo 1.94.0 (85eff7c80 2026-01-15); git version 2.50.1 (Apple Git-155); patch: patch 2.0-12u11-Apple
+
+--- step 1: materialize shim base files ---
+base files:
+./Cargo.toml
+./docs/target-spool-format.md
+./src/bin/trigger.rs
+./src/lib.rs
+
+--- step 2: git apply --check ---
+exit=0
+--- step 2b: patch -p1 --dry-run (cross-check) ---
+patching file 'src/target_spool.rs'
+patching file 'docs/target-spool-format.md'
+exit=0
+--- step 2c: apply for real (git apply) ---
+exit=0
+post-apply tree:
+./Cargo.toml
+./docs/target-spool-format.md
+./src/bin/trigger.rs
+./src/lib.rs
+./src/target_spool.rs
+
+--- step 3: cargo build (compile check) ---
+    Updating crates.io index
+     Locking 21 packages to latest compatible versions
+      Adding generic-array v0.14.7 (available: v0.14.9)
+      Adding serde v1.0.228 (available: v1.0.229)
+      Adding serde_core v1.0.228 (available: v1.0.229)
+      Adding serde_derive v1.0.228 (available: v1.0.229)
+      Adding serde_json v1.0.150 (available: v1.0.151)
+      Adding sha2 v0.10.9 (available: v0.11.0)
+   Compiling version_check v0.9.5
+   Compiling proc-macro2 v1.0.107
+   Compiling typenum v1.20.1
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.47
+   Compiling libc v0.2.189
+   Compiling serde_core v1.0.228
+   Compiling zmij v1.0.23
+   Compiling serde_json v1.0.150
+   Compiling serde v1.0.228
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling cfg-if v1.0.4
+   Compiling generic-array v0.14.7
+   Compiling syn v2.0.119
+   Compiling cpufeatures v0.2.17
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling serde_derive v1.0.228
+   Compiling mc06 v0.1.0 (/private/tmp/claude-501/-Users-wesleyjinks/782c0297-efe4-408f-9b1a-07346a6a6c30/scratchpad/mcv/mc-06)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.57s
+exit=0
+
+--- step 3b: unintended-defect sweep: cargo clippy (advisory, not -D) ---
+exit=0
+
+--- step 4: claim-verification run ---
+total run bytes written: 571
+claim 1 (binary framing): RUN_MAGIC prefix "TARGET_REPLAY_RUN_V1" present: true
+  record 1: u32 BE length prefix = 211, body = 211 bytes, prefix==body-len: true
+  record 2: u32 BE length prefix = 291, body = 291 bytes, prefix==body-len: true
+claim 2 (serde_json payload): record 1 parses as JSON; market_bar 20 bytes -> 64 chars = 3.20x blow-up (doc: ~3-4x)
+claim 2 (serde_json payload): record 2 parses as JSON; market_bar 40 bytes -> 144 chars = 3.60x blow-up (doc: ~3-4x)
+claim 3 (footer): trailing bytes after records = 40 (expect 8 count + 32 digest)
+  record count field = 2 (records written: 2, match: true)
+  stored sha256      = d036db0e9896e492c25f37fd93541b36c9063ebfd2f1ae29ddd8e8410f7f8048
+  recomputed sha256 over the framed record stream (len prefixes + payloads) = d036db0e9896e492c25f37fd93541b36c9063ebfd2f1ae29ddd8e8410f7f8048
+
+VERDICT: all doc claims HOLD against the implementing code -- binary framing,
+serde_json payload with the stated ~3-4x bar-byte blow-up, count+SHA-256 footer
+over the framed stream. Doc and code agree (clean item).
+exit=0

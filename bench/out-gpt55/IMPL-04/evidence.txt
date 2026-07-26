@@ -1,0 +1,284 @@
+POST-RUN evidence (workspace after the Fable session)
+=====================================================
+
+$ cargo test -p a2a-bridge workflow_node_retry
+  # both named tests: workflow_node_retry_parses (TOML deser) + workflow_node_retry_maps_into_graph (drives the real load_workflows graph-build, PR-FIX-9)
+  [exit 0, 0.502s]
+  --- stdout (tail) ---
+  
+  running 2 tests
+  test config::tests::workflow_node_retry_parses ... ok
+  test config::tests::workflow_node_retry_maps_into_graph ... ok
+  
+  test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 274 filtered out; finished in 0.02s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+  
+  --- stderr (tail) ---
+      Finished `test` profile [unoptimized + debuginfo] target(s) in 0.32s
+       Running unittests src/main.rs (target/debug/deps/a2a_bridge-b2a25a912c87a3c5)
+       Running tests/e2e_acp_codex.rs (target/debug/deps/e2e_acp_codex-0668b9fd2b7f1375)
+       Running tests/e2e_acp_kiro.rs (target/debug/deps/e2e_acp_kiro-aed1e452517dd666)
+       Running tests/e2e_delegate_bridge.rs (target/debug/deps/e2e_delegate_bridge-f30614a20f63a28e)
+       Running tests/e2e_fanout_bridge.rs (target/debug/deps/e2e_fanout_bridge-857dc64230184d2a)
+       Running tests/e2e_kiro.rs (target/debug/deps/e2e_kiro-42d5ed621c2848e3)
+       Running tests/e2e_registry.rs (target/debug/deps/e2e_registry-86ef11cc0c6a0709)
+       Running tests/integration_delegate.rs (target/debug/deps/integration_delegate-865e09bc3d60ec48)
+       Running tests/integration_fanout.rs (target/debug/deps/integration_fanout-6aee299b2cf762f8)
+       Running tests/integration_inbound_kiro.rs (target/debug/deps/integration_inbound_kiro-b1774699fa39bbec)
+       Running tests/integration_run_workflow.rs (target/debug/deps/integration_run_workflow-5b846cbe1053b9cb)
+       Running tests/mcp_spawn.rs (target/debug/deps/mcp_spawn-e307a5e1d4043a62)
+
+$ cargo build --workspace
+  # workspace compiles (retry: None must be added to all workspace WorkflowNode{} literals per the task's own notes, though this task only touches config.rs)
+  [exit 0, 0.274s]
+  --- stderr (tail) ---
+      Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.23s
+
+$ cargo test --workspace --all-targets
+  # full workspace test compile+run, the task's own stated gate
+  [exit 0, 45.093s]
+  --- stdout (tail) ---
+  test result: ok. 49 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+  
+  
+  running 7 tests
+  test rust_readiness_transition_table ... ok
+  test rust_initialize_params_are_pinned ... ok
+  test request_path_advances_last_activity_idle_race_guard ... ok
+  test respawn_failure_leaves_evicted_true ... ok
+  test respawn_failure_reaps_new_child_no_leak ... ok
+  test respawn_success_clears_evicted ... ok
+  test server_request_with_colliding_id_does_not_corrupt_pending ... ok
+  
+  test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.05s
+  
+  
+  running 8 tests
+  test go_gate_runs_when_both_present ... ok
+  test go_gate_skips_when_not_required_and_absent ... ok
+  test go_gate_requires_when_required_and_absent ... ok
+  test document_symbols_extracts_type_and_method_recursively ... ok
+  test call_hierarchy_finds_incoming_caller ... ok
+  test workspace_symbol_finds_func ... ok
+  test implementations_of_interface ... ok
+  test definition_and_references_and_hover ... ok
+  
+  test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.86s
+  
+  
+  running 5 tests
+  test rust_document_symbols_includes_nested_trait_method ... ok
+  test implementations_finds_the_impl ... ok
+  test references_finds_the_caller ... ok
+  test session_reaches_ready_and_resolves_a_symbol ... ok
+  test evict_then_query_reindexes ... ok
+  
+  test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.80s
+  
+  
+  running 19 tests
+  test no_venv_falls_back_to_python3_with_warning ... ok
+  test dot_venv_then_venv ... ok
+  test pyproject_with_real_section_is_python ... ok
+  test py_scan_finds_py_in_subdir ... ok
+  test explicit_invalid_path_is_hard_error ... ok
+  test go_and_rust_markers_are_ambiguous ... ok
+  test cargo_toml_is_rust ... ok
+  test relative_explicit_python_path_resolves_against_repo ... ok
+  test requirements_txt_is_python ... ok
+  test tooling_only_pyproject_with_no_py_is_unknown ... ok
+  test go_mod_is_go ... ok
+  test py_scan_excludes_venv_and_dotdirs ... ok
+  test nonexecutable_venv_python_is_not_usable ... ok
+  test setup_py_is_python ... ok
+  test go_and_python_markers_are_ambiguous ... ok
+  test explicit_flag_wins ... ok
+  test both_rust_and_python_markers_are_ambiguous ... ok
+  test tooling_only_pyproject_is_not_python_by_marker_but_py_scan_wins ... ok
+  test virtual_env_beats_dot_venv ... ok
+  
+  test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+  
+  
+  running 9 tests
+  test python_gate_skips_when_not_required_and_absent ... ok
+  test python_gate_runs_when_both_present ... ok
+  test python_gate_requires_when_required_and_absent ... ok
+  test resolve_pos_handles_duplicate_name ... ok
+  test workspace_symbol_finds_class ... ok
+  test references_and_callhierarchy_and_definition ... ok
+  test document_symbols_extracts_class_and_method_recursively ... ok
+  test post_eviction_still_resolves_third_party_def ... ok
+  test hover_is_non_empty ... ok
+  
+  test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+  
+  --- stderr (tail) ---
+     Compiling serde_core v1.0.228
+      Checking pin-project-lite v0.2.17
+     Compiling serde v1.0.228
+      Checking cfg-if v1.0.4
+      Checking futures-core v0.3.32
+     Compiling parking_lot_core v0.9.12
+      Checking futures-sink v0.3.32
+      Checking memchr v2.8.1
+      Checking scopeguard v1.2.0
+      Checking smallvec v1.15.1
+      Checking futures-task v0.3.32
+      Checking once_cell v1.21.4
+      Checking lock_api v0.4.14
+      Checking hashbrown v0.17.1
+      Checking slab v0.4.12
+      Checking equivalent v1.0.2
+      Checking futures-channel v0.3.32
+      Checking futures-io v0.3.32
+     Compiling zmij v1.0.21
+     Compiling rustix v1.1.4
+     Compiling serde_json v1.0.150
+      Checking toml_write v0.1.2
+      Checking bytes v1.11.1
+     Compiling thiserror v2.0.18
+      Checking winnow v0.7.15
+     Compiling getrandom v0.4.2
+      Checking tracing-core v0.1.36
+      Checking itoa v1.0.18
+      Checking bitflags v2.11.1
+      Checking indexmap v2.14.0
+      Checking fastrand v2.4.1
+     Compiling syn v2.0.117
+      Checking errno v0.3.14
+      Checking socket2 v0.6.4
+      Checking mio v1.2.1
+      Checking signal-hook-registry v1.4.8
+      Checking parking_lot v0.12.5
+      Checking tempfile v3.27.0
+     Compiling serde_derive v1.0.228
+     Compiling futures-macro v0.3.32
+     Compiling tokio-macros v2.7.0
+     Compiling tracing-attributes v0.1.31
+     Compiling async-stream-impl v0.3.6
+     Compiling thiserror-impl v2.0.18
+     Compiling async-trait v0.1.89
+      Checking async-stream v0.3.6
+      Checking tokio v1.52.3
+      Checking futures-util v0.3.32
+      Checking tracing v0.1.44
+      Checking futures-executor v0.3.32
+      Checking futures v0.3.32
+      Checking toml_datetime v0.6.11
+      Checking serde_spanned v0.6.9
+      Checking tokio-stream v0.1.18
+      Checking toml_edit v0.22.27
+      Checking toml v0.8.23
+      Checking bridge-core v0.1.0 (/private/tmp/gpt55-ws/IMPL-04/crates/bridge-core)
+      Checking bridge-core-tests v0.0.0 (/private/tmp/gpt55-ws/IMPL-04/target/tests/trybuild/bridge-core)
+      Finished `dev` profile [unoptimized + debuginfo] target(s) in 5.57s
+  
+  
+  test [0m[1m../../tests/trybuild/prompt_on_unready_session.rs[0m ... [0m[32mok
+  [0mtest [0m[1m../../tests/trybuild/resume_terminal.rs[0m ... [0m[32mok
+  [0m
+  
+       Running unittests src/lib.rs (target/debug/deps/bridge_mcp-8fa2f41473b13ebe)
+       Running tests/mcp_client.rs (target/debug/deps/mcp_client-c94ba77b6ad6ace5)
+       Running unittests src/lib.rs (target/debug/deps/bridge_observ-b90276162827038b)
+       Running unittests src/lib.rs (target/debug/deps/bridge_policy-08f798c99cf7af34)
+       Running unittests src/lib.rs (target/debug/deps/bridge_registry-cf12ce26f7837a22)
+       Running unittests src/lib.rs (target/debug/deps/bridge_store-28cf68275e21d2d1)
+       Running unittests src/lib.rs (target/debug/deps/bridge_workflow-5cdf1b98edeac9ec)
+       Running unittests src/lib.rs (target/debug/deps/bridge_worktree-08cb5a63ea6ca6fb)
+       Running unittests src/lib.rs (target/debug/deps/lsp_mcp-838ce99011fc518c)
+       Running unittests src/main.rs (target/debug/deps/lsp_mcp-1c156b4507f8e416)
+       Running tests/characterization.rs (target/debug/deps/characterization-3a28ef6398b354e0)
+       Running tests/go_nav.rs (target/debug/deps/go_nav-bcf9884fec2c0fc4)
+       Running tests/integration.rs (target/debug/deps/integration-bd01d98cf2521c93)
+       Running tests/lang_detect.rs (target/debug/deps/lang_detect-cfb302276cac821f)
+       Running tests/python_nav.rs (target/debug/deps/python_nav-52021e93cb8bbefa)
+
+$ cargo fmt --all --check
+  # formatting gate from the task prompt
+  [exit 0, 0.37s]
+
+$ cargo clippy --workspace --all-targets -- -D warnings
+  # clippy gate from the task prompt. CAVEAT: the reference session's own nomination notes a PRE-EXISTING out-of-scope clippy lint in graph.rs that a scope-disciplined implementer correctly leaves alone — so a workspace-wide -D warnings run may fail for a reason unrelated to this task's correctness. Treat a graph.rs-only clippy failure here as a pre-existing condition, not a regression; a correct implementation should not introduce NEW clippy warnings in config.rs.
+  [exit 101, 2.859s]
+  --- stderr (tail) ---
+      Checking hyper v1.10.1
+      Checking bridge-workflow v0.1.0 (/private/tmp/gpt55-ws/IMPL-04/crates/bridge-workflow)
+      Checking agent-client-protocol-schema v0.13.2
+      Checking lsp-mcp v0.1.0 (/private/tmp/gpt55-ws/IMPL-04/crates/lsp-mcp)
+      Checking bridge-store v0.1.0 (/private/tmp/gpt55-ws/IMPL-04/crates/bridge-store)
+  error: manual saturating arithmetic
+    --> crates/bridge-workflow/src/graph.rs:43:13
+     |
+  43 | /             self.backoff_ms
+  44 | |                 .checked_mul(1u64 << shift)
+  45 | |                 .unwrap_or(u64::MAX)
+     | |____________________________________^ help: consider using `saturating_mul`: `self.backoff_ms.saturating_mul(1u64 << shift)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#manual_saturating_arithmetic
+     = note: `-D clippy::manual-saturating-arithmetic` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::manual_saturating_arithmetic)]`
+  
+  error: could not compile `bridge-workflow` (lib) due to 1 previous error
+  warning: build failed, waiting for other jobs to finish...
+  error: could not compile `bridge-workflow` (lib test) due to 1 previous error

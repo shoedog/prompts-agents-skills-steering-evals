@@ -1,0 +1,39 @@
+== items/mc-01/diff.patch
+  OK  b/src/replay_spool.rs @@ -0,0 +1,57 @@  body: ctx=0 del=0 add=57 -> old=0 new=57
+  OK  b/docs/spool-format.md @@ -1,3 +1,11 @@  body: ctx=2 del=1 add=9 -> old=3 new=11
+  summary: 2 file section(s), 2 hunk(s), arithmetic CONSISTENT
+
+== items/mc-02/diff.patch
+  OK  b/src/replay_spool.rs @@ -204,9 +204,38 @@  body: ctx=9 del=0 add=29 -> old=9 new=38
+  OK  b/CHANGELOG.md @@ -1,2 +1,9 @@  body: ctx=2 del=0 add=7 -> old=2 new=9
+  summary: 2 file section(s), 2 hunk(s), arithmetic CONSISTENT
+
+== items/mc-03/diff.patch
+  OK  b/src/main.rs @@ -118,14 +118,31 @@  body: ctx=12 del=2 add=19 -> old=14 new=31
+  OK  b/docs/RESUME-g4c.md @@ -4,4 +4,11 @@  body: ctx=4 del=0 add=7 -> old=4 new=11
+  summary: 2 file section(s), 2 hunk(s), arithmetic CONSISTENT
+
+== items/mc-04/diff.patch
+  OK  b/src/pathfold.ts @@ -0,0 +1,33 @@  body: ctx=0 del=0 add=33 -> old=0 new=33
+  summary: 1 file section(s), 1 hunk(s), arithmetic CONSISTENT
+
+== items/mc-05/diff.patch
+  OK  b/ci/run-suite.sh @@ -0,0 +1,19 @@  body: ctx=0 del=0 add=19 -> old=0 new=19
+  summary: 1 file section(s), 1 hunk(s), arithmetic CONSISTENT
+
+== items/mc-06/diff.patch
+  OK  b/src/target_spool.rs @@ -0,0 +1,50 @@  body: ctx=0 del=0 add=50 -> old=0 new=50
+  OK  b/docs/target-spool-format.md @@ -1,3 +1,13 @@  body: ctx=2 del=1 add=11 -> old=3 new=13
+  summary: 2 file section(s), 2 hunk(s), arithmetic CONSISTENT
+
+== items/mc-07/diff.patch
+  OK  b/src/main.rs @@ -96,15 +96,35 @@  body: ctx=12 del=3 add=23 -> old=15 new=35
+  OK  b/docs/RESUME-archive.md @@ -4,4 +4,10 @@  body: ctx=4 del=0 add=6 -> old=4 new=10
+  summary: 2 file section(s), 2 hunk(s), arithmetic CONSISTENT
+
+== items/mc-08/diff.patch
+  OK  b/src/replay_spool.rs @@ -204,9 +204,47 @@  body: ctx=9 del=0 add=38 -> old=9 new=47
+  summary: 1 file section(s), 1 hunk(s), arithmetic CONSISTENT
+
+HUNK-AUDIT RESULT: PASS (all headers arithmetically consistent)
+exit=0

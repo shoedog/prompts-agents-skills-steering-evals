@@ -1,0 +1,359 @@
+POST-RUN evidence (workspace after the Fable session)
+=====================================================
+
+$ cargo fmt --all --check
+  # the failing CI format check must turn green
+  [exit 1, 0.709s]
+  --- stdout (tail) ---
+  Diff in /private/tmp/dbg-d2h-ws/DBG-01/src/repo_loader.rs:1033:
+           let inputs = repo.scope_graph_inputs.expect("scope graph inputs");
+           // CONCRETE member dirs, never the glob pattern.
+           assert!(
+  [31m-            inputs.cfg.workspace_members.contains(&"crates/a".to_string())
+  [m[31m-                && inputs.cfg.workspace_members.contains(&"crates/b".to_string()),
+  [m[32m+            inputs
+  [m[32m+                .cfg
+  [m[32m+                .workspace_members
+  [m[32m+                .contains(&"crates/a".to_string())
+  [m[32m+                && inputs
+  [m[32m+                    .cfg
+  [m[32m+                    .workspace_members
+  [m[32m+                    .contains(&"crates/b".to_string()),
+  [m             "glob members must expand to concrete dirs; got {:?}",
+               inputs.cfg.workspace_members
+           );
+
+$ cargo test malformed_member_manifest
+  # the failing test (original: malformed_member_manifest_does_not_discard_valid_sibling_manifest)
+  # expect_min_tests=1 matched_tests=0 min_tests_satisfied=False
+  MIN-TESTS FAILED: matched 0 passed test(s), expected at least 1
+  [exit 101, 14.378s]
+  --- stdout (tail) ---
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 40 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 100 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 37 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 40 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 23 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 58 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 25 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 27 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 35 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 32 filtered out; finished in 0.00s
+  
+  
+  running 1 test
+  test build_wiring_test::malformed_member_manifest_does_not_discard_valid_sibling_manifest ... FAILED
+  
+  failures:
+  
+  ---- build_wiring_test::malformed_member_manifest_does_not_discard_valid_sibling_manifest stdout ----
+  
+  thread 'build_wiring_test::malformed_member_manifest_does_not_discard_valid_sibling_manifest' (19831563) panicked at tests/name_resolution/build_wiring_test.rs:384:5:
+  assertion `left == right` failed: workspace members from the valid root manifest must survive
+    left: ["good"]
+   right: ["bad", "good"]
+  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+  
+  
+  failures:
+      build_wiring_test::malformed_member_manifest_does_not_discard_valid_sibling_manifest
+  
+  test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 98 filtered out; finished in 0.24s
+  
+  --- stderr (tail) ---
+  warning: unused import: `prism::output`
+    --> tests/lang/tsx/../../common/mod.rs:13:9
+     |
+  13 | pub use prism::output;
+     |         ^^^^^^^^^^^^^
+  
+  warning: unused import: `prism::output`
+    --> tests/algo/theoretical/../../common/mod.rs:13:9
+     |
+  13 | pub use prism::output;
+     |         ^^^^^^^^^^^^^
+  
+  warning: unused imports: `MultiReviewOutput` and `to_review_output`
+    --> tests/algo/theoretical/../../common/mod.rs:14:25
+     |
+  14 | pub use prism::output::{to_review_output, MultiReviewOutput};
+     |                         ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+  
+  warning: unused imports: `MultiReviewOutput` and `to_review_output`
+    --> tests/lang/tsx/../../common/mod.rs:14:25
+     |
+  14 | pub use prism::output::{to_review_output, MultiReviewOutput};
+     |                         ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+  
+  warning: unused imports: `DiagramWarningKind`, `DiagramWarning`, `MultiSliceResult`, `SliceFinding`, and `SliceResult`
+    --> tests/algo/theoretical/../../common/mod.rs:16:5
+     |
+  16 |     DiagramWarning, DiagramWarningKind, MultiSliceResult, SliceConfig, SliceFinding, SliceResult,
+     |     ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^               ^^^^^^^^^^^^  ^^^^^^^^^^^
+  
+  warning: unused imports: `DiagramWarningKind`, `DiagramWarning`, `MultiSliceResult`, `SliceFinding`, and `SliceResult`
+    --> tests/lang/tsx/../../common/mod.rs:16:5
+     |
+  16 |     DiagramWarning, DiagramWarningKind, MultiSliceResult, SliceConfig, SliceFinding, SliceResult,
+     |     ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^               ^^^^^^^^^^^^  ^^^^^^^^^^^
+  
+  warning: unused import: `std::path::Path`
+    --> tests/lang/tsx/../../common/mod.rs:20:9
+     |
+  20 | pub use std::path::Path;
+     |         ^^^^^^^^^^^^^^^
+  
+  warning: unused import: `std::path::Path`
+    --> tests/algo/theoretical/../../common/mod.rs:20:9
+     |
+  20 | pub use std::path::Path;
+     |         ^^^^^^^^^^^^^^^
+  
+  warning: `prism` (test "ast") generated 6 warnings (run `cargo fix --test "ast" -p prism` to apply 6 suggestions)
+  warning: `prism` (test "algo_theoretical") generated 6 warnings (run `cargo fix --test "algo_theoretical" -p prism` to apply 6 suggestions)
+  warning: `prism` (test "lang_tsx") generated 6 warnings (run `cargo fix --test "lang_tsx" -p prism` to apply 6 suggestions)
+  warning: `prism` (test "lang_rust") generated 6 warnings (run `cargo fix --test "lang_rust" -p prism` to apply 6 suggestions)
+  warning: `prism` (test "lang_lua") generated 6 warnings (run `cargo fix --test "lang_lua" -p prism` to apply 6 suggestions)
+  warning: `prism` (test "lang_c") generated 5 warnings (run `cargo fix --test "lang_c" -p prism` to apply 5 suggestions)
+      Finished `test` profile [unoptimized + debuginfo] target(s) in 5.61s
+       Running unittests src/lib.rs (target/debug/deps/prism-67b1e8306ecba215)
+       Running unittests src/main.rs (target/debug/deps/prism-677b1f196faa0135)
+       Running tests/algo/novel/main.rs (target/debug/deps/algo_novel-edc564dc3e1f8c61)
+       Running tests/algo/paper/main.rs (target/debug/deps/algo_paper-240d9d66a6d44a8b)
+       Running tests/algo/taxonomy/main.rs (target/debug/deps/algo_taxonomy-5dcf1bf432a0d47d)
+       Running tests/algo/theoretical/main.rs (target/debug/deps/algo_theoretical-30bf6d110b49e3cc)
+       Running tests/ast/main.rs (target/debug/deps/ast-1b1aa5136b01a610)
+       Running tests/cli/main.rs (target/debug/deps/cli-54f5534934ed596e)
+       Running tests/frameworks/main.rs (target/debug/deps/frameworks-7b0948fa714a711f)
+       Running tests/infra/main.rs (target/debug/deps/infra-8c917b5ac8b5d9d4)
+       Running tests/integration/main.rs (target/debug/deps/integration-d5351dc850a24cc9)
+       Running tests/lang/bash/main.rs (target/debug/deps/lang_bash-dace945e68bed73a)
+       Running tests/lang/c/main.rs (target/debug/deps/lang_c-6d5a93e0aac0e5f4)
+       Running tests/lang/cpp/main.rs (target/debug/deps/lang_cpp-a29fe528bdbcd691)
+       Running tests/lang/go/main.rs (target/debug/deps/lang_go-36c3b19ee2a513aa)
+       Running tests/lang/java/main.rs (target/debug/deps/lang_java-121498a74b4dffad)
+       Running tests/lang/javascript/main.rs (target/debug/deps/lang_javascript-65584d5546f6f651)
+       Running tests/lang/lua/main.rs (target/debug/deps/lang_lua-170d9a66d383a04a)
+       Running tests/lang/python/main.rs (target/debug/deps/lang_python-8cd3077691409f49)
+       Running tests/lang/rust/main.rs (target/debug/deps/lang_rust-b20a7995e75f66d4)
+       Running tests/lang/terraform/main.rs (target/debug/deps/lang_terraform-c89c77698f7326bb)
+       Running tests/lang/tsx/main.rs (target/debug/deps/lang_tsx-c9b246633c19e962)
+       Running tests/lang/typescript/main.rs (target/debug/deps/lang_typescript-1ec893e4152666e1)
+       Running tests/name_resolution/main.rs (target/debug/deps/name_resolution-3f1d806f0e660d51)
+  error: test failed, to rerun pass `--test name_resolution`
+
+$ cargo test
+  # full suite green
+  # expect_min_tests=2000 matched_tests=2318 min_tests_satisfied=True
+  [exit 101, 105.436s]
+  --- stdout (tail) ---
+  test resolve_test::test_super_anchor_reaches_parent_start ... ok
+  test resolve_test::test_reexport_cycle_poisons_not_outer_decoy ... ok
+  test resolve_test::test_reexport_chain_resolves_to_terminal ... ok
+  test local_binding_test::lookup_visible_binding_returns_none_for_duplicate_same_rib_local ... ok
+  test rust_populate_test::cross_crate_use_external_same_name_declines_with_in_repo_member ... ok
+  test build_wiring_test::skeleton_and_subset_do_not_populate_scope_graph ... ok
+  test rust_populate_test::cross_crate_use_claimed_but_invisible_local_blocks_fallback ... ok
+  test rust_populate_test::cross_crate_use_local_module_shadows_dep ... ok
+  test local_binding_test::function_param_binding_refs_preserve_source_order_ordinals ... ok
+  test rust_populate_test::cross_crate_use_declines_when_no_dep ... ok
+  test build_wiring_test::callsite_kind_is_call_and_macros_are_not_sites_in_pr2 ... ok
+  test rust_populate_test::cross_crate_use_resolves_when_dep_declared ... ok
+  test rust_populate_test::test_associated_item_not_bare_visible_but_path_reachable ... ok
+  test rust_populate_test::test_bare_call_in_method_routes_to_free_fn_not_assoc ... ok
+  test rust_populate_test::test_cfg_dup_mods_are_distinct_conditioned_bindings ... ok
+  test rust_populate_test::test_end_to_end_mod_use_resolves ... ok
+  test rust_populate_test::test_explicit_lib_and_bin_roots ... ok
+  test rust_populate_test::test_extern_crate_alias_binds_in_root ... ok
+  test rust_populate_test::test_block_locals_inside_impl_method_resolve_as_locals ... ok
+  test rust_populate_test::test_convention_bin_and_tests_roots ... ok
+  test rust_populate_test::test_block_local_use_extent ... ok
+  test rust_populate_test::test_file_and_mod_both_present_is_ambiguous ... ok
+  test rust_populate_test::test_inline_mod_resolves_via_path ... ok
+  test rust_populate_test::test_local_closure_arg_shadows_free_fn ... ok
+  test rust_populate_test::test_local_for_pattern_shadows_free_fn ... ok
+  test rust_populate_test::test_local_closure_tuple_non_first_ident ... ok
+  test rust_populate_test::test_local_let_shadows_free_fn ... ok
+  test rust_populate_test::test_local_if_let_shadows_free_fn ... ok
+  test rust_populate_test::test_local_param_shadows_free_fn ... ok
+  test rust_populate_test::test_local_match_pattern_shadows_free_fn ... ok
+  test rust_populate_test::test_local_match_tuple_non_first_ident ... ok
+  test rust_populate_test::test_local_tuple_pattern_non_first_ident ... ok
+  test rust_populate_test::test_local_struct_pattern_field_rename ... ok
+  test rust_populate_test::test_local_while_let_shadows_free_fn ... ok
+  test rust_populate_test::test_macro_wildcard_poison ... ok
+  test rust_populate_test::test_missing_mod_file_poisons_that_region_only ... ok
+  test rust_populate_test::test_no_panic_on_empty_and_pathological ... ok
+  test rust_populate_test::test_nested_module_via_declaring_dir_foomod ... ok
+  test rust_populate_test::test_module_level_use_visible_before_declaration ... ok
+  test rust_populate_test::test_nested_module_via_declaring_dir_foors ... ok
+  test rust_populate_test::test_non_aliased_use_binds_type_namespace_under_original_name ... ok
+  test rust_populate_test::test_only_files_filter_restricts_modeled_containing_files ... ok
+  test rust_populate_test::test_parse_failed_target_module_poisons ... ok
+  test rust_populate_test::test_parse_failed_containing_file_is_unmodeled ... ok
+  test rust_populate_test::test_pub_use_facade_reexport_resolves ... ok
+  test rust_populate_test::test_private_import_of_private_fn_falls_through ... ok
+  test rust_populate_test::test_real_glob_poison ... ok
+  test rust_populate_test::test_same_callable_glob_use_is_position_gated_above_declaration ... ok
+  test rust_populate_test::test_use_alias ... ok
+  test types_test::test_cfg_cond_compatible_exclusive ... ok
+  test rust_populate_test::test_use_alias_binds_type_namespace_under_alias_not_original ... ok
+  test rust_populate_test::test_same_callable_named_use_is_position_gated_above_declaration ... ok
+  test rust_populate_test::test_workspace_two_members_distinct_roots ... ok
+  test types_test::test_edge_and_bind_target_pending_serde ... ok
+  test rust_populate_test::test_use_group_and_self ... ok
+  test types_test::test_two_scope_graph_field_access_and_serde ... ok
+  test build_wiring_test::review_diff_only_build_does_not_store_authoritative_scope_graph ... ok
+  test build_wiring_test::macro_invocations_do_not_create_call_graph_or_nav_edges_in_pr2 ... ok
+  test build_wiring_test::whole_workspace_build_populates_complete_scope_graph ... ok
+  test build_wiring_test::incremental_rebuild_rematerializes_receiver_outcome_no_stale_scopeid ... ok
+  test build_wiring_test::module_deps_consumes_scope_graph_but_resolution_output_stays_inert ... ok
+  test build_wiring_test::incremental_recomputes_scope_graph_from_all_files ... ok
+  test build_wiring_test::malformed_member_manifest_does_not_discard_valid_sibling_manifest ... FAILED
+  
+  failures:
+  
+  ---- build_wiring_test::malformed_member_manifest_does_not_discard_valid_sibling_manifest stdout ----
+  
+  thread 'build_wiring_test::malformed_member_manifest_does_not_discard_valid_sibling_manifest' (19865223) panicked at tests/name_resolution/build_wiring_test.rs:384:5:
+  assertion `left == right` failed: workspace members from the valid root manifest must survive
+    left: ["good"]
+   right: ["bad", "good"]
+  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+  
+  
+  failures:
+      build_wiring_test::malformed_member_manifest_does_not_discard_valid_sibling_manifest
+  
+  test result: FAILED. 98 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+  
+  --- stderr (tail) ---
+  
+  warning: unused import: `prism::access_path::AccessPath`
+   --> tests/lang/bash/../../common/mod.rs:5:9
+    |
+  5 | pub use prism::access_path::AccessPath;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+  
+  warning: unused import: `prism::call_graph::CallGraph`
+   --> tests/lang/bash/../../common/mod.rs:8:9
+    |
+  8 | pub use prism::call_graph::CallGraph;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  
+  warning: unused import: `prism::data_flow::DataFlowGraph`
+    --> tests/lang/bash/../../common/mod.rs:10:9
+     |
+  10 | pub use prism::data_flow::DataFlowGraph;
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  
+  warning: unused import: `prism::output`
+    --> tests/lang/bash/../../common/mod.rs:13:9
+     |
+  13 | pub use prism::output;
+     |         ^^^^^^^^^^^^^
+  
+  warning: unused imports: `MultiReviewOutput` and `to_review_output`
+    --> tests/lang/bash/../../common/mod.rs:14:25
+     |
+  14 | pub use prism::output::{to_review_output, MultiReviewOutput};
+     |                         ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+  
+  warning: unused imports: `DiagramWarningKind`, `DiagramWarning`, `MultiSliceResult`, `SliceFinding`, and `SliceResult`
+    --> tests/lang/bash/../../common/mod.rs:16:5
+     |
+  16 |     DiagramWarning, DiagramWarningKind, MultiSliceResult, SliceConfig, SliceFinding, SliceResult,
+     |     ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^               ^^^^^^^^^^^^  ^^^^^^^^^^^
+  
+  warning: unused import: `std::path::Path`
+    --> tests/lang/bash/../../common/mod.rs:20:9
+     |
+  20 | pub use std::path::Path;
+     |         ^^^^^^^^^^^^^^^
+  
+  warning: `prism` (test "lang_typescript") generated 7 warnings (run `cargo fix --test "lang_typescript" -p prism` to apply 7 suggestions)
+  warning: `prism` (test "lang_tsx") generated 6 warnings (run `cargo fix --test "lang_tsx" -p prism` to apply 6 suggestions)
+  warning: `prism` (test "lang_lua") generated 6 warnings (run `cargo fix --test "lang_lua" -p prism` to apply 6 suggestions)
+  warning: `prism` (test "lang_python") generated 9 warnings (run `cargo fix --test "lang_python" -p prism` to apply 9 suggestions)
+  warning: `prism` (test "integration") generated 4 warnings (run `cargo fix --test "integration" -p prism` to apply 4 suggestions)
+  warning: `prism` (test "lang_go") generated 6 warnings (run `cargo fix --test "lang_go" -p prism` to apply 6 suggestions)
+  warning: `prism` (test "cli") generated 4 warnings (run `cargo fix --test "cli" -p prism` to apply 4 suggestions)
+  warning: `prism` (test "lang_java") generated 7 warnings (run `cargo fix --test "lang_java" -p prism` to apply 7 suggestions)
+  warning: `prism` (test "lang_bash") generated 7 warnings (run `cargo fix --test "lang_bash" -p prism` to apply 7 suggestions)
+      Finished `test` profile [unoptimized + debuginfo] target(s) in 0.11s
+       Running unittests src/lib.rs (target/debug/deps/prism-67b1e8306ecba215)
+       Running unittests src/main.rs (target/debug/deps/prism-677b1f196faa0135)
+       Running tests/algo/novel/main.rs (target/debug/deps/algo_novel-edc564dc3e1f8c61)
+       Running tests/algo/paper/main.rs (target/debug/deps/algo_paper-240d9d66a6d44a8b)
+       Running tests/algo/taxonomy/main.rs (target/debug/deps/algo_taxonomy-5dcf1bf432a0d47d)
+       Running tests/algo/theoretical/main.rs (target/debug/deps/algo_theoretical-30bf6d110b49e3cc)
+       Running tests/ast/main.rs (target/debug/deps/ast-1b1aa5136b01a610)
+       Running tests/cli/main.rs (target/debug/deps/cli-54f5534934ed596e)
+       Running tests/frameworks/main.rs (target/debug/deps/frameworks-7b0948fa714a711f)
+       Running tests/infra/main.rs (target/debug/deps/infra-8c917b5ac8b5d9d4)
+       Running tests/integration/main.rs (target/debug/deps/integration-d5351dc850a24cc9)
+       Running tests/lang/bash/main.rs (target/debug/deps/lang_bash-dace945e68bed73a)
+       Running tests/lang/c/main.rs (target/debug/deps/lang_c-6d5a93e0aac0e5f4)
+       Running tests/lang/cpp/main.rs (target/debug/deps/lang_cpp-a29fe528bdbcd691)
+       Running tests/lang/go/main.rs (target/debug/deps/lang_go-36c3b19ee2a513aa)
+       Running tests/lang/java/main.rs (target/debug/deps/lang_java-121498a74b4dffad)
+       Running tests/lang/javascript/main.rs (target/debug/deps/lang_javascript-65584d5546f6f651)
+       Running tests/lang/lua/main.rs (target/debug/deps/lang_lua-170d9a66d383a04a)
+       Running tests/lang/python/main.rs (target/debug/deps/lang_python-8cd3077691409f49)
+       Running tests/lang/rust/main.rs (target/debug/deps/lang_rust-b20a7995e75f66d4)
+       Running tests/lang/terraform/main.rs (target/debug/deps/lang_terraform-c89c77698f7326bb)
+       Running tests/lang/tsx/main.rs (target/debug/deps/lang_tsx-c9b246633c19e962)
+       Running tests/lang/typescript/main.rs (target/debug/deps/lang_typescript-1ec893e4152666e1)
+       Running tests/name_resolution/main.rs (target/debug/deps/name_resolution-3f1d806f0e660d51)
+  error: test failed, to rerun pass `--test name_resolution`

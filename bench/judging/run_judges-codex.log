@@ -1,0 +1,26 @@
+[judges] 12 tasks x 2 judges = 24 calls
+[judges] IMPL-01/codex: ERROR codex CLI exited with code 1
+[judges] IMPL-03/codex: ERROR codex CLI exited with code 1
+[judges] IMPL-04/codex: ERROR codex CLI exited with code 1
+[judges] IMPL-05/codex: ERROR codex CLI exited with code 1
+[judges] IMPL-06/codex: ERROR codex CLI exited with code 1
+[judges] IMPL-08/codex: ERROR codex CLI exited with code 1
+[judges] IMPL-12/codex: ERROR codex CLI exited with code 1
+[judges] IMPL-13/codex: ERROR codex CLI exited with code 1
+[judges] INFRA-01/codex: ERROR codex CLI exited with code 1
+[judges] REF-01/codex: ERROR codex CLI exited with code 1
+[judges] REF-03/codex: ERROR codex CLI exited with code 1
+[judges] RES-01/codex: ERROR codex CLI exited with code 1
+[judges] IMPL-01/claude: cached
+[judges] IMPL-03/claude: cached
+[judges] IMPL-04/claude: cached
+[judges] IMPL-05/claude: cached
+[judges] IMPL-06/claude: cached
+[judges] IMPL-08/claude: cached
+[judges] IMPL-12/claude: cached
+[judges] IMPL-13/claude: cached
+[judges] INFRA-01/claude: cached
+[judges] REF-01/claude: cached
+[judges] REF-03/claude: cached
+[judges] RES-01/claude: cached
+[judges] done; 12 errors: ['/Users/wesleyjinks/code/prompts-skills-steering/bench/judging/IMPL-01/verdict-codex.ERROR', '/Users/wesleyjinks/code/prompts-skills-steering/bench/judging/INFRA-01/verdict-codex.ERROR', '/Users/wesleyjinks/code/prompts-skills-steering/bench/judging/IMPL-06/verdict-codex.ERROR', '/Users/wesleyjinks/code/prompts-skills-steering/bench/judging/IMPL-08/verdict-codex.ERROR', '/Users/wesleyjinks/code/prompts-skills-steering/bench/judging/IMPL-13/verdict-codex.ERROR', '/Users/wesleyjinks/code/prompts-skills-steering/bench/judging/REF-01/verdict-codex.ERROR', '/Users/wesleyjinks/code/prompts-skills-steering/bench/judging/IMPL-12/verdict-codex.ERROR', '/Users/wesleyjinks/code/prompts-skills-steering/bench/judging/IMPL-05/verdict-codex.ERROR', '/Users/wesleyjinks/code/prompts-skills-steering/bench/judging/IMPL-03/verdict-codex.ERROR', '/Users/wesleyjinks/code/prompts-skills-steering/bench/judging/IMPL-04/verdict-codex.ERROR', '/Users/wesleyjinks/code/prompts-skills-steering/bench/judging/RES-01/verdict-codex.ERROR', '/Users/wesleyjinks/code/prompts-skills-steering/bench/judging/REF-03/verdict-codex.ERROR']

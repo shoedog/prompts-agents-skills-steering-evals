@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A: its new rich_snapshot_folds_toolcall_interleaved test should fail on pre-change code because rich_snapshot_frames does not exist and the behavior is absent; it asserts real merged ordering, but only checks tags, not the patched ToolCall payload. Strongest test: rich_snapshot_folds_toolcall_interleaved. Weakest gap: no direct coverage for latest-plan-only, orphan ToolCallUpdate, merged cursor filtering, or payload patch correctness. Arm B: its tests should also fail pre-change and are more regression-catching. rich_snapshot_folds_toolcall_interleaved checks ordering plus the patched current ToolCall fields, and rich_snapshot_plan_latest_orphan_update_and_cursor covers latest Plan replacement, orphan update emission, and cursor filtering over the merged list. Strongest test: rich_snapshot_plan_latest_orphan_update_and_cursor because it covers multiple edge rules unique to the new projection. Weakest test: frame_tags/helper-level assertions only check serialized kind strings and do not exercise both actual SSE reattach sites or SnapshotComplete seq directly.",
+  "rationale": "Both arms implement the required consistent read shape, swap both visible reattach paths to rich_snapshot_frames, derive SnapshotComplete from the merged frame list, preserve no-rich behavior by starting from snapshot_frames(snap, None), and remove the now-stale dead_code allows. Arm B is materially better because its folding state keeps the actual OrchEventKind and patches sparse updates onto either a base ToolCall or an orphan ToolCallUpdate, then its tests assert payload state and edge behavior. Arm A is likely functionally acceptable for the brief, but it is weaker: WRONG risk is lower than B around test rigor, and SMELL: orphan updates after multiple sparse updates can emit default/None-derived fields only as represented by its custom ToolFold, with less direct validation; HashMap tie"
+ },
+ "tokens_used": 27323
+}

@@ -1,0 +1,123 @@
+{
+  "id": "IMPL-08",
+  "ws": "/private/tmp/sonnet-d1-ws/IMPL-08",
+  "dry_run": false,
+  "model": "claude-sonnet-5",
+  "replay_preface": "Replay note: you are working in /private/tmp/sonnet-d1-ws/IMPL-08 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged.",
+  "run_status": "ok",
+  "subtype": "success",
+  "api_error_status": null,
+  "returncode": 0,
+  "session_id": "5fdc0a75-227a-4f88-9f4b-4a237bf0cd03",
+  "duration_ms": 1094862,
+  "num_turns": 90,
+  "usage": {
+    "input_tokens": 176,
+    "cache_creation_input_tokens": 200323,
+    "cache_read_input_tokens": 13751405,
+    "output_tokens": 63740,
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 200323,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1921,
+        "cache_read_input_tokens": 223242,
+        "cache_creation_input_tokens": 282,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 282
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "total_cost_usd": 6.2839874999999985,
+  "stop_reason": "end_turn",
+  "is_error": false,
+  "result_text": "All stable. Here's the report.\n\n## Summary\n\nImplemented Task 5 (the `resolve_call_site_full` integration) of the scope-graph precision-recovery plan, exactly as specified, plus one necessary deviation to satisfy the task's own \"no regressions\" requirement.\n\n### Files modified\n- `src/resolution.rs` (+201/-3 lines)\n- `tests/integration/resolution_test.rs` (+314 lines)\n\n### Implementation (per plan, verbatim)\n- Rewrote the Rust scope branch of `resolve_call_site_full` (~line 787): splits an owner-keyed `::` name via the new `owner_method_key` helper, gates on `has_bare_pool`, diverts free-function misroutes via `rust_graph_qualified_target_is_free_fn`, and drives owner-method sites through `rust_scope_prune_owner` (the `ScopeResolution` disproof prune) with fail-open to `owner_lookup_in_modules`.\n- Added `rust_graph_qualified_target_is_free_fn`, `rust_scope_prune_owner`, and `owner_method_key` exactly as the plan's code blocks specify.\n- Added the 7 plan-specified tests to `tests/integration/resolution_test.rs`.\n\n### RED \u2192 GREEN evidence\nRan `cargo test --test integration resolution_test::scope_graph_` before implementing: 2 passed (regression pins), 5 failed exactly as the plan predicted (drop vs demote, keep-all vs wrong-prune). After implementing: all 7 passed. Verified the free-fn guard actually fires by temporarily disabling it (`&& false`) \u2014 `scope_graph_free_fn_path_not_misrouted_to_colliding_method_pool` then failed by resolving to the wrong cross-module method file (`src/other.rs` instead of `src/m.rs`); restored, it passed again.\n\n### Three drop-invariant re-confirmation\n`rust_scope_graph_unqualified_declines_do_not_legacy_guess`, `rust_scope_graph_qualified_paths_resolve_or_disable_legacy_stem`, `rust_scope_graph_authority_gate_and_poison_skip_legacy` \u2014 all pass. Full `resolution_test::` suite: 131 passed, 0 failed, 1 ignored.\n\n### Deviation from the plan (found via full-suite run, fixed within Task 5's own file)\n`cargo test` (full suite) surfaced one regression outside the plan's named tests: `tests/ast/cpg_test.rs::cha_upgrades_graph_resolved_owner_pair_to_exact` (pre-existing, passing before my change \u2014 confirmed via `git stash`). Root cause: `self.methods` keys owner-method pools by **trait name** too (not just concrete struct/enum owners), via pre-existing `trait_key` population in `call_graph.rs`. For `Render::draw(x)` (calling a trait method through the trait name \u2014 true dynamic/vtable dispatch, no static callee), the bare pool `(\"Render\",\"draw\")` collides across `A::draw`/`B::draw`. `\u2461B`/`\u2460C` pass cleanly (no shadow, direct binding), but the resolved graph target is the trait's own bodyless declaration, whose `graph_target_ids` is empty \u2014 so the predicate disproves nothing, `rust_scope_prune_owner` returns \"unchanged,\" and the plan's literal fail-open routes it to `owner_lookup_in_modules`, reviving the legacy `TraitCha` demotion that an earlier (#120) invariant test requires disabled for authoritative sites (that fan-out is supposed to come solely from the CPG's separate CHA-enrichment step, seeded from real `Exact` edges).\n\nFix (confined to `src/resolution.rs`, no other files/tasks touched): before falling through to the `owner_lookup_in_modules` fail-open, check whether the qualified path resolved to a *definite* graph target whose id-set is empty \u2014 if so, this isn't \"uncertain\" (the \u2460C/\u2461B fail-open's intended trigger), it's the same decline `rust_scope_graph_resolution` already treats as a drop, so it drops instead of fail-opening. Verified this doesn't affect any of the 7 new tests or the 3 invariants (all still green) since it only fires when the callable edge resolves to `Some` target with an empty id-set \u2014 none of the plan's own test fixtures hit that combination.\n\n### Verified\n- `cargo fmt` / `cargo fmt --check`: clean.\n- `cargo test` (full suite, all 27 test binaries + lib + main unittests): **2372 passed, 0 failed, 1 ignored** across every binary (cli included, no stall on this run).\n- `cargo build --release` + `cd eval && uv run tier-a --matrix-only --allow-stale-sut`: all Rust fixtures `ok`, including `rust/trait_dyn_dispatch` (exit 0, no regressions/mismatches).\n- Manually confirmed the previously-regressed `cha_upgrades_graph_resolved_owner_pair_to_exact` now passes, and that it genuinely failed before my fix (not vacuously).\n\n### Not verified\n- Did not run `uv run tier-a --quick` (needs rust-analyzer, minutes-long) or `--corpus all` (human-triggered per `eval/README.md`) \u2014 out of scope for this task per the instructions (\"Do NOT touch eval/\" and Task 5 doesn't call for the quick/full harness).\n- Did not run Tasks 7/8 (recovery counter, further Tier-A gating) \u2014 explicitly out of scope.\n- Did not commit \u2014 edits are left uncommitted per instructions for the host to commit.",
+  "timed_out": false,
+  "parse_error": null,
+  "terminal_reason": "completed",
+  "tests_passed_guess": "pass",
+  "evidence_summary": [
+    {
+      "cmd": "cargo test --test integration scope_graph_",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": 8,
+      "matched_tests": 14,
+      "min_tests_satisfied": true
+    },
+    {
+      "cmd": "cargo test --test integration",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo test --lib",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo fmt --all --check",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo build --release",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    }
+  ],
+  "scaffold": {
+    "tracked_scaffold_paths": [
+      ".claude-plugin/marketplace.json",
+      ".claude-plugin/plugin.json",
+      "AGENTS.md",
+      "CLAUDE.md"
+    ],
+    "missing_on_disk_after_checkout": [],
+    "has_CLAUDE_md": true,
+    "has_dot_claude_dir": false,
+    "has_AGENTS_md": true,
+    "agents_md_shimmed": false,
+    "global_hooks_present": true,
+    "shim": {
+      "present": false,
+      "sha256_at_write": null,
+      "sha256_after_run": null,
+      "changed": false
+    }
+  },
+  "shim": {
+    "present": false,
+    "changed": false,
+    "sha256_at_write": null,
+    "sha256_after_run": null
+  },
+  "source_repo_touched": false,
+  "transcript_lookup_note": null,
+  "transcript_path": "bench/out-sonnet-d1/IMPL-08/transcript.jsonl"
+}

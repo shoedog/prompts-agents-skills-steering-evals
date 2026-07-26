@@ -1,0 +1,64 @@
+{
+  "id": "DES-05",
+  "ws": "/private/tmp/des-g5x-ws/DES-05",
+  "dry_run": false,
+  "model": "claude-fable-5",
+  "replay_preface": "Replay note: you are working in /private/tmp/des-g5x-ws/DES-05 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged.",
+  "run_status": "ok",
+  "subtype": "success",
+  "api_error_status": null,
+  "returncode": 0,
+  "session_id": null,
+  "duration_ms": 364909,
+  "num_turns": null,
+  "usage": {
+    "tokens_used": 185921
+  },
+  "total_cost_usd": null,
+  "stop_reason": null,
+  "is_error": false,
+  "result_text": "**Analysis + Architecture Memo: Decorated-Method Double-Capture**\n\n**Verification**\nPython is confirmed. The Python function query captures both `(function_definition)` and `(decorated_definition)` as `@func` (`src/queries.rs:92-96`). `ParsedFile::all_functions_via_tree` pushes every capture without dedup (`src/ast.rs:323-337`), and `build_function_table` records each captured node\u2019s own `kind_id`, byte span, and line span (`src/ast.rs:346-369`).\n\nThose two captures then normalize to the same logical name/owner: `Language::function_name` unwraps `decorated_definition` to its child `function_definition` name (`src/languages/mod.rs:907-918`), while Python `method_owner` treats both the wrapper and the inner function as owned by the same enclosing class (`src/languages/mod.rs:1084-1099`). `FunctionId` identity includes `file`, `name`, `start_line`, and `end_line` (`src/call_graph.rs:20-25`), so a decorated method becomes two distinct `FunctionId`s with the same `(file, name, owner)` but different spans.\n\nThe call graph uses those raw captures directly. Both `build_skeleton` and full `build` iterate `parsed.all_functions()`, construct a `FunctionId` from the captured node line range, then insert it into `functions` and `methods` (`src/call_graph.rs:276-315`, `src/call_graph.rs:491-562`). Phase 2 repeats `parsed.all_functions()` to collect call sites, so decorated functions are duplicated as callers too (`src/call_graph.rs:582-597`).\n\nThis is already recognized elsewhere: `nav functions` has an emission-only dedup that drops Python `decorated_definition` wrappers (`src/navigation/inventory.rs:34-55`), and its test states that without dedup a decorated function emits two records (`tests/navigation/inventory_test.rs:4-15`). The prior spec records the same reproduction and pydantic sizing: ~418 / 2,066 class methods decorated (`docs/superpowers/specs/2026-06-22-python-js-self-receiver-samefile-narrowing.md:310-320`).\n\nJS/TS is not confirmed for the same wrapper+inner bug in this checkout. JS/TS function queries capture `method_definition`, `arrow_function`, etc., but no decorator wrapper node (`src/queries.rs:98-114`), and owner lookup works from the captured method node to the enclosing class (`src/languages/mod.rs:1101-1113`). JS/TS decorator-aware taint code treats decorators as children/header text of the same function node (`src/algorithms/taint.rs:2286-2304`). Add a fixture, but do not assume the Python double-capture mechanism applies to JS/TS.\n\n**Impact**\nThe main precision loss is \u201cone real method becomes two same-owner candidates,\u201d so paths that should be singleton Exact become multi-candidate NameOnly:\n\n- `self` / `this` / `cls`: `self_owner_lookup_same_class` filters by same file/class span, then demotes when `same_class.len() > 1` (`src/resolution.rs:710-728`, relabeled at `src/resolution.rs:939-968`).\n- `Cls.helper()` / owner qualifier: R3b calls `owner_lookup`, then relabels to `QualifierOwner` (`src/resolution.rs:1025-1034`). `owner_lookup_in_modules` demotes any same-primary-owner pool with `pool.len() > 1` (`src/resolution.rs:737-780`).\n- Typed receiver / P6-lite: recovered receiver types call `owner_lookup(recv_ty, name)` and inherit the demotion (`src/resolution.rs:1101-1118`).\n- Unknown receiver R6 residue: method candidates come from `functions[name]` and filter to `method_owners`; duplicates inflate the NameOnly fanout (`src/resolution.rs:1158-1227`).\n- Free decorated functions are worse in same-file local calls: R4 returns `exact(local, LocalDef)` for all local free definitions, with no singleton check (`src/resolution.rs:1229-1248`). A decorated top-level function can therefore produce two Exact edges to the same logical function. Cross-file free calls demote as `FreeMulti` (`src/resolution.rs:1305-1318`).\n\nThere is also caller-side duplication: a decorated function body can be indexed under both wrapper and inner caller `FunctionId`s. CPG then creates function nodes from `cg.functions` (`src/cpg/build.rs:327-350`) and emits call/return edges for every resolved caller/callee pair (`src/cpg/build.rs:673-704`). Interprocedural dataflow is exposed too: parameter lookup keys on `(callee.file, callee.name, callee.start_line)` (`src/cpg/build.rs:28-30`), while parameter extraction does not unwrap `decorated_definition` (`src/ast.rs:3881-3892`, `src/ast.rs:3922-3931`), so wrapper-target edges can have empty params while inner-target edges have real params.\n\nQualitatively: recall mostly stays the same or is inflated; precision and evidence quality degrade through NameOnly demotion, duplicate Exact edges, duplicate caller/callee evidence, and inconsistent CPG dataflow. The pydantic ~20% decorated-method figure is a credible upper-bound signal, and unlike the same-class self slice this hits all call shapes, not just self calls.\n\n**Blast Radius**\nChanging this affects every `FunctionId` producer/consumer:\n\n- Function capture/table: `ParsedFile::all_functions`, `FunctionInfo`, `functions()` (`src/ast.rs:43-61`, `src/ast.rs:373-375`).\n- Call graph maps: `functions`, `calls`, `callers`, `methods`, `method_owners`, `method_class_span`, `receiver_vars`, `method_facts` (`src/call_graph.rs:143-192`).\n- Resolver arms listed above, plus call-stats telemetry (`src/navigation/queries.rs:156-254`).\n- CPG build/query/cache: function nodes and indexes (`src/cpg/build.rs:319-355`), Step 5 call edges (`src/cpg/build.rs:657-705`), Step 5b param binding (`src/cpg/build.rs:775-811`), cache reindexing (`src/cpg_cache.rs:424-442`), `function_node_for_id` (`src/cpg/query.rs:43-48`).\n- Navigation: symbol seeding can become ambiguous by name when duplicate nodes survive (`src/navigation/seed.rs:61-82`), location seed picks innermost (`src/navigation/mod.rs:81-94`), callers/callees use exact `FunctionId` identity (`src/navigation/queries.rs:624-690`, `src/navigation/queries.rs:739-815`).\n- Algorithms using raw `all_functions`: taint explicitly skips Python inner decorated functions today (`src/algorithms/taint.rs:4374-4377`), scope honesty has wrapper-specific behavior/tests (`src/reasoning/scope_honesty.rs:351-370`, `tests/reasoning/scope_honesty_test.rs:172-213`), and Python type extraction already unwraps decorated definitions (`src/type_providers/python.rs:149-167`, `src/type_providers/python.rs:295-306`).\n\n**Architecture Options**\nA. Fix at extraction / identity creation. Emit one logical `FunctionId` per Python decorated function. Prefer the inner `function_definition` as the identity node because it already has correct params and matches the `nav functions` dedup contract. Risk: if applied globally to `all_functions`, it breaks decorator-aware consumers that rely on wrapper spans. Safer variant: add a call-graph logical-function iterator and leave raw AST enumeration untouched.\n\nB. Fix at resolver/index. Before Exact/NameOnly classification, collapse wrapper+inner candidates by containment plus same `(file, name, owner/class_span)`. This is less invasive, but it is a band-aid: it leaves duplicate callers, duplicate CPG nodes, navigation symbol ambiguity, inflated counts, and the wrapper-param bug. It must also be repeated for owner lookup, self lookup, free lookup, R6, and CPG edge emission.\n\nC. Recommended hybrid: canonical `FunctionId` view. Keep `ParsedFile::all_functions()` raw, but introduce one central \u201clogical functions for call graph\u201d view used by `CallGraph::build*`, subset builds, and helper lookups. For Python, skip `decorated_definition` wrapper nodes and keep the inner `function_definition`; do not collapse nested same-name functions or overload-like independent definitions. Decorator-aware analyses can still inspect parents from the raw AST.\n\n**Recommendation + Slice Outline**\nTake C: extraction-level canonicalization at the `FunctionId` boundary, not resolver-only and not a global `all_functions` behavior change.\n\nThin slice:\n\n1. Add a canonical iterator/helper used by `CallGraph::build_skeleton`, `CallGraph::build`, `build_direct_subset_with_receiver_config`, and `function_node_for_id`.\n2. Python rule: omit `decorated_definition`; keep its child `function_definition`. All other languages unchanged.\n3. Add tests that fail before the change:\n   - decorated Python method has one `FunctionId` in `functions[\"helper\"]` and one in `methods[(\"C\",\"helper\")]`;\n   - `self.helper()` on decorated method becomes one Exact `SelfReceiver`;\n   - `C.helper()` becomes one Exact `QualifierOwner`;\n   - top-level decorated free call no longer creates two Exact `LocalDef` edges;\n   - decorated caller body calls are not duplicated;\n   - nested same-name functions still both survive.\n4. Add JS/TS decorated-method canary proving current behavior is one function identity, or pin any discovered grammar-specific duplicate separately.\n5. Acceptance: full `cargo test` with totals; because this touches call resolution/CPG construction, also `cargo build --release`, `cd eval && uv run tier-a --matrix-only --allow-stale-sut`, and `cd eval && uv run tier-a --quick --allow-stale-sut`.\n6. Measurement: pydantic/fastapi call-stats should show `kind_exact` rising and `kind_nameonly` falling for `self_receiver`, `qualifier_owner`, and typed/owner paths; `multi_target_exact_sites` should not rise; Rust/Go should be byte-identical or explicitly explained.\n\nDefer: decorator application call modeling, Python `@property` attribute-access semantics, overload/stub unification, and any JS/TS decorator change unless the canary proves duplicate identities.\n\n**Risks / Unknowns**\nThe main risk is span semantics: inner identity drops decorator-line coverage from CPG/nav function nodes. That matches current `nav functions` behavior, but location queries on decorator lines may change if they depend on CPG nodes rather than raw scope-honesty logic. Also, dropping wrapper caller collection may remove decorator-expression call edges if Prism currently emits them; decide that explicitly, because existing docs suggest decorator chains are not modeled as call edges. JS/TS remains an unknown until fixture-verified.",
+  "timed_out": false,
+  "parse_error": null,
+  "terminal_reason": null,
+  "tests_passed_guess": "pass",
+  "evidence_summary": [
+    {
+      "cmd": "git diff --quiet",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    }
+  ],
+  "scaffold": {
+    "tracked_scaffold_paths": [
+      ".claude-plugin/marketplace.json",
+      ".claude-plugin/plugin.json",
+      "AGENTS.md",
+      "CLAUDE.md"
+    ],
+    "missing_on_disk_after_checkout": [],
+    "has_CLAUDE_md": true,
+    "has_dot_claude_dir": false,
+    "has_AGENTS_md": true,
+    "agents_md_shimmed": false,
+    "global_hooks_present": true,
+    "shim": {
+      "present": false,
+      "sha256_at_write": null,
+      "sha256_after_run": null,
+      "changed": false
+    }
+  },
+  "shim": {
+    "present": false,
+    "changed": false,
+    "sha256_at_write": null,
+    "sha256_after_run": null
+  },
+  "source_repo_touched": true,
+  "transcript_lookup_note": "matched codex rollout by cwd (1 candidate(s))",
+  "transcript_path": "bench/out-des-gpt55xhigh/DES-05/transcript.jsonl"
+}

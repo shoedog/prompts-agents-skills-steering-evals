@@ -1,0 +1,77 @@
+[bench] running 6 task(s): ['IMPL-01', 'IMPL-03', 'IMPL-04', 'IMPL-05', 'IMPL-06', 'IMPL-08']
+
+[bench] === IMPL-01 === ws=/private/tmp/sonnet-base-ws/IMPL-01 dry_run=False model=claude-sonnet-5
+[bench] git clone --local /Users/wesleyjinks/code/a2a-bridge /private/tmp/sonnet-base-ws/IMPL-01
+[bench] git -C /private/tmp/sonnet-base-ws/IMPL-01 checkout bench/IMPL-01-pre
+[bench] git -C /private/tmp/sonnet-base-ws/IMPL-01 remote remove origin
+[bench] NOTE: AGENTS.md-only scaffold — copied AGENTS.md -> CLAUDE.md in the clone to equalize priming with the original codex session and excluded it as a harness artifact.
+[bench] evidence: cargo test -p bridge-acp watchdog_cancels_a_hung_turn_as_timed_out
+[bench] evidence: cargo test -p bridge-acp watchdog_does_not_trip_active_or_unmodeled_turn
+[bench] evidence: cargo test -p bridge-acp no_watchdog_config_is_byte_identical
+[bench] evidence: cargo test -p bridge-acp
+[bench] evidence: cargo test --workspace --no-run
+[bench] evidence: cargo fmt --all --check
+[bench] evidence: cargo clippy -p bridge-acp --all-targets -- -D warnings
+[bench] transcript: /Users/wesleyjinks/.claude/projects/-private-tmp-sonnet-base-ws-IMPL-01/1a5867db-146f-43a4-bdb9-a73cd0882b52.jsonl -> bench/out-sonnet-baseline/IMPL-01/transcript.jsonl
+[bench] IMPL-01: dry_run=False tests_passed_guess='pass' cost=$2.9390507999999995 out=bench/out-sonnet-baseline/IMPL-01
+
+[bench] === IMPL-03 === ws=/private/tmp/sonnet-base-ws/IMPL-03 dry_run=False model=claude-sonnet-5
+[bench] git clone --local /Users/wesleyjinks/code/a2a-bridge /private/tmp/sonnet-base-ws/IMPL-03
+[bench] git -C /private/tmp/sonnet-base-ws/IMPL-03 checkout bench/IMPL-03-pre
+[bench] git -C /private/tmp/sonnet-base-ws/IMPL-03 remote remove origin
+[bench] NOTE: AGENTS.md-only scaffold — copied AGENTS.md -> CLAUDE.md in the clone to equalize priming with the original codex session and excluded it as a harness artifact.
+[bench] evidence: cargo test -p bridge-store sqlite_migration_idempotent_and_batch_roundtrip
+[bench] evidence: cargo test -p bridge-store sqlite_claim_is_atomic_single_runner
+[bench] evidence: cargo build --workspace
+[bench] transcript: /Users/wesleyjinks/.claude/projects/-private-tmp-sonnet-base-ws-IMPL-03/c38ef764-4c83-45a2-bdac-22e5fd4f9f55.jsonl -> bench/out-sonnet-baseline/IMPL-03/transcript.jsonl
+[bench] IMPL-03: dry_run=False tests_passed_guess='pass' cost=$2.7996803999999993 out=bench/out-sonnet-baseline/IMPL-03
+
+[bench] === IMPL-04 === ws=/private/tmp/sonnet-base-ws/IMPL-04 dry_run=False model=claude-sonnet-5
+[bench] git clone --local /Users/wesleyjinks/code/a2a-bridge /private/tmp/sonnet-base-ws/IMPL-04
+[bench] git -C /private/tmp/sonnet-base-ws/IMPL-04 checkout bench/IMPL-04-pre
+[bench] git -C /private/tmp/sonnet-base-ws/IMPL-04 remote remove origin
+[bench] NOTE: AGENTS.md-only scaffold — copied AGENTS.md -> CLAUDE.md in the clone to equalize priming with the original codex session and excluded it as a harness artifact.
+[bench] evidence: cargo test -p a2a-bridge workflow_node_retry
+[bench] evidence: cargo build --workspace
+[bench] evidence: cargo test --workspace --all-targets
+[bench] evidence: cargo fmt --all --check
+[bench] evidence: cargo clippy --workspace --all-targets -- -D warnings
+[bench] transcript: /Users/wesleyjinks/.claude/projects/-private-tmp-sonnet-base-ws-IMPL-04/7ec88608-ba77-45ab-95da-2774ec2bb99f.jsonl -> bench/out-sonnet-baseline/IMPL-04/transcript.jsonl
+[bench] IMPL-04: dry_run=False tests_passed_guess='fail' cost=$1.5572136000000003 out=bench/out-sonnet-baseline/IMPL-04
+
+[bench] === IMPL-05 === ws=/private/tmp/sonnet-base-ws/IMPL-05 dry_run=False model=claude-sonnet-5
+[bench] git clone --local /Users/wesleyjinks/code/a2a-bridge /private/tmp/sonnet-base-ws/IMPL-05
+[bench] git -C /private/tmp/sonnet-base-ws/IMPL-05 checkout bench/IMPL-05-pre
+[bench] git -C /private/tmp/sonnet-base-ws/IMPL-05 remote remove origin
+[bench] NOTE: AGENTS.md-only scaffold — copied AGENTS.md -> CLAUDE.md in the clone to equalize priming with the original codex session and excluded it as a harness artifact.
+[bench] evidence: cargo test -p a2a-bridge commit_precedence_and_comment_only_falls_back_to_title
+[bench] evidence: cargo build --workspace
+[bench] evidence: cargo test -p a2a-bridge
+[bench] transcript: /Users/wesleyjinks/.claude/projects/-private-tmp-sonnet-base-ws-IMPL-05/37a6fd26-2ad3-4dcd-a864-49965dd11a20.jsonl -> bench/out-sonnet-baseline/IMPL-05/transcript.jsonl
+[bench] IMPL-05: dry_run=False tests_passed_guess='pass' cost=$1.5095922000000002 out=bench/out-sonnet-baseline/IMPL-05
+
+[bench] === IMPL-06 === ws=/private/tmp/sonnet-base-ws/IMPL-06 dry_run=False model=claude-sonnet-5
+[bench] git clone --local /Users/wesleyjinks/code/a2a-bridge /private/tmp/sonnet-base-ws/IMPL-06
+[bench] git -C /private/tmp/sonnet-base-ws/IMPL-06 checkout bench/IMPL-06-pre
+[bench] git -C /private/tmp/sonnet-base-ws/IMPL-06 remote remove origin
+[bench] NOTE: AGENTS.md-only scaffold — copied AGENTS.md -> CLAUDE.md in the clone to equalize priming with the original codex session and excluded it as a harness artifact.
+[bench] evidence: cargo test -p bridge-a2a-inbound golden_two_node_run_wire_tuples
+[bench] evidence: cargo test -p bridge-a2a-inbound rich_snapshot_folds_toolcall_interleaved
+[bench] evidence: cargo test -p bridge-a2a-inbound
+[bench] evidence: cargo test --workspace --no-run
+[bench] evidence: cargo fmt --all --check
+[bench] evidence: cargo clippy -p bridge-a2a-inbound --all-targets -- -D warnings
+[bench] transcript: /Users/wesleyjinks/.claude/projects/-private-tmp-sonnet-base-ws-IMPL-06/bbbc2780-5b6b-47f6-9115-177ccfc63043.jsonl -> bench/out-sonnet-baseline/IMPL-06/transcript.jsonl
+[bench] IMPL-06: dry_run=False tests_passed_guess='pass' cost=$3.617115599999999 out=bench/out-sonnet-baseline/IMPL-06
+
+[bench] === IMPL-08 === ws=/private/tmp/sonnet-base-ws/IMPL-08 dry_run=False model=claude-sonnet-5
+[bench] git clone --local /Users/wesleyjinks/code/slicing /private/tmp/sonnet-base-ws/IMPL-08
+[bench] git -C /private/tmp/sonnet-base-ws/IMPL-08 checkout bench/IMPL-08-pre2
+[bench] git -C /private/tmp/sonnet-base-ws/IMPL-08 remote remove origin
+[bench] evidence: cargo test --test integration scope_graph_
+[bench] evidence: cargo test --test integration
+[bench] evidence: cargo test --lib
+[bench] evidence: cargo fmt --all --check
+[bench] evidence: cargo build --release
+[bench] transcript: /Users/wesleyjinks/.claude/projects/-private-tmp-sonnet-base-ws-IMPL-08/efe085b3-b0e2-411f-825b-2b4d4c39370a.jsonl -> bench/out-sonnet-baseline/IMPL-08/transcript.jsonl
+[bench] IMPL-08: dry_run=False tests_passed_guess='pass' cost=$5.290765200000001 out=bench/out-sonnet-baseline/IMPL-08

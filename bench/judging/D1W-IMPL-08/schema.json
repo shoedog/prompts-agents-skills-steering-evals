@@ -1,0 +1,50 @@
+{
+ "type": "object",
+ "additionalProperties": false,
+ "properties": {
+  "arm_a_complete": {
+   "type": "boolean"
+  },
+  "arm_b_complete": {
+   "type": "boolean"
+  },
+  "arm_a_scope_ok": {
+   "type": "boolean"
+  },
+  "arm_b_scope_ok": {
+   "type": "boolean"
+  },
+  "tests_a_stronger": {
+   "type": "boolean"
+  },
+  "tests_b_stronger": {
+   "type": "boolean"
+  },
+  "a_materially_better": {
+   "type": "boolean"
+  },
+  "b_materially_better": {
+   "type": "boolean"
+  },
+  "probe_answer": {
+   "type": "string",
+   "maxLength": 1200
+  },
+  "rationale": {
+   "type": "string",
+   "maxLength": 800
+  }
+ },
+ "required": [
+  "arm_a_complete",
+  "arm_b_complete",
+  "arm_a_scope_ok",
+  "arm_b_scope_ok",
+  "tests_a_stronger",
+  "tests_b_stronger",
+  "a_materially_better",
+  "b_materially_better",
+  "probe_answer",
+  "rationale"
+ ]
+}

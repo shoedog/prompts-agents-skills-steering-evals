@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": false,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms add the same tests, so neither suite is stronger. As a suite, they should catch important pre-change regressions, especially the headline two-crate owner collision and the free-function/method-bucket collision. They cover several negative paths: block-local glob, macro wildcard, pending import alias, unresolved owner fail-open, and free-function misroute. Some tests may not be independently RED against the Task-5 baseline because Task 4 already changed multi-target graph resolution to demote. Strongest in both arms: `scope_graph_free_fn_path_not_misrouted_to_colliding_method_pool`, because it pins the colliding method bucket and asserts the resolved file is the module free function. Weakest in both arms: `scope_graph_macro_wildcard_shadow_keeps_all`, because it does not assert a non-empty result length or target files, so it is easier to pass vacuously than the other edge-case tests.",
+  "rationale": "WRONG in Arm A: `rust_graph_qualified_target_is_free_fn` treats an empty `graph_target_ids` set as a free-function resolution. The brief explicitly requires a non-empty id-set with all ids outside `method_owners`. Concrete failure: for a qualified owner-method-looking call with a bare `(owner, method)` pool, if the graph resolves to a callable target that maps to no indexed `FunctionId`, Arm A skips owner-prune/fail-open and drops via the shipped graph path; Task 5 requires that empty/unresolved target to continue into the recall-preserving owner-prune/fail-open path. Arm B implements the non-empty guard correctly, so it is materially better. SMELL in both arms: the diffs do not add the requested mixed-edition keep-all fixture and do not add explicit reconfirmation tests for the three drop"
+ },
+ "tokens_used": 35521
+}

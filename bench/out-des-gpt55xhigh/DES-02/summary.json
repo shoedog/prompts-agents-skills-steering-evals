@@ -1,0 +1,64 @@
+{
+  "id": "DES-02",
+  "ws": "/private/tmp/des-g5x-ws/DES-02",
+  "dry_run": false,
+  "model": "claude-fable-5",
+  "replay_preface": "Replay note: you are working in /private/tmp/des-g5x-ws/DES-02 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged.",
+  "run_status": "ok",
+  "subtype": "success",
+  "api_error_status": null,
+  "returncode": 0,
+  "session_id": null,
+  "duration_ms": 626143,
+  "num_turns": null,
+  "usage": {
+    "tokens_used": 253958
+  },
+  "total_cost_usd": null,
+  "stop_reason": null,
+  "is_error": false,
+  "result_text": "**Prism Slice 1b Analysis + Architecture Memo**\n\n**Verification**\n\nCurrent 1a behavior is narrow and intentionally drops the 1b case. Python/JS/TS `self`/`this` calls enter the self arm at `src/resolution.rs:947`; for those languages it calls `self_owner_lookup_same_class` at `src/resolution.rs:964-966`, and a miss returns `UnknownName` at `src/resolution.rs:978`. That helper only accepts methods with the same caller file and exact class byte span, `src/resolution.rs:710-736`, which is why inherited methods are not resolved today.\n\nSizing result from the local bench checkouts: FastAPI `0cb4a8e`, Pydantic `363728f`, Excalidraw `0642e72`. I counted class methods calling `self.X()` / `cls.X()` / `this.X()` where `X` is absent on the caller class and present on an in-repo base class.\n\n| corpus | in-repo inherited self/this calls | external / not 1b |\n|---|---:|---|\n| FastAPI | 12 | 13 obvious external framework-base calls |\n| Pydantic | 4 | many external/stdlib/test/plugin bases; not reliable 1b buy |\n| Excalidraw | 0 | React/external/own-class noise dominates |\n\nFastAPI\u2019s 12 are real and match the old \u201c~10\u201d guess: `APIKeyBase.check_api_key` called from three subclasses, `fastapi/security/api_key.py:47` and `:144`; `HTTPBase.make_not_authenticated_error` called from HTTP subclasses, `fastapi/security/http.py:87` and `:209`; `OAuth2.make_not_authenticated_error`, `fastapi/security/oauth2.py:401` and `:541`. External examples should stay out of 1b: `FastAPI(Starlette)` calls `self.add_route`, `fastapi/applications.py:42` and `:1120`; `_FrontendStaticFiles(StaticFiles)` calls Starlette methods, `fastapi/routing.py:1801` and `:1825`.\n\nPydantic\u2019s 4 are real but small: `Secret(_SecretBase)` calls `self.get_secret_value`, `pydantic/types.py:1551`, `:1582`, `:1689`; `Config(BaseConfig)` calls `cls.get_field_info`, `pydantic/v1/env_settings.py:82` and `:96`, defined at `pydantic/v1/config.py:118`; `MultiHostDsn(AnyUrl)` calls inherited validators, `pydantic/v1/networks.py:315`, `:342`, `:423`, `:444`.\n\nExcalidraw had no in-repo inherited `this.method()` buy in the inspected source. The in-repo `extends` cases are mostly constructors/`super` or no inherited `this` calls: `LocalFileManager extends FileManager`, `excalidraw-app/data/LocalData.ts:53`, with base methods in `FileManager.ts:70`; `HistoryDelta extends StoreDelta` uses `super.*`, `packages/excalidraw/history.ts:15-63`; `DurableIncrement/EphemeralIncrement` only call `super`, `packages/element/src/store.ts:476-490`.\n\nOne important correction: in this clone, `eval/fixtures/python/inherited_override` is not an inherited `self.method()` fixture. It is `c.go()` on an untyped parameter, `eval/fixtures/python/inherited_override/app.py:5-10`, with the expected gap explicitly tied to receiver typing, `eval/fixtures/python/inherited_override/expected.toml:4-8`. 1b should not claim that exact checked-in case unless the fixture is replaced with an inherited-self shape.\n\n**Hierarchy Plumbing Facts**\n\nThe hierarchy facts exist, but not where resolver needs them. `CallGraph` has `methods`, `method_owners`, and the 1a `method_class_span` identity fields, `src/call_graph.rs:158-172`; the span is populated through `method_metadata`, `src/call_graph.rs:1865-1890`, and build sites such as `src/call_graph.rs:514-567`.\n\nPython provider extraction already reads bases, `src/type_providers/python.rs:197-228` and `:231-263`, and has an inherited-method merge, `src/type_providers/python.rs:485-508`, used for field layout at `src/type_providers/python.rs:575-590`. TypeScript provider stores `extends`, `src/type_providers/typescript.rs:51-62` and `:289-370`, and resolves inherited properties, `src/type_providers/typescript.rs:631-659`. But providers are registered in CPG context, `src/cpg/context.rs:315-339`; `resolve_call_site_full` only has serialized `CallGraph` fields.\n\nAlso, the prompt\u2019s `extract_ts_bases` reference is C/C++ tree-sitter fallback in `TypeDatabase`, not TypeScript: `src/type_db.rs:185-186`, `:666-702`, `:888-916`.\n\n**Architecture Options**\n\nOption A: add class hierarchy identity to `CallGraph`. Recommended.\n\nAdd a serialized class map, keyed by `(file, class_span)`, roughly:\n\n```rust\nclass_bases: BTreeMap<(String, (usize, usize)), Vec<BaseRef>>\nclass_names: BTreeMap<(String, (usize, usize)), String>\n```\n\n`BaseRef` should distinguish `InRepo { file, span, name }`, `External(raw)`, and `Ambiguous(raw)`. Populate it during CallGraph build alongside `method_class_span`, using the existing class node identity from `method_owner_class_node`, `src/languages/mod.rs:1182-1208`, plus a small per-language base extractor. Update `empty`, full build, skeleton/subset build, `remove_files`, `merge`, and bump cache version from v22, `src/cpg_cache.rs:65-67`.\n\nResolution hook: in the Python/JS/TS self arm, first run `self_owner_lookup_same_class`. If it misses, get the caller class `(file, span)`, walk base refs in MRO order, and look up methods by base class identity, not by bare owner name. This preserves the 1a precision tests that currently drop instead of binding unrelated same-named classes, `src/resolution.rs:1975-1992` and `:2012-2023`.\n\nSoundness rules:\n- Never resolve an external base by matching a same-named in-repo class.\n- If a base ref is ambiguous before the candidate in MRO, drop or return NameOnly, not Exact.\n- If multiple in-repo candidates survive for one base class, keep current demotion behavior, like `src/resolution.rs:732-736`.\n- Relabel returned `QualifiedOwner` edges to `SelfReceiver` in the existing self branch.\n\nMRO: full C3 is required for exact Python multiple-inheritance behavior. For the thin slice, a cheaper sound policy is acceptable: exact for single-inheritance chains; for multiple bases, either implement C3 or demote/drop. The measured 16-call buy is all recoverable with single-chain handling. JS/TS only have single `extends`, so a simple chain is enough.\n\nOption B: build inherited aliases into the method index.\n\nAt build time, insert base methods into subclass `(owner, method)` buckets as promoted aliases, then let the existing self arm find them. This is cheaper at the resolver hook but riskier: `methods` feeds non-self resolution paths too, including qualifier-owner and typed receiver paths. Unless aliases are quarantined to a self-only side table, this can mint wrong edges outside the intended slice. I do not recommend this as the main design.\n\nOption C: ask type providers during resolution.\n\nThis reuses `PythonTypeProvider` / `TypeScriptTypeProvider`, but it crosses a bad boundary: `CallGraph` resolution is serialized/cacheable and does not retain provider objects. It also needs `FunctionId` identity, which Python\u2019s provider method map does not expose. Not recommended for 1b.\n\n**Recommendation + Thin Slice**\n\nImplement Option A, but scope the first implementation to exact in-repo base identity and single-chain MRO. Include same-file and import-resolved same-repo bases; do not guess by bare class name when an import path points outside the repo. This gets the real FastAPI/Pydantic buy without opening SCIP/external-base territory.\n\nTests:\n- Python same-file inherited self: `class Base: def m`; `class Child(Base): def run: self.m()` flips Exact/SelfReceiver.\n- Python cross-file local import: `from base import Base`; child self-call resolves only if the import maps to an in-repo class.\n- Negative external namesake: `import vendor; class Base: def m`; `class Child(vendor.Base): self.m()` drops.\n- Multiple inheritance ambiguous case demotes or drops, not wrong Exact.\n- JS/TS same-file `class Child extends Base { run() { return this.m(); } }`.\n- Existing 1a canaries stay green: Python/JS/TS same-class self tests in `tests/lang/.../self_receiver_test.rs`, and the unrelated same-name drop tests in `src/resolution.rs:1975-2023`.\n\nAcceptance: +16 inherited-self calls in the measured corpora, `multi_target_exact_sites` flat, Rust/Go call stats byte-identical, and Tier-A matrix/quick after a fresh release build. If the checked-in `python/inherited_override` remains as `c.go()`, leave it as expected_gap; add or update a true inherited-self Tier-A case instead.\n\n**Risks / Unknowns**\n\nThe main risk is false Exact through bare class names. Avoid that by requiring class-span identity for every in-repo base. The second risk is incomplete import resolution for Python/TS; fail closed on anything not proven local. C3 can be deferred only if multiple inheritance is explicitly demoted/dropped. External framework bases are the larger visible population, but they are SCIP/stub/type-provider work, not 1b.\n\nNo code was changed and I did not run the full test suite; this was a read-only architecture pass with source census and code-path inspection.\n\n",
+  "timed_out": false,
+  "parse_error": null,
+  "terminal_reason": null,
+  "tests_passed_guess": "pass",
+  "evidence_summary": [
+    {
+      "cmd": "git diff --quiet",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    }
+  ],
+  "scaffold": {
+    "tracked_scaffold_paths": [
+      ".claude-plugin/marketplace.json",
+      ".claude-plugin/plugin.json",
+      "AGENTS.md",
+      "CLAUDE.md"
+    ],
+    "missing_on_disk_after_checkout": [],
+    "has_CLAUDE_md": true,
+    "has_dot_claude_dir": false,
+    "has_AGENTS_md": true,
+    "agents_md_shimmed": false,
+    "global_hooks_present": true,
+    "shim": {
+      "present": false,
+      "sha256_at_write": null,
+      "sha256_after_run": null,
+      "changed": false
+    }
+  },
+  "shim": {
+    "present": false,
+    "changed": false,
+    "sha256_at_write": null,
+    "sha256_after_run": null
+  },
+  "source_repo_touched": false,
+  "transcript_lookup_note": "matched codex rollout by cwd (1 candidate(s))",
+  "transcript_path": "bench/out-des-gpt55xhigh/DES-02/transcript.jsonl"
+}

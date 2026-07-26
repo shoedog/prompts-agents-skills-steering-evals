@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": false,
+  "probe_answer": "Both arms' 3 new tests are near-identical in design and would fail on pre-Task-5 code: the watchdog task/select-arm/terminal don't exist yet, so `watchdog_cancels_a_hung_turn_as_timed_out` would hang until its 2s timeout and panic (genuine regression-catching). `does_not_trip_active_or_unmodeled_turn` and `no_watchdog_config_is_byte_identical` mostly guard against false-positives/regressions in the new code itself (pre-Task-5 they'd pass trivially since nothing ever fires), but they do exercise real negative/edge paths: modeled-activity resets, unmodeled(thought)-only activity resets (FIX-11), and the disabled/no-config path. All assert concrete real behavior (exact terminal variant, stream termination, cancel notification observed, chunk counts, stop_reason) rather than trivial always-pass checks. Strongest test in both arms: `watchdog_cancels_a_hung_turn_as_timed_out` \u2014 it's the one that can't pass by accident and verifies the full causal chain (timeout -> cancel sent -> escalate -> AgentTimedOut -> stream ends). Arm A's version is marginally more precise, asserting the exact session id in `rec.cancels` vs Arm B's plain notified()-fired check. Weakest test in both: `no_watchdog_config_is_byte_identical`, since 'byte-identical' is approximated by a bounded 300ms non-resolution rather than a true forever-guarantee \u2014 an inherent, shared limitation, not a gap unique to either arm.",
+  "rationale": "The two diffs are strikingly convergent: identical watchdog arm structure (discards inner cancel outcome, PFIX-F), identical Pending-when-disabled gating (PFIX-G), identical Instant::from_std usage (PFIX-H), identical saturating_sub(1) sentinel-undo math (PFIX-L), and identical teardown via drop(watchdog_done_tx) on every driver exit. No WRONG (provably incorrect) behavior found in either \u2014 only SMELL-level style differences: Arm B extracts the loop into a documented `run_watchdog` associated fn (nicer decomposition) but duplicates the la_instant formula twice instead of a shared closure (Arm A uses a closure, avoiding duplication); Arm A adds a general-purpose `ScriptedUpdate::Sleep` variant to model paced updates vs Arm B's simpler uniform `update_interval` field on Recorder \u2014 both sufficient for the tests written. Test coverage of the three required scenarios (hung/wall-clock, active/unmodeled non-trip, no-config back-compat) is functionally equivalent in both arms. Neither arm exceeds scope; both leave changes uncommitted and touch only acp_backend.rs plus necessary test-harness additions. This is a genuine parity case."
+ },
+ "cost_usd": 0.5578239
+}

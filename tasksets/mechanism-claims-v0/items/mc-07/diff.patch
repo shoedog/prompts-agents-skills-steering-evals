@@ -1,0 +1,54 @@
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -96,15 +96,35 @@ fn run(cmd: String, mut args: env::Args) -> Result<(), CliError> {
+     let mut dry_run = false;
++    let mut rebuild_index = false;
++    let mut emit_report: Option<PathBuf> = None;
+     while let Some(arg) = args.next() {
+         match arg.as_str() {
+             "--dry-run" => dry_run = true,
++            "--rebuild-index" => rebuild_index = true,
++            "--emit-report" => {
++                emit_report = Some(PathBuf::from(next_value(&mut args, &arg)?));
++            }
+             other => return Err(CliError::Config(format!("unknown flag {other}"))),
+         }
+     }
++    // --rebuild-index touches the archive's on-disk index: only the archive
++    // walkers may use it. --emit-report is a load-pipeline artifact.
++    if !matches!(cmd.as_str(), "verify-archive" | "load-canonical") && rebuild_index {
++        return Err(CliError::Config(
++            "--rebuild-index is accepted only by verify-archive and load-canonical".to_string(),
++        ));
++    }
++    if !matches!(cmd.as_str(), "load-canonical" | "adjudicate-canonical")
++        && emit_report.is_some()
++    {
++        return Err(CliError::Config(
++            "--emit-report is accepted only by load-canonical and adjudicate-canonical".to_string(),
++        ));
++    }
+     let opts = Opts { dry_run };
+     match cmd.as_str() {
+-        "verify-archive" => verify_archive(&opts),
++        "verify-archive" => verify_archive(&opts, rebuild_index),
+-        "load-canonical" => load_canonical(&opts),
++        "load-canonical" => load_canonical(&opts, rebuild_index, emit_report.as_deref()),
+-        "adjudicate-canonical" => adjudicate_canonical(&opts),
++        "adjudicate-canonical" => adjudicate_canonical(&opts, emit_report.as_deref()),
+         other => Err(CliError::Config(format!("unknown subcommand {other}"))),
+     }
+ }
+--- a/docs/RESUME-archive.md
++++ b/docs/RESUME-archive.md
+@@ -4,4 +4,10 @@
+ The July archive sweep left 214 orphaned index entries; the walker now
+ knows how to rebuild the index in place.
+ 
+ ## Next step (runnable now)
++
++Re-verify the archive and rebuild its on-disk index in the same pass:
++
++    backfill verify-archive --rebuild-index
++
++Read-only apart from the index files; safe to run before any new load.

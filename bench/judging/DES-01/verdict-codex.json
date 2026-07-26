@@ -1,0 +1,12 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": false,
+  "guarded_fallthrough_shape": false,
+  "buy_sized_realistically": false,
+  "js_ts_scope_correct": false,
+  "would_have_prevented_wasted_work": false,
+  "probe_answer": "The analysis correctly identified the recovery seam and recognized that an eager miss-to-ExternalReceiver path could regress existing behavior, but its recommended guard was only partial: it still dropped misses for external/no-base cases instead of always falling through to the existing R6 residue. It badly overshot the realized buy, predicting thousands of Exact edges where later history measured only about +17. It also explicitly included TS/JS, which was later refuted by a JS/TS soundness hole and near-zero Express/JS value.",
+  "rationale": "SMELL/WRONG grading: WRONG on recommendation shape because the settled design was hit-or-fallthrough on any recovery miss, while the memo recommends drop-external for several miss cases. WRONG on buy sizing because the memo's claimed +2,800 mypy / +235 httpx / +87 black scale is inconsistent with the later negligible ~+17 Exact result. WRONG on JS/TS scope because it recommends Python plus TS and JS constructor recovery, whereas later history narrowed to Python-only after a lexical-block soundness issue and JS buy near zero. Since following the memo would still pursue JS/TS and over-invest based on inflated predicted value, it would not have prevented the wasted work."
+ },
+ "tokens_used": 21376
+}

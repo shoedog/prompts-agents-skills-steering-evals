@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": false,
+  "probe_answer": "Arm A: the two added tests should fail on the pre-change code at compile time because `WorkflowNodeToml.retry` / `WorkflowNode.retry` do not exist, and `workflow_node_retry_maps_into_graph` would also catch the specific regression where TOML parsing was added but the graph mapping still left `retry: None`. Strongest test: `workflow_node_retry_maps_into_graph`, because it drives `RegistryConfig::load_workflows` and asserts the actual `WorkflowGraph` behavior required by PR-FIX-9. Weakest test: `workflow_node_retry_parses`, because it only proves deserialization and does not prove runtime graph construction. Negative/edge coverage is minimal: it checks default `backoff_cap_ms: None` indirectly in the graph test, but does not test an explicit cap, absent retry/default-off behavior, or malformed retry values. Arm B: same regression-catching properties and same coverage. Strongest test is also `workflow_node_retry_maps_into_graph`; weakest is also `workflow_node_retry_parses`. Its prompt fixture uses `review {{input}}` while declaring `inputs = []`, which is a small test-fixture smell if the loader ever validates template variables, but the asserted retry behavior is otherwise identical",
+  "rationale": "Both arms implement the requested `RetryToml`, add `WorkflowNodeToml.retry` with serde defaulting, and map the loaded TOML retry settings into `bridge_workflow::graph::RetryPolicy` at the `load_workflows` graph-build site. Both add the mandatory parse test and PR-FIX-9 graph-mapping test, and neither makes unrelated changes. No WRONG finding: the implementations satisfy the task as shown. SMELL only: both test suites are narrow and do not cover explicit `backoff_cap_ms` or absent-retry/default-off cases; Arm B has a slightly less clean prompt fixture, but not enough to make Arm A materially better."
+ },
+ "tokens_used": 29570
+}

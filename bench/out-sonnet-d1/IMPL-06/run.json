@@ -1,0 +1,88 @@
+{
+  "harness": {
+    "argv_redacted": [
+      "/Users/wesleyjinks/.local/bin/claude",
+      "-p",
+      "<task_prompt omitted here \u2014 see the task yaml>",
+      "--model",
+      "claude-sonnet-5",
+      "--output-format",
+      "json",
+      "--dangerously-skip-permissions"
+    ],
+    "cwd": "/private/tmp/sonnet-d1-ws/IMPL-06",
+    "model": "claude-sonnet-5",
+    "timeout_sec": 4500,
+    "started_at": "2026-07-04T21:30:35+00:00",
+    "ended_at": "2026-07-04T21:41:20+00:00",
+    "wall_sec": 645.039,
+    "timed_out": false,
+    "returncode": 0
+  },
+  "cli_result": {
+    "type": "result",
+    "subtype": "success",
+    "is_error": false,
+    "api_error_status": null,
+    "duration_ms": 643920,
+    "duration_api_ms": 527999,
+    "ttft_ms": 4924,
+    "ttft_stream_ms": 1645,
+    "time_to_request_ms": 18,
+    "num_turns": 78,
+    "result": "All checks confirmed: no-rich golden byte-identity holds, both reattach sites swapped, sentinel re-derived from merged last frame, cursor applied once, `dead_code` allows removed since `frame_from_orch` is now used from `server.rs` too. Final report:\n\n## STATUS: DONE\n\n### What I implemented\nIn `crates/bridge-a2a-inbound/src/server.rs`:\n- `FoldedSnapshot { snap, events }` \u2014 `fold_or_typed_snapshot` now returns both from the ONE `journal_fold_inputs` read (previously discarded `events` in the ineligible-fallback branch and returned only `snap` always).\n- `rich_snapshot_frames(snap, events, cursor)` \u2014 merges `snapshot_frames(snap, None)` (unfiltered node frames) with `fold_rich_frames(events)`, sorts by seq, then cursor-filters ONCE over the combined list.\n- `fold_rich_frames(events)` \u2014 folds `Plan`/`ToolCall`/`ToolCallUpdate` journal rows: keeps only the latest `Plan`; per `tool_call_id`, merges `ToolCall` (base) + `ToolCallUpdate` (sparse patch, `Some` replaces incl. empty, `None` = untouched) into current state, emitting one `FrameKind::ToolCall` at the last-applied seq if a base existed, else an orphan `FrameKind::ToolCallUpdate`. Reuses `reattach::frame_from_orch`.\n- Swapped both reattach call sites \u2014 `terminal_sse_response` (now takes `events` too) and `working_sse_response` \u2014 from `snapshot_frames` to `rich_snapshot_frames`, preserving the `SnapshotComplete` sentinel (re-derived from the merged last frame) and the `dedup_floor`/`cut_seq` logic unchanged.\n\nIn `crates/bridge-a2a-inbound/src/reattach.rs`:\n- Removed the 4 stale `#[allow(dead_code)]` markers on `FrameKind::{Plan,ToolCall,ToolCallUpdate}` and `frame_from_orch` \u2014 now genuinely used from `server.rs` (and it was already used from `workflow_sink.rs`).\n\n### Tests (TDD \u2014 written first, ran red, then green)\nNew in `server.rs`:\n- `rich_snapshot_folds_toolcall_interleaved` \u2014 the task's binding golden: `node_started(1) tool_call(2,in_progress) tool_call_update(3,completed) node_finished(4)` \u2192 `[(3,\"tool_call\"),(4,\"node_finished\")]`, with the merged status verified as `\"completed\"`.\n- `fold_rich_frames_orphan_toolcall_update_emits_update_frame_not_toolcall` \u2014 a `ToolCallUpdate` with no prior base folds to `FrameKind::ToolCallUpdate`, not a fabricated `ToolCall`.\n- `fold_rich_frames_keeps_latest_plan_only` \u2014 two `Plan` events collapse to one frame at the latest seq.\n- `rich_snapshot_frames_applies_cursor_once_over_merged_list` \u2014 a cursor sitting between a rich seq and a node seq drops only the rich frame; without a cursor both appear, seq-ordered.\n- Updated 3 existing tests (`eligible_task_folds_journal_byte_identical`, `cancel_if_working_task_uses_typed_fallback`, `legacy_task_uses_typed_fallback`) for the new `FoldedSnapshot` return shape (`folded.snap`).\n\nExisting `golden_two_node_run_wire_tuples` (S6 no-rich) verified unchanged/still passing (byte-identity preserved).\n\n### Results\n- `cargo test -p bridge-a2a-inbound`: **220 passed**, 0 failed (lib) + 47 passed (workflow_producer) + 0 doctests.\n- `cargo test --workspace --no-run`: all targets compiled.\n- `cargo fmt --all` / `--check`: clean.\n- `cargo clippy -p bridge-a2a-inbound --all-targets -- -D warnings`: clean, no warnings.\n- `cargo test --workspace --exclude bridge-container` (full suite, run twice): **1063 passed, 0 failed** on the clean run.\n\n### Out-of-scope flake observed (not fixed)\nOn one full-workspace run, `bridge_core::liveness::tests::crashed_lease_file_persists_with_free_lock_probes_dead` failed once (`left: Some(false), right: Some(true)`) \u2014 a lock-probe timing test in `bridge-core/src/liveness.rs`, a file untouched by this diff. Re-ran it in isolation 5/5 green, and it passed on a second full-workspace run. Reporting per instructions rather than re-baselining or touching it \u2014 this is a pre-existing timing flake unrelated to Task 8's scope.\n\n### Self-review vs the task\n- No-rich golden byte-identity: holds (`golden_two_node_run_wire_tuples` passes unchanged).\n- ToolCall fold by id: latest-state merge, orphan-tolerant (dedicated test).\n- Plan: latest-only (dedicated test).\n- Both reattach sites swapped (terminal + working_sse), `SnapshotComplete` sentinel re-derived from merged last frame, `dedup_floor`/`cut_seq` untouched.\n- Cursor applied once on the merged list (dedicated test).\n- `dead_code` allow removed now that `frame_from_orch` is used from `server.rs`.\n\n### Not verified\n- No live-gate against a real ACP agent (out of scope for this task \u2014 that's Task 9, controller-owned).\n- Did not run `bridge-container` tests (excluded per operating rules re: the `_dyld_start` PTY flake).\n\nLeft uncommitted per instructions.",
+    "stop_reason": "end_turn",
+    "session_id": "fa68f253-30db-423b-9b0c-cd1ca4019de2",
+    "total_cost_usd": 4.747975799999998,
+    "usage": {
+      "input_tokens": 151,
+      "cache_creation_input_tokens": 167764,
+      "cache_read_input_tokens": 10102846,
+      "output_tokens": 47339,
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 167764,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "not_available",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 1989,
+          "cache_read_input_tokens": 190636,
+          "cache_creation_input_tokens": 329,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 329
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard"
+    },
+    "modelUsage": {
+      "claude-sonnet-5": {
+        "inputTokens": 151,
+        "outputTokens": 47339,
+        "cacheReadInputTokens": 10102846,
+        "cacheCreationInputTokens": 167764,
+        "webSearchRequests": 0,
+        "costUSD": 4.747975799999998,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000
+      }
+    },
+    "permission_denials": [],
+    "terminal_reason": "completed",
+    "fast_mode_state": "off",
+    "uuid": "99265e53-f117-4248-a59f-1ba69858624a"
+  },
+  "stdout_tail": null,
+  "stderr_tail": "",
+  "parse_error": null,
+  "replay_preface": "Replay note: you are working in /private/tmp/sonnet-d1-ws/IMPL-06 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged."
+}

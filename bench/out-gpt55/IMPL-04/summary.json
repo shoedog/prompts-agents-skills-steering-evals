@@ -1,0 +1,95 @@
+{
+  "id": "IMPL-04",
+  "ws": "/private/tmp/gpt55-ws/IMPL-04",
+  "dry_run": false,
+  "model": "gpt-5.5 (codex exec; the summary model field default is vestigial)",
+  "replay_preface": "Replay note: you are working in /private/tmp/gpt55-ws/IMPL-04 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged.",
+  "run_status": "ok",
+  "subtype": "success",
+  "api_error_status": null,
+  "returncode": 0,
+  "session_id": null,
+  "duration_ms": 1349753,
+  "num_turns": null,
+  "usage": {
+    "tokens_used": 96908
+  },
+  "total_cost_usd": null,
+  "stop_reason": null,
+  "is_error": false,
+  "result_text": "STATUS: DONE_WITH_CONCERNS\n\nImplemented T3 in [config.rs](/private/tmp/gpt55-ws/IMPL-04/bin/a2a-bridge/src/config.rs:259): added `RetryToml`, added `WorkflowNodeToml.retry`, and mapped it through `RegistryConfig::load_workflows` into `bridge_workflow::graph::RetryPolicy`. The real graph-build entry is `RegistryConfig::load_workflows`.\n\nAdded tests:\n- `workflow_node_retry_parses`\n- `workflow_node_retry_maps_into_graph`\n\nValidation:\n- Initial TDD run failed as expected: missing `WorkflowNodeToml.retry`.\n- `timeout 180 cargo test -p a2a-bridge workflow_node_retry`: PASS, 2 passed.\n- `timeout 300 cargo build --workspace`: PASS.\n- `timeout 600 cargo test --workspace --all-targets`: FAIL in `a2a-bridge` test binary, 270 passed / 6 failed. Failures are sandbox/environment or pre-existing gate issues: four `wiremock` tests cannot bind an OS port (`PermissionDenied`), two config watcher tests timed out.\n- `timeout 180 cargo fmt --all`: PASS.\n- `timeout 180 cargo fmt --all --check`: PASS.\n- `timeout 600 cargo clippy --workspace --all-targets -- -D warnings`: FAIL on pre-existing/out-of-scope `crates/bridge-workflow/src/graph.rs:43` clippy `manual_saturating_arithmetic`.\n\nFiles changed:\n- [config.rs](/private/tmp/gpt55-ws/IMPL-04/bin/a2a-bridge/src/config.rs:259): retry TOML parsing, load-workflows mapping, and required tests.\n\nSelf-review:\n- No T3 issues found.\n- SMELL: full workspace gates are not green in this sandbox due environment failures and an out-of-scope clippy warning in `bridge-workflow`.\n\n",
+  "timed_out": false,
+  "parse_error": null,
+  "terminal_reason": null,
+  "tests_passed_guess": "fail",
+  "evidence_summary": [
+    {
+      "cmd": "cargo test -p a2a-bridge workflow_node_retry",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo build --workspace",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo test --workspace --all-targets",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo fmt --all --check",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo clippy --workspace --all-targets -- -D warnings",
+      "returncode": 101,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    }
+  ],
+  "scaffold": {
+    "tracked_scaffold_paths": [
+      "AGENTS.md"
+    ],
+    "missing_on_disk_after_checkout": [],
+    "has_CLAUDE_md": false,
+    "has_dot_claude_dir": false,
+    "has_AGENTS_md": true,
+    "agents_md_shimmed": true,
+    "global_hooks_present": true,
+    "shim": {
+      "present": true,
+      "sha256_at_write": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53",
+      "sha256_after_run": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53",
+      "changed": false
+    }
+  },
+  "shim": {
+    "present": true,
+    "changed": false,
+    "sha256_at_write": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53",
+    "sha256_after_run": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53"
+  },
+  "source_repo_touched": false,
+  "transcript_lookup_note": "matched codex rollout by cwd (1 candidate(s))",
+  "transcript_path": "bench/out-gpt55/IMPL-04/transcript.jsonl",
+  "executor": "codex",
+  "codex_effort": "high"
+}

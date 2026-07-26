@@ -1,0 +1,789 @@
+# git -C /private/tmp/dbg-g5d2-ws/DBG-02 status --short
+ M src/ast.rs
+ M src/call_graph.rs
+ M src/cpg_cache.rs
+ M src/resolution.rs
+ M src/resolution_disproof.rs
+ M tests/name_resolution/consumer_test.rs
+ M tests/navigation/scoped_calls_test.rs
+?? VERIFICATION.md
+
+# git -C /private/tmp/dbg-g5d2-ws/DBG-02 diff
+diff --git a/src/ast.rs b/src/ast.rs
+index 1656cef..b003ad7 100644
+--- a/src/ast.rs
++++ b/src/ast.rs
+@@ -407,18 +407,29 @@ impl ParsedFile {
+     }
+ 
+     /// S3 P6-lite: syntactically-provable receiver type for `receiver` at a call
+-    /// on `call_line`. Typed params + constructor locals; when `recover_var` is true
+-    /// also recovers `var r T` declarations. Only bindings at or before `call_line`
+-    /// count; >1 binding before the call means shadow bail. Rust + Go +
+-    /// guarded Python/JS/TS.
++    /// starting at `call_start_byte`. Typed params + constructor locals; when
++    /// `recover_var` is true also recovers `var r T` declarations. Only bindings
++    /// before the call start count; >1 binding before the call means shadow bail.
++    /// Rust + Go + guarded Python/JS/TS.
+     /// Returns the raw, unpeeled type text + which fact recovered it.
+     pub fn receiver_type_in_fn(
+         &self,
+         func_node: &Node<'_>,
+         receiver: &str,
+-        call_line: usize,
++        call_start_byte: usize,
+         recover_var: bool,
+     ) -> Option<(String, crate::resolution::ReceiverRecovery)> {
++        self.receiver_binding_in_fn(func_node, receiver, call_start_byte, recover_var)
++            .0
++    }
++
++    pub fn receiver_binding_in_fn(
++        &self,
++        func_node: &Node<'_>,
++        receiver: &str,
++        call_start_byte: usize,
++        recover_var: bool,
++    ) -> (Option<(String, crate::resolution::ReceiverRecovery)>, bool) {
+         use crate::languages::Language;
+         use crate::resolution::ReceiverRecovery;
+ 
+@@ -431,11 +442,12 @@ impl ParsedFile {
+                 | Language::TypeScript
+                 | Language::Tsx
+         ) {
+-            return None;
++            return (None, false);
+         }
+ 
+         let mut found: Option<(String, ReceiverRecovery)> = None;
+         let mut bindings = 0usize;
++        let mut materialized = false;
+ 
+         if let Some(params) = self.find_parameters_node(func_node) {
+             let mut cursor = params.walk();
+@@ -454,8 +466,10 @@ impl ParsedFile {
+                                 ReceiverRecovery::TypedParam,
+                             ));
+                             bindings += 1;
++                            materialized = true;
+                         } else if self.node_binds_name(pattern, receiver) {
+                             bindings += 1;
++                            materialized = true;
+                             found = None;
+                         }
+                     }
+@@ -469,6 +483,7 @@ impl ParsedFile {
+                                 ReceiverRecovery::TypedParam,
+                             ));
+                             bindings += 1;
++                            materialized = true;
+                         }
+                     }
+                     Language::Python
+@@ -486,6 +501,7 @@ impl ParsedFile {
+                                 ReceiverRecovery::TypedParam,
+                             ));
+                             bindings += 1;
++                            materialized = true;
+                         }
+                     }
+                     Language::TypeScript | Language::Tsx | Language::JavaScript
+@@ -500,6 +516,7 @@ impl ParsedFile {
+                                 ReceiverRecovery::TypedParam,
+                             ));
+                             bindings += 1;
++                            materialized = true;
+                         }
+                     }
+                     _ => {}
+@@ -511,15 +528,16 @@ impl ParsedFile {
+             *func_node,
+             true,
+             receiver,
+-            call_line,
++            call_start_byte,
+             &mut found,
+             &mut bindings,
++            &mut materialized,
+             recover_var,
+         );
+         if bindings > 1 {
+-            return None;
++            return (None, materialized);
+         }
+-        found
++        (found, materialized)
+     }
+ 
+     /// Manual recursive function collection (pre-query fallback).
+@@ -4027,26 +4045,40 @@ impl ParsedFile {
+         node: Node<'_>,
+         is_root: bool,
+         receiver: &str,
+-        call_line: usize,
++        call_start_byte: usize,
+         found: &mut Option<(String, crate::resolution::ReceiverRecovery)>,
+         bindings: &mut usize,
++        materialized: &mut bool,
+         recover_var: bool,
+     ) {
+         use crate::languages::Language;
+         use crate::resolution::ReceiverRecovery;
+ 
+-        if node.start_position().row + 1 > call_line {
++        if node.start_byte() >= call_start_byte {
+             return;
+         }
+         if !is_root && self.language.function_node_types().contains(&node.kind()) {
+             return;
+         }
++        if !is_root
++            && matches!(
++                self.language,
++                Language::Python | Language::JavaScript | Language::TypeScript | Language::Tsx
++            )
++            && matches!(
++                node.kind(),
++                "class_definition" | "class_declaration" | "class"
++            )
++        {
++            return;
++        }
+ 
+         match (self.language, node.kind()) {
+             (Language::Rust, "let_declaration") => {
+                 if let Some(pattern) = node.child_by_field_name("pattern") {
+                     if self.simple_binding_text(&pattern).as_deref() == Some(receiver) {
+                         *bindings += 1;
++                        *materialized = true;
+                         if let Some(ty) = node.child_by_field_name("type") {
+                             *found = Some((
+                                 self.node_text(&ty).to_string(),
+@@ -4061,6 +4093,7 @@ impl ParsedFile {
+                         }
+                     } else if self.node_binds_name(pattern, receiver) {
+                         *bindings += 1;
++                        *materialized = true;
+                         *found = None;
+                     }
+                 }
+@@ -4075,6 +4108,7 @@ impl ParsedFile {
+                 if let Some(left) = left {
+                     if self.simple_binding_text(&left).as_deref() == Some(receiver) {
+                         *bindings += 1;
++                        *materialized = true;
+                         *found = right.and_then(|r| {
+                             self.constructor_type(&r)
+                                 .or_else(|| self.first_constructor_type_child(&r))
+@@ -4082,6 +4116,7 @@ impl ParsedFile {
+                         });
+                     } else if self.node_binds_name(left, receiver) {
+                         *bindings += 1;
++                        *materialized = true;
+                         *found = None;
+                     }
+                 }
+@@ -4096,6 +4131,7 @@ impl ParsedFile {
+                     .any(|n| self.simple_binding_text(n).as_deref() == Some(receiver));
+                 if matched {
+                     *bindings += 1;
++                    *materialized = true;
+                     if let Some(ty) = node.child_by_field_name("type") {
+                         // `var r T` / `var a, b T` — the declared type applies to every name.
+                         *found = Some((self.node_text(&ty).to_string(), ReceiverRecovery::VarDecl));
+@@ -4120,6 +4156,7 @@ impl ParsedFile {
+                 if let Some(left) = left {
+                     if self.simple_binding_text(&left).as_deref() == Some(receiver) {
+                         *bindings += 1;
++                        *materialized = true;
+                         if let Some(ty) = node.child_by_field_name("type") {
+                             *found = Some((
+                                 self.node_text(&ty).to_string(),
+@@ -4134,6 +4171,7 @@ impl ParsedFile {
+                         }
+                     } else if self.node_binds_name(left, receiver) {
+                         *bindings += 1;
++                        *materialized = true;
+                         *found = None;
+                     }
+                 }
+@@ -4146,6 +4184,7 @@ impl ParsedFile {
+                 if let Some(name) = name {
+                     if self.simple_binding_text(&name).as_deref() == Some(receiver) {
+                         *bindings += 1;
++                        *materialized = true;
+                         if let Some(ty) = node.child_by_field_name("type") {
+                             *found = Some((
+                                 self.type_annotation_text(&ty),
+@@ -4160,6 +4199,7 @@ impl ParsedFile {
+                         }
+                     } else if self.node_binds_name(name, receiver) {
+                         *bindings += 1;
++                        *materialized = true;
+                         *found = None;
+                     }
+                 }
+@@ -4172,6 +4212,7 @@ impl ParsedFile {
+                 if let Some(left) = left {
+                     if self.simple_binding_text(&left).as_deref() == Some(receiver) {
+                         *bindings += 1;
++                        *materialized = true;
+                         *found = node
+                             .child_by_field_name("right")
+                             .or_else(|| node.child_by_field_name("value"))
+@@ -4179,6 +4220,7 @@ impl ParsedFile {
+                             .map(|ty| (ty, ReceiverRecovery::ConstructorLocal));
+                     } else if self.node_binds_name(left, receiver) {
+                         *bindings += 1;
++                        *materialized = true;
+                         *found = None;
+                     }
+                 }
+@@ -4190,6 +4232,7 @@ impl ParsedFile {
+                 if let Some(left) = left {
+                     if self.simple_binding_text(&left).as_deref() == Some(receiver) {
+                         *bindings += 1;
++                        *materialized = true;
+                         *found = None;
+                     }
+                 }
+@@ -4203,9 +4246,10 @@ impl ParsedFile {
+                 child,
+                 false,
+                 receiver,
+-                call_line,
++                call_start_byte,
+                 found,
+                 bindings,
++                materialized,
+                 recover_var,
+             );
+         }
+diff --git a/src/call_graph.rs b/src/call_graph.rs
+index 05faf2d..1750e09 100644
+--- a/src/call_graph.rs
++++ b/src/call_graph.rs
+@@ -68,6 +68,10 @@ pub struct CallSite {
+     /// derived from the same scan as receiver_type.
+     #[serde(default)]
+     pub receiver_recovery: Option<crate::resolution::ReceiverRecovery>,
++    /// True when a local receiver binding was found for the qualifier, even if
++    /// the static type was rejected as poisoned/unresolved.
++    #[serde(default)]
++    pub receiver_materialized: bool,
+     /// Number of arguments at the call site. `None` = not captured / unknown
+     /// (the arity-disambiguation filter treats `None` as "keep").
+     /// Excluded from cmp_key — positional data, not part of logical identity.
+@@ -371,6 +375,7 @@ impl CallGraph {
+                         ),
+                         receiver_type: None,
+                         receiver_recovery: None,
++                        receiver_materialized: false,
+                         arg_count: None,
+                         arg_spread: false,
+                         receiver_outcome: None,
+@@ -635,11 +640,12 @@ impl CallGraph {
+                             line,
+                             qualifier,
+                         );
+-                        let recovered = classifier.classify(crate::resolution::ReceiverCtx {
++                        let classified = classifier.classify(crate::resolution::ReceiverCtx {
+                             receiver_expr,
+                             qualifier: qualifier.as_deref(),
+                             fn_node: func_node,
+                             call_line: line,
++                            call_start_byte: start_byte,
+                             parsed,
+                             recv_var: recv_var.as_deref(),
+                             file_imports: file_imports_ref,
+@@ -652,8 +658,12 @@ impl CallGraph {
+                             start_byte,
+                             end_byte,
+                             qualifier,
+-                            receiver_type: recovered.as_ref().map(|r| r.static_type.clone()),
+-                            receiver_recovery: recovered.as_ref().map(|r| r.recovery),
++                            receiver_type: classified
++                                .recovered
++                                .as_ref()
++                                .map(|r| r.static_type.clone()),
++                            receiver_recovery: classified.recovered.as_ref().map(|r| r.recovery),
++                            receiver_materialized: classified.materialized,
+                             arg_count,
+                             arg_spread,
+                             receiver_outcome: None,
+@@ -737,6 +747,7 @@ impl CallGraph {
+                                 qualifier: None,
+                                 receiver_type: None,
+                                 receiver_recovery: None,
++                                receiver_materialized: false,
+                                 arg_count: None,
+                                 arg_spread: false,
+                                 receiver_outcome: None,
+@@ -771,6 +782,7 @@ impl CallGraph {
+                                 qualifier: None,
+                                 receiver_type: None,
+                                 receiver_recovery: None,
++                                receiver_materialized: false,
+                                 arg_count: None,
+                                 arg_spread: false,
+                                 receiver_outcome: None,
+@@ -858,6 +870,7 @@ impl CallGraph {
+                                     qualifier: None,
+                                     receiver_type: None,
+                                     receiver_recovery: None,
++                                    receiver_materialized: false,
+                                     arg_count: None,
+                                     arg_spread: false,
+                                     receiver_outcome: None,
+@@ -955,6 +968,7 @@ impl CallGraph {
+                                         qualifier: None,
+                                         receiver_type: None,
+                                         receiver_recovery: None,
++                                        receiver_materialized: false,
+                                         arg_count: None,
+                                         arg_spread: false,
+                                         receiver_outcome: None,
+@@ -982,6 +996,7 @@ impl CallGraph {
+                                             qualifier: None,
+                                             receiver_type: None,
+                                             receiver_recovery: None,
++                                            receiver_materialized: false,
+                                             arg_count: None,
+                                             arg_spread: false,
+                                             receiver_outcome: None,
+@@ -1610,11 +1625,12 @@ impl CallGraph {
+                         line,
+                         qualifier,
+                     );
+-                    let recovered = classifier.classify(crate::resolution::ReceiverCtx {
++                    let classified = classifier.classify(crate::resolution::ReceiverCtx {
+                         receiver_expr,
+                         qualifier: qualifier.as_deref(),
+                         fn_node: func_node,
+                         call_line: line,
++                        call_start_byte: start_byte,
+                         parsed,
+                         recv_var: recv_var.as_deref(),
+                         file_imports: file_imports_ref,
+@@ -1627,8 +1643,9 @@ impl CallGraph {
+                         start_byte,
+                         end_byte,
+                         qualifier,
+-                        receiver_type: recovered.as_ref().map(|r| r.static_type.clone()),
+-                        receiver_recovery: recovered.as_ref().map(|r| r.recovery),
++                        receiver_type: classified.recovered.as_ref().map(|r| r.static_type.clone()),
++                        receiver_recovery: classified.recovered.as_ref().map(|r| r.recovery),
++                        receiver_materialized: classified.materialized,
+                         arg_count,
+                         arg_spread,
+                         receiver_outcome: None,
+diff --git a/src/cpg_cache.rs b/src/cpg_cache.rs
+index 6effcc0..591f440 100644
+--- a/src/cpg_cache.rs
++++ b/src/cpg_cache.rs
+@@ -66,7 +66,8 @@ use std::path::{Path, PathBuf};
+ /// - v22: method_class_span_ambiguous for fail-open line-id collisions.
+ /// - v23: wrapper-canonical decorated extraction.
+ /// - v24: Python/JS/TS typed-receiver recovery behavior.
+-const CACHE_VERSION: u32 = 24; // 24: Python/JS/TS typed-receiver recovery behavior.
++/// - v25: CallSite.receiver_materialized for poisoned Python/JS/TS receivers.
++const CACHE_VERSION: u32 = 25; // 25: CallSite.receiver_materialized.
+ 
+ pub const SKIP_POLICY_VERSION: u32 = 1;
+ 
+@@ -571,9 +572,9 @@ mod tests {
+     }
+ 
+     #[test]
+-    fn cache_version_is_24_for_python_js_typed_receiver_recovery() {
+-        // v24: Python/JS/TS typed-receiver recovery changes resolution behavior.
+-        assert_eq!(super::CACHE_VERSION, 24);
++    fn cache_version_is_25_for_receiver_materialization() {
++        // v25: CallSite.receiver_materialized changes serialized CallGraph shape.
++        assert_eq!(super::CACHE_VERSION, 25);
+     }
+ 
+     #[test]
+diff --git a/src/resolution.rs b/src/resolution.rs
+index 5f98f16..792c97d 100644
+--- a/src/resolution.rs
++++ b/src/resolution.rs
+@@ -234,6 +234,34 @@ pub struct RecoveredReceiver {
+     pub recovery: ReceiverRecovery,
+ }
+ 
++/// Receiver classification separates "a local receiver binding exists" from
++/// "that binding's type is accepted for owner lookup".
++#[derive(Debug, Clone, PartialEq, Eq, Default)]
++pub struct ReceiverClassification {
++    pub recovered: Option<RecoveredReceiver>,
++    pub materialized: bool,
++}
++
++impl ReceiverClassification {
++    fn none() -> Self {
++        Self::default()
++    }
++
++    fn materialized_without_type() -> Self {
++        Self {
++            recovered: None,
++            materialized: true,
++        }
++    }
++
++    fn recovered(recovered: RecoveredReceiver) -> Self {
++        Self {
++            recovered: Some(recovered),
++            materialized: true,
++        }
++    }
++}
++
+ /// Inputs a `ReceiverClassifier` needs to recover a receiver's static type. Borrows
+ /// from the ParsedFile/tree of the call's enclosing function. Carries `recv_var` +
+ /// `file_imports` because the legacy gate tests `is_recv`/`is_import`
+@@ -249,7 +277,9 @@ pub struct ReceiverCtx<'a> {
+     pub fn_node: tree_sitter::Node<'a>,
+     /// 1-indexed call line.
+     pub call_line: usize,
+-    /// For node_text + the legacy `receiver_type_in_fn` scan.
++    /// Start byte of the method call expression.
++    pub call_start_byte: usize,
++    /// For node_text + the receiver binding scan.
+     pub parsed: &'a crate::ast::ParsedFile,
+     /// Go receiver variable of the enclosing method (legacy gate: `is_recv`).
+     pub recv_var: Option<&'a str>,
+@@ -260,7 +290,7 @@ pub struct ReceiverCtx<'a> {
+ /// Swappable receiver-recovery strategy (strangler seam, spec §2). `Sync` because
+ /// the CPG build extracts call sites with rayon (`call_graph.rs` par_iter).
+ pub trait ReceiverClassifier: Sync {
+-    fn classify(&self, ctx: ReceiverCtx<'_>) -> Option<RecoveredReceiver>;
++    fn classify(&self, ctx: ReceiverCtx<'_>) -> ReceiverClassification;
+ }
+ 
+ /// Receiver-recovery mode (spec §13.3). `Expanded` (default) turns the implemented
+@@ -315,7 +345,7 @@ impl ReceiverRecoveryConfig {
+ /// Runs the qualifier/keyword/recv-var/import gate, then the typed-param /
+ /// constructor-local scan (and optionally `var` declarations when `recover_var`
+ /// is true), peeled + owner-keyed.
+-fn recover_simple_ident(ctx: &ReceiverCtx<'_>, recover_var: bool) -> Option<RecoveredReceiver> {
++fn recover_simple_ident(ctx: &ReceiverCtx<'_>, recover_var: bool) -> ReceiverClassification {
+     use crate::languages::Language;
+     if !matches!(
+         ctx.parsed.language,
+@@ -326,30 +356,44 @@ fn recover_simple_ident(ctx: &ReceiverCtx<'_>, recover_var: bool) -> Option<Reco
+             | Language::TypeScript
+             | Language::Tsx
+     ) {
+-        return None;
++        return ReceiverClassification::none();
+     }
+-    let q = ctx.qualifier?;
++    let Some(q) = ctx.qualifier else {
++        return ReceiverClassification::none();
++    };
++    let py_js_ts = matches!(
++        ctx.parsed.language,
++        Language::Python | Language::JavaScript | Language::TypeScript | Language::Tsx
++    );
+     let simple = !q.is_empty() && q.chars().all(|c| c.is_alphanumeric() || c == '_');
+     let is_kw = matches!(q, "self" | "this" | "cls");
+     let is_recv = ctx.recv_var == Some(q);
+     let is_import = ctx.file_imports.map(|m| m.contains_key(q)).unwrap_or(false);
+-    if !(simple && !is_kw && !is_recv && !is_import) {
+-        return None;
+-    }
+-    let (ty, how) = ctx
+-        .parsed
+-        .receiver_type_in_fn(&ctx.fn_node, q, ctx.call_line, recover_var)?;
++    if !(simple && !is_kw && !is_recv) {
++        return ReceiverClassification::none();
++    }
++    if is_import && !py_js_ts {
++        return ReceiverClassification::none();
++    }
++    let (recovered, materialized) =
++        ctx.parsed
++            .receiver_binding_in_fn(&ctx.fn_node, q, ctx.call_start_byte, recover_var);
++    let Some((ty, how)) = recovered else {
++        return if materialized {
++            ReceiverClassification::materialized_without_type()
++        } else {
++            ReceiverClassification::none()
++        };
++    };
+     let static_type = owner_key(&peel_type(&ty));
+-    if matches!(
+-        ctx.parsed.language,
+-        Language::Python | Language::JavaScript | Language::TypeScript | Language::Tsx
+-    ) && ctx
+-        .file_imports
+-        .is_some_and(|m| m.contains_key(&static_type) || m.contains_key("*"))
++    if py_js_ts
++        && ctx
++            .file_imports
++            .is_some_and(|m| m.contains_key(&static_type) || m.contains_key("*"))
+     {
+-        return None;
++        return ReceiverClassification::materialized_without_type();
+     }
+-    Some(RecoveredReceiver {
++    ReceiverClassification::recovered(RecoveredReceiver {
+         static_type,
+         recovery: how,
+     })
+@@ -360,14 +404,14 @@ fn recover_simple_ident(ctx: &ReceiverCtx<'_>, recover_var: bool) -> Option<Reco
+ /// the typed-param / constructor-local scan, peeled + owner-keyed).
+ /// Byte-identical to PR-1: `recover_var = false`.
+ pub fn legacy_recover(ctx: &ReceiverCtx<'_>) -> Option<RecoveredReceiver> {
+-    recover_simple_ident(ctx, false)
++    recover_simple_ident(ctx, false).recovered
+ }
+ 
+ /// `legacy` — PR-1 behavior, no new forms.
+ pub struct LegacyClassifier;
+ impl ReceiverClassifier for LegacyClassifier {
+-    fn classify(&self, ctx: ReceiverCtx<'_>) -> Option<RecoveredReceiver> {
+-        legacy_recover(&ctx)
++    fn classify(&self, ctx: ReceiverCtx<'_>) -> ReceiverClassification {
++        recover_simple_ident(&ctx, false)
+     }
+ }
+ 
+@@ -377,16 +421,17 @@ pub struct ExpandedClassifier {
+     pub var_local: bool,
+ }
+ impl ReceiverClassifier for ExpandedClassifier {
+-    fn classify(&self, ctx: ReceiverCtx<'_>) -> Option<RecoveredReceiver> {
+-        if let Some(r) = recover_simple_ident(&ctx, self.var_local) {
+-            return Some(r);
++    fn classify(&self, ctx: ReceiverCtx<'_>) -> ReceiverClassification {
++        let simple = recover_simple_ident(&ctx, self.var_local);
++        if simple.materialized {
++            return simple;
+         }
+         if self.type_assertion {
+             if let Some(r) = recover_type_assertion(&ctx) {
+-                return Some(r);
++                return ReceiverClassification::recovered(r);
+             }
+         }
+-        None
++        ReceiverClassification::none()
+     }
+ }
+ 
+@@ -1015,7 +1060,7 @@ impl CallGraph {
+                             | crate::languages::Language::TypeScript
+                             | crate::languages::Language::Tsx
+                     )
+-                ) && site.receiver_type.is_some();
++                ) && site.receiver_materialized;
+                 let recv_materialized = rust_recv_materialized || recovered_recv_materialized;
+ 
+                 // R3: imported-module qualifier. If an import matches, the
+@@ -2110,6 +2155,157 @@ mod self_receiver_same_class_tests {
+     }
+ }
+ 
++#[cfg(test)]
++mod py_js_receiver_materialization_tests {
++    use super::*;
++    use crate::ast::ParsedFile;
++    use crate::languages::Language;
++    use std::collections::BTreeMap;
++
++    fn files(pairs: &[(&str, &str)]) -> BTreeMap<String, ParsedFile> {
++        pairs
++            .iter()
++            .map(|(p, s)| {
++                let lang = Language::from_path(p).expect("known extension");
++                (
++                    (*p).to_string(),
++                    ParsedFile::parse(p, s, lang).expect("parse"),
++                )
++            })
++            .collect()
++    }
++
++    fn site<'a>(cg: &'a CallGraph, caller_file: &str, caller: &str, callee: &str) -> &'a CallSite {
++        let caller = cg
++            .functions
++            .get(caller)
++            .and_then(|v| v.iter().find(|f| f.file == caller_file))
++            .expect("caller fn");
++        cg.calls
++            .get(caller)
++            .and_then(|sites| sites.iter().find(|s| s.callee_name == callee))
++            .expect("call site")
++    }
++
++    fn out<'a>(
++        cg: &'a CallGraph,
++        caller_file: &str,
++        caller: &str,
++        callee: &str,
++    ) -> ResolutionOutcome<'a> {
++        cg.resolve_call_site_full(site(cg, caller_file, caller, callee))
++    }
++
++    fn has_exact_kind(out: &ResolutionOutcome<'_>, kind: ResolutionKind, file: &str) -> bool {
++        out.resolved.iter().any(|r| {
++            r.confidence == ResolutionConfidence::Exact && r.kind == kind && r.target.file == file
++        })
++    }
++
++    #[test]
++    fn python_import_poisoned_typed_param_suppresses_qualifier_owner() {
++        let cg = CallGraph::build(&files(&[(
++            "a.py",
++            "from ext import Foo\n\
++             class x:\n\
++             \tdef m(self):\n\
++             \t\treturn 1\n\
++             def run(x: Foo):\n\
++             \treturn x.m()\n",
++        )]));
++
++        let resolved = out(&cg, "a.py", "run", "m");
++        assert!(
++            !has_exact_kind(&resolved, ResolutionKind::QualifierOwner, "a.py"),
++            "typed local receiver x: imported Foo must not bind to class x.m: {resolved:?}"
++        );
++    }
++
++    #[test]
++    fn typescript_import_shadowed_typed_param_suppresses_import_qualified() {
++        let cg = CallGraph::build(&files(&[
++            (
++                "main.ts",
++                "import api from './api';\n\
++                 class Foo { m() { return 1; } }\n\
++                 function run(api: Foo) { return api.m(); }\n",
++            ),
++            ("api.ts", "export function m() { return 2; }\n"),
++        ]));
++
++        let resolved = out(&cg, "main.ts", "run", "m");
++        assert!(
++            !has_exact_kind(&resolved, ResolutionKind::ImportQualified, "api.ts"),
++            "typed local receiver api: Foo must not bind to imported api.m: {resolved:?}"
++        );
++        assert!(
++            has_exact_kind(&resolved, ResolutionKind::TypedParam, "main.ts"),
++            "non-poisoned local type should still resolve through R6 TypedParam: {resolved:?}"
++        );
++    }
++
++    #[test]
++    fn python_nested_class_body_assignment_is_not_local_receiver_binding() {
++        let cg = CallGraph::build(&files(&[(
++            "a.py",
++            "class Foo:\n\
++             \tdef m(self):\n\
++             \t\treturn 1\n\
++             def run():\n\
++             \tclass C:\n\
++             \t\tx = Foo()\n\
++             \treturn x.m()\n",
++        )]));
++
++        let call = site(&cg, "a.py", "run", "m");
++        assert_eq!(
++            call.receiver_type, None,
++            "class-body C.x must not recover as run()'s local receiver"
++        );
++        let resolved = cg.resolve_call_site_full(call);
++        assert!(
++            !has_exact_kind(&resolved, ResolutionKind::ConstructorLocal, "a.py"),
++            "class-body C.x must not produce an Exact constructor-local receiver edge: {resolved:?}"
++        );
++    }
++
++    #[test]
++    fn python_same_line_after_call_assignment_is_not_before_call_binding() {
++        let cg = CallGraph::build(&files(&[(
++            "a.py",
++            "class Foo:\n\
++             \tdef m(self):\n\
++             \t\treturn 1\n\
++             def run():\n\
++             \tx.m(); x = Foo()\n",
++        )]));
++
++        let call = site(&cg, "a.py", "run", "m");
++        assert_eq!(
++            call.receiver_type, None,
++            "assignment after the call start byte must not count as prior receiver binding"
++        );
++    }
++
++    #[test]
++    fn python_non_poisoned_typed_param_still_resolves_exact_typed_param() {
++        let cg = CallGraph::build(&files(&[(
++            "a.py",
++            "class Foo:\n\
++             \tdef m(self):\n\
++             \t\treturn 1\n\
++             def run(x: Foo):\n\
++             \treturn x.m()\n",
++        )]));
++
++        let resolved = out(&cg, "a.py", "run", "m");
++        assert!(
++            has_exact_kind(&resolved, ResolutionKind::TypedParam, "a.py"),
++            "ordinary local typed param recovery regressed: {resolved:?}"
++        );
++    }
++}
++
+ #[cfg(test)]
+ mod scope_resolution_predicate_tests {
+     use super::*;
+@@ -2138,6 +2334,7 @@ mod scope_resolution_predicate_tests {
+             qualifier: None,
+             receiver_type: None,
+             receiver_recovery: None,
++            receiver_materialized: false,
+             arg_count: None,
+             arg_spread: false,
+             receiver_outcome: None,
+diff --git a/src/resolution_disproof.rs b/src/resolution_disproof.rs
+index 0724bf3..c100aa2 100644
+--- a/src/resolution_disproof.rs
++++ b/src/resolution_disproof.rs
+@@ -95,6 +95,7 @@ mod tests {
+             qualifier: None,
+             receiver_type: None,
+             receiver_recovery: None,
++            receiver_materialized: false,
+             arg_count: None,
+             arg_spread: false,
+             receiver_outcome: None,
+diff --git a/tests/name_resolution/consumer_test.rs b/tests/name_resolution/consumer_test.rs
+index 7cff2c3..dfc8a6d 100644
+--- a/tests/name_resolution/consumer_test.rs
++++ b/tests/name_resolution/consumer_test.rs
+@@ -103,6 +103,7 @@ fn call_site(file: &str, name: &str, byte: usize) -> CallSite {
+         qualifier: None,
+         receiver_type: None,
+         receiver_recovery: None,
++        receiver_materialized: false,
+         arg_count: None,
+         arg_spread: false,
+         receiver_outcome: None,
+diff --git a/tests/navigation/scoped_calls_test.rs b/tests/navigation/scoped_calls_test.rs
+index eb133c1..0af2749 100644
+--- a/tests/navigation/scoped_calls_test.rs
++++ b/tests/navigation/scoped_calls_test.rs
+@@ -56,6 +56,7 @@ fn resolved_targets(
+                 qualifier: qualifier.map(str::to_string),
+                 receiver_type: None,
+                 receiver_recovery: None,
++                receiver_materialized: false,
+                 arg_count: None,
+                 arg_spread: false,
+                 receiver_outcome: None,
+

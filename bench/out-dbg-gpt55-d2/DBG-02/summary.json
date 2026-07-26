@@ -1,0 +1,72 @@
+{
+  "id": "DBG-02",
+  "ws": "/private/tmp/dbg-g5d2-ws/DBG-02",
+  "dry_run": false,
+  "model": "claude-fable-5",
+  "replay_preface": "Replay note: you are working in /private/tmp/dbg-g5d2-ws/DBG-02 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged.",
+  "run_status": "ok",
+  "subtype": "success",
+  "api_error_status": null,
+  "returncode": 0,
+  "session_id": null,
+  "duration_ms": 1018894,
+  "num_turns": null,
+  "usage": {
+    "tokens_used": 676724
+  },
+  "total_cost_usd": null,
+  "stop_reason": null,
+  "is_error": false,
+  "result_text": "Implemented the slice 2 fix and wrote [VERIFICATION.md](/private/tmp/dbg-g5d2-ws/DBG-02/VERIFICATION.md).\n\n**What Changed**\n- Added a distinct receiver signal: `ReceiverClassification { recovered, materialized }`, persisted onto `CallSite.receiver_materialized`.\n- R3/R3b suppression now uses `site.receiver_materialized` for Python/JS/TS, so a local receiver binding suppresses owner/module heuristics even when the type is poisoned or unresolved.\n- Rust suppression remains on the existing Rust materialized outcome path; Go/Rust were kept out of the new Python/JS/TS gate.\n- Recovery now uses call start byte instead of only line number, and skips nested class-body scopes for Python/JS/TS.\n- Bumped call graph cache version to `25`.\n\nKey files:\n- [src/resolution.rs](/private/tmp/dbg-g5d2-ws/DBG-02/src/resolution.rs:240)\n- [src/call_graph.rs](/private/tmp/dbg-g5d2-ws/DBG-02/src/call_graph.rs:74)\n- [src/ast.rs](/private/tmp/dbg-g5d2-ws/DBG-02/src/ast.rs:426)\n- [src/cpg_cache.rs](/private/tmp/dbg-g5d2-ws/DBG-02/src/cpg_cache.rs:69)\n\n**Evidence Log**\n- Hypothesis: poisoned typed receiver bindings were being lost before resolution, allowing R3/R3b to claim receiver names as owners/imports. Alternative: R3/R3b ranking itself was wrong for all receiver calls. Red tests separated these by showing only materialized-but-poisoned/scope recovery cases failed, while the non-poisoned typed-param positive control already passed.\n- Red-before: `cargo test py_js_receiver_materialization_tests -- --nocapture` failed 4/5 as expected.\n- Green-after: same command passed 5/5.\n- Scope alternative: line-only recovery vs nested-class scope leakage. Added both same-line-after-call and nested class-body tests; both failed before and passed after the byte/scope fix.\n\n**Verification**\n- `cargo fmt --check`: passed.\n- `cargo test`: passed, 2491 passed, 0 failed, 1 ignored. Inventory: 2492 tests, 0 benches.\n- `cargo test --features mcp`: passed, 2584 passed, 0 failed, 1 ignored. Inventory: 2585 tests, 0 benches.\n- `cargo build --release`: passed.\n- Tier-A matrix: passed.\n- Tier-A quick: exited 2 due existing baseline/oracle invalidity, not SUT regression (`sut_error_rate: 0.000`). Recorded in `VERIFICATION.md`; no re-baseline done.\n\nWorktree is unstaged and scoped; no `eval/` artifacts remain.\n\n",
+  "timed_out": false,
+  "parse_error": null,
+  "terminal_reason": null,
+  "tests_passed_guess": "pass",
+  "evidence_summary": [
+    {
+      "cmd": "cargo fmt --check",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo test",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": 2000,
+      "matched_tests": 2491,
+      "min_tests_satisfied": true
+    }
+  ],
+  "scaffold": {
+    "tracked_scaffold_paths": [
+      ".claude-plugin/marketplace.json",
+      ".claude-plugin/plugin.json",
+      "AGENTS.md",
+      "CLAUDE.md"
+    ],
+    "missing_on_disk_after_checkout": [],
+    "has_CLAUDE_md": true,
+    "has_dot_claude_dir": false,
+    "has_AGENTS_md": true,
+    "agents_md_shimmed": false,
+    "global_hooks_present": true,
+    "shim": {
+      "present": false,
+      "sha256_at_write": null,
+      "sha256_after_run": null,
+      "changed": false
+    }
+  },
+  "shim": {
+    "present": false,
+    "changed": false,
+    "sha256_at_write": null,
+    "sha256_after_run": null
+  },
+  "source_repo_touched": false,
+  "transcript_lookup_note": "matched codex rollout by cwd (1 candidate(s))",
+  "transcript_path": "bench/out-dbg-gpt55-d2/DBG-02/transcript.jsonl"
+}

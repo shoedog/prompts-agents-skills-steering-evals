@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": false,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Both arms correctly find the root cause (bind_params calling add_locals once per parameter, so every param got ordinal 0 from the 1-element slice) and fix it by restoring a single ordered add_locals call, plus both add a fn f(a: i32, b: i32) regression asserting ordinals 0 and 1 that fails on the buggy per-param code. Arm A implements the fix exactly as the task prescribes: collect (name, def_byte, LocalFact) triples, call add_locals ONCE with a generic placeholder fact (preserving enumerate ordinals), then separately overwrite local_facts by def_byte from the collected vector \u2014 touching only items.rs/tests, leaving the shared add_locals helper and all other call sites (walk_let/closure/for/match/if_while) completely untouched. The fix is provably inert beyond the repair. Arm B reaches the same ordinal fix but by changing add_locals's signature to take a combined (name, byte, fact) slice, which forces rewriting five unrelated, already-correct call sites in locals.rs via a new locals_with_fact() helper. Those sites were never split per-name (diff context shows they already called add_locals once with a shared fact) and already produced correct ordinals, so this refactor is unrequested scope expansion \u2014 likely behavior-preserving, but not confined to the stated repair and it changes a shared function's contract beyond what the bug required.",
+  "rationale": "Arm A follows the task's literal prescribed algorithm (collect-then-single-call-then-populate-local_facts-by-byte) verbatim, confines the diff to items.rs plus the two required regression tests, and its ordinal test asserts directly against the scope graph as instructed. Arm B's fix is plausibly correct and inert, but it rewrites the shared add_locals helper and touches 5 additional, previously-unbroken binding sites in locals.rs \u2014 scope creep beyond 'restore a single ordered parameter-binding pass' \u2014 and its ordinal regression goes through the resolve API rather than the scope graph directly as the task specified. Arm B's ambiguity test is a touch more literal to the spec's 'let x; let x;' example, but that's a minor plus against the more consequential scope-discipline gap, so on balance Arm A is the tighter, more faithful fix."
+ },
+ "cost_usd": 0.6053526
+}

@@ -1,0 +1,111 @@
+{
+  "id": "IMPL-01",
+  "ws": "/private/tmp/gpt55-ws/IMPL-01",
+  "dry_run": false,
+  "model": "gpt-5.5 (codex exec; the summary model field default is vestigial)",
+  "replay_preface": "Replay note: you are working in /private/tmp/gpt55-ws/IMPL-01 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged.",
+  "run_status": "ok",
+  "subtype": "success",
+  "api_error_status": null,
+  "returncode": 0,
+  "session_id": null,
+  "duration_ms": 271812,
+  "num_turns": null,
+  "usage": {
+    "tokens_used": 111052
+  },
+  "total_cost_usd": null,
+  "stop_reason": null,
+  "is_error": false,
+  "result_text": "**STATUS:** DONE\n\nImplemented Task 5 in [acp_backend.rs](/private/tmp/gpt55-ws/IMPL-01/crates/bridge-acp/src/acp_backend.rs): opt-in watchdog task, disabled `Pending` select arm, bounded cancel in the watchdog arm that always reports `AgentTimedOut`, teardown via `done_tx`, and terminal mapping for `timed_out_local`.\n\nAdded tests for:\n- hung turn -> `BridgeError::AgentTimedOut`\n- active text turn does not timeout\n- unmodeled thought-only turn does not timeout\n- no watchdog config leaves a silent hung turn pending\n\nValidation:\n- TDD fail first: `timeout 20 cargo test -p bridge-acp watchdog_ -- --nocapture` -> expected failure, 2 passed / 1 failed.\n- `timeout 30 cargo test -p bridge-acp watchdog_ -- --nocapture` -> 3 passed.\n- `timeout 120 cargo test -p bridge-acp` -> 108 unit + 7 corpus + 7 golden passed.\n- `timeout 180 cargo test --workspace --no-run` -> passed.\n- `cargo fmt --all` -> passed.\n- `cargo fmt --all --check` -> passed.\n- `timeout 180 cargo clippy -p bridge-acp --all-targets -- -D warnings` -> passed.\n- Post-format `timeout 120 cargo test -p bridge-acp` -> passed again.\n\nFiles changed:\n- `crates/bridge-acp/src/acp_backend.rs`\n\nSelf-review: no WRONG findings. No SMELL concerns beyond the inherent select race semantics already accepted by the binding. No `_dyld_start` PTY flake observed. Changes are uncommitted as requested.\n\n",
+  "timed_out": false,
+  "parse_error": null,
+  "terminal_reason": null,
+  "tests_passed_guess": "pass",
+  "evidence_summary": [
+    {
+      "cmd": "cargo test -p bridge-acp watchdog_cancels_a_hung_turn_as_timed_out",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": 1,
+      "matched_tests": 1,
+      "min_tests_satisfied": true
+    },
+    {
+      "cmd": "cargo test -p bridge-acp watchdog_does_not_trip_active_or_unmodeled_turn",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": 1,
+      "matched_tests": 1,
+      "min_tests_satisfied": true
+    },
+    {
+      "cmd": "cargo test -p bridge-acp no_watchdog_config_is_byte_identical",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": 1,
+      "matched_tests": 1,
+      "min_tests_satisfied": true
+    },
+    {
+      "cmd": "cargo test -p bridge-acp",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo test --workspace --no-run",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo fmt --all --check",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    },
+    {
+      "cmd": "cargo clippy -p bridge-acp --all-targets -- -D warnings",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    }
+  ],
+  "scaffold": {
+    "tracked_scaffold_paths": [
+      "AGENTS.md"
+    ],
+    "missing_on_disk_after_checkout": [],
+    "has_CLAUDE_md": false,
+    "has_dot_claude_dir": false,
+    "has_AGENTS_md": true,
+    "agents_md_shimmed": true,
+    "global_hooks_present": true,
+    "shim": {
+      "present": true,
+      "sha256_at_write": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53",
+      "sha256_after_run": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53",
+      "changed": false
+    }
+  },
+  "shim": {
+    "present": true,
+    "changed": false,
+    "sha256_at_write": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53",
+    "sha256_after_run": "52f162acf535649c975d9841f2c5a22d871b1364f504df1551fcfa8bf3366b53"
+  },
+  "source_repo_touched": false,
+  "transcript_lookup_note": "matched codex rollout by cwd (1 candidate(s))",
+  "transcript_path": "bench/out-gpt55/IMPL-01/transcript.jsonl",
+  "executor": "codex",
+  "codex_effort": "high"
+}

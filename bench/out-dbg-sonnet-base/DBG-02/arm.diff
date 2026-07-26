@@ -1,0 +1,565 @@
+diff --git a/src/ast.rs b/src/ast.rs
+index 1656cef..f5bf7ac 100644
+--- a/src/ast.rs
++++ b/src/ast.rs
+@@ -407,16 +407,17 @@ impl ParsedFile {
+     }
+ 
+     /// S3 P6-lite: syntactically-provable receiver type for `receiver` at a call
+-    /// on `call_line`. Typed params + constructor locals; when `recover_var` is true
+-    /// also recovers `var r T` declarations. Only bindings at or before `call_line`
+-    /// count; >1 binding before the call means shadow bail. Rust + Go +
+-    /// guarded Python/JS/TS.
++    /// starting at `call_start_byte`. Typed params + constructor locals; when
++    /// `recover_var` is true also recovers `var r T` declarations. Only bindings
++    /// strictly before the call's start byte count (byte, not line, so a same-line
++    /// binding written after the call is correctly excluded); >1 binding before the
++    /// call means shadow bail. Rust + Go + guarded Python/JS/TS.
+     /// Returns the raw, unpeeled type text + which fact recovered it.
+     pub fn receiver_type_in_fn(
+         &self,
+         func_node: &Node<'_>,
+         receiver: &str,
+-        call_line: usize,
++        call_start_byte: usize,
+         recover_var: bool,
+     ) -> Option<(String, crate::resolution::ReceiverRecovery)> {
+         use crate::languages::Language;
+@@ -511,7 +512,7 @@ impl ParsedFile {
+             *func_node,
+             true,
+             receiver,
+-            call_line,
++            call_start_byte,
+             &mut found,
+             &mut bindings,
+             recover_var,
+@@ -4027,7 +4028,7 @@ impl ParsedFile {
+         node: Node<'_>,
+         is_root: bool,
+         receiver: &str,
+-        call_line: usize,
++        call_start_byte: usize,
+         found: &mut Option<(String, crate::resolution::ReceiverRecovery)>,
+         bindings: &mut usize,
+         recover_var: bool,
+@@ -4035,10 +4036,16 @@ impl ParsedFile {
+         use crate::languages::Language;
+         use crate::resolution::ReceiverRecovery;
+ 
+-        if node.start_position().row + 1 > call_line {
++        // Byte, not line: a same-line binding written AFTER the call (e.g.
++        // `x.m(); x = Foo()`) must not count as "before" it — line comparison alone
++        // can't see order within one line.
++        if node.start_byte() >= call_start_byte {
+             return;
+         }
+-        if !is_root && self.language.function_node_types().contains(&node.kind()) {
++        if !is_root
++            && (self.language.function_node_types().contains(&node.kind())
++                || self.is_nested_class_scope(&node))
++        {
+             return;
+         }
+ 
+@@ -4203,7 +4210,7 @@ impl ParsedFile {
+                 child,
+                 false,
+                 receiver,
+-                call_line,
++                call_start_byte,
+                 found,
+                 bindings,
+                 recover_var,
+@@ -4211,6 +4218,23 @@ impl ParsedFile {
+         }
+     }
+ 
++    /// True for a nested class scope root (Python `class_definition`; JS/TS/Tsx
++    /// `class_declaration`/`class` expression). Class bodies are their own binding
++    /// scope — an attribute assignment there (e.g. `class C: x = Foo()`) is `C.x`,
++    /// never a local of the function the class happens to be nested in, so
++    /// `walk_receiver_bindings` must not descend into one.
++    fn is_nested_class_scope(&self, node: &Node<'_>) -> bool {
++        use crate::languages::Language;
++        matches!(
++            (self.language, node.kind()),
++            (Language::Python, "class_definition")
++                | (
++                    Language::JavaScript | Language::TypeScript | Language::Tsx,
++                    "class_declaration" | "class"
++                )
++        )
++    }
++
+     fn constructor_type(&self, node: &Node<'_>) -> Option<String> {
+         use crate::languages::Language;
+ 
+diff --git a/src/call_graph.rs b/src/call_graph.rs
+index 05faf2d..f12d8f1 100644
+--- a/src/call_graph.rs
++++ b/src/call_graph.rs
+@@ -68,6 +68,15 @@ pub struct CallSite {
+     /// derived from the same scan as receiver_type.
+     #[serde(default)]
+     pub receiver_recovery: Option<crate::resolution::ReceiverRecovery>,
++    /// Slice-2 BLOCKER fix: true when a local receiver binding (typed param /
++    /// constructor local / annotated local) was found for the qualifier at
++    /// extraction time, independent of whether `receiver_type` ended up poisoned
++    /// (import/wildcard guard) or unset (import-shadowed qualifier name). Drives the
++    /// R3/R3b pre-emption in `resolve_call_site_full` — a materialized-but-poisoned
++    /// receiver is still provably a value, not a module/owner name. Excluded from
++    /// cmp_key — derived from the same scan as receiver_type.
++    #[serde(default)]
++    pub receiver_materialized: bool,
+     /// Number of arguments at the call site. `None` = not captured / unknown
+     /// (the arity-disambiguation filter treats `None` as "keep").
+     /// Excluded from cmp_key — positional data, not part of logical identity.
+@@ -371,6 +380,7 @@ impl CallGraph {
+                         ),
+                         receiver_type: None,
+                         receiver_recovery: None,
++                        receiver_materialized: false,
+                         arg_count: None,
+                         arg_spread: false,
+                         receiver_outcome: None,
+@@ -635,15 +645,18 @@ impl CallGraph {
+                             line,
+                             qualifier,
+                         );
+-                        let recovered = classifier.classify(crate::resolution::ReceiverCtx {
++                        let recv_ctx = crate::resolution::ReceiverCtx {
+                             receiver_expr,
+                             qualifier: qualifier.as_deref(),
+                             fn_node: func_node,
+                             call_line: line,
++                            call_start_byte: start_byte,
+                             parsed,
+                             recv_var: recv_var.as_deref(),
+                             file_imports: file_imports_ref,
+-                        });
++                        };
++                        let recovered = classifier.classify(recv_ctx);
++                        let materialized = classifier.materialized(recv_ctx);
+                         let site = CallSite {
+                             caller: caller_id.clone(),
+                             callee_name,
+@@ -654,6 +667,7 @@ impl CallGraph {
+                             qualifier,
+                             receiver_type: recovered.as_ref().map(|r| r.static_type.clone()),
+                             receiver_recovery: recovered.as_ref().map(|r| r.recovery),
++                            receiver_materialized: materialized,
+                             arg_count,
+                             arg_spread,
+                             receiver_outcome: None,
+@@ -737,6 +751,7 @@ impl CallGraph {
+                                 qualifier: None,
+                                 receiver_type: None,
+                                 receiver_recovery: None,
++                                receiver_materialized: false,
+                                 arg_count: None,
+                                 arg_spread: false,
+                                 receiver_outcome: None,
+@@ -771,6 +786,7 @@ impl CallGraph {
+                                 qualifier: None,
+                                 receiver_type: None,
+                                 receiver_recovery: None,
++                                receiver_materialized: false,
+                                 arg_count: None,
+                                 arg_spread: false,
+                                 receiver_outcome: None,
+@@ -858,6 +874,7 @@ impl CallGraph {
+                                     qualifier: None,
+                                     receiver_type: None,
+                                     receiver_recovery: None,
++                                    receiver_materialized: false,
+                                     arg_count: None,
+                                     arg_spread: false,
+                                     receiver_outcome: None,
+@@ -955,6 +972,7 @@ impl CallGraph {
+                                         qualifier: None,
+                                         receiver_type: None,
+                                         receiver_recovery: None,
++                                        receiver_materialized: false,
+                                         arg_count: None,
+                                         arg_spread: false,
+                                         receiver_outcome: None,
+@@ -982,6 +1000,7 @@ impl CallGraph {
+                                             qualifier: None,
+                                             receiver_type: None,
+                                             receiver_recovery: None,
++                                            receiver_materialized: false,
+                                             arg_count: None,
+                                             arg_spread: false,
+                                             receiver_outcome: None,
+@@ -1610,15 +1629,18 @@ impl CallGraph {
+                         line,
+                         qualifier,
+                     );
+-                    let recovered = classifier.classify(crate::resolution::ReceiverCtx {
++                    let recv_ctx = crate::resolution::ReceiverCtx {
+                         receiver_expr,
+                         qualifier: qualifier.as_deref(),
+                         fn_node: func_node,
+                         call_line: line,
++                        call_start_byte: start_byte,
+                         parsed,
+                         recv_var: recv_var.as_deref(),
+                         file_imports: file_imports_ref,
+-                    });
++                    };
++                    let recovered = classifier.classify(recv_ctx);
++                    let materialized = classifier.materialized(recv_ctx);
+                     let site = CallSite {
+                         caller: caller_id.clone(),
+                         callee_name: callee_name.clone(),
+@@ -1629,6 +1651,7 @@ impl CallGraph {
+                         qualifier,
+                         receiver_type: recovered.as_ref().map(|r| r.static_type.clone()),
+                         receiver_recovery: recovered.as_ref().map(|r| r.recovery),
++                        receiver_materialized: materialized,
+                         arg_count,
+                         arg_spread,
+                         receiver_outcome: None,
+diff --git a/src/resolution.rs b/src/resolution.rs
+index 5f98f16..a26dd3a 100644
+--- a/src/resolution.rs
++++ b/src/resolution.rs
+@@ -249,6 +249,10 @@ pub struct ReceiverCtx<'a> {
+     pub fn_node: tree_sitter::Node<'a>,
+     /// 1-indexed call line.
+     pub call_line: usize,
++    /// Byte offset the call expression starts at. Scope-aware "binding before the
++    /// call" checks must compare against this, not `call_line` — a same-line binding
++    /// written after the call is otherwise indistinguishable from one before it.
++    pub call_start_byte: usize,
+     /// For node_text + the legacy `receiver_type_in_fn` scan.
+     pub parsed: &'a crate::ast::ParsedFile,
+     /// Go receiver variable of the enclosing method (legacy gate: `is_recv`).
+@@ -261,6 +265,18 @@ pub struct ReceiverCtx<'a> {
+ /// the CPG build extracts call sites with rayon (`call_graph.rs` par_iter).
+ pub trait ReceiverClassifier: Sync {
+     fn classify(&self, ctx: ReceiverCtx<'_>) -> Option<RecoveredReceiver>;
++
++    /// True when a local receiver binding (typed param / constructor local /
++    /// annotated local) was found for the qualifier — a state DISTINCT from
++    /// `classify(..).is_some()`. §3.3's import/wildcard guard can poison the
++    /// resolved type (or the legacy gate can bail outright when the qualifier's
++    /// name collides with an import), even though a binding provably exists; R3/R3b
++    /// must still be suppressed in that case, because the qualifier is a value, not
++    /// a module or owner name. Default false: Rust/Go classifiers don't need this —
++    /// their pre-emption already runs off `receiver_outcome`.
++    fn materialized(&self, _ctx: ReceiverCtx<'_>) -> bool {
++        false
++    }
+ }
+ 
+ /// Receiver-recovery mode (spec §13.3). `Expanded` (default) turns the implemented
+@@ -336,9 +352,9 @@ fn recover_simple_ident(ctx: &ReceiverCtx<'_>, recover_var: bool) -> Option<Reco
+     if !(simple && !is_kw && !is_recv && !is_import) {
+         return None;
+     }
+-    let (ty, how) = ctx
+-        .parsed
+-        .receiver_type_in_fn(&ctx.fn_node, q, ctx.call_line, recover_var)?;
++    let (ty, how) =
++        ctx.parsed
++            .receiver_type_in_fn(&ctx.fn_node, q, ctx.call_start_byte, recover_var)?;
+     let static_type = owner_key(&peel_type(&ty));
+     if matches!(
+         ctx.parsed.language,
+@@ -363,12 +379,45 @@ pub fn legacy_recover(ctx: &ReceiverCtx<'_>) -> Option<RecoveredReceiver> {
+     recover_simple_ident(ctx, false)
+ }
+ 
++/// BLOCKER 1+2 fix: is there a local receiver binding (typed param / constructor
++/// local / annotated local) for the qualifier, independent of `recover_simple_ident`?
++/// Unlike `recover_simple_ident`, this does NOT bail when the qualifier's name also
++/// happens to be an import (`is_import(q)`) — a local parameter/local shadows an
++/// outer-scope import within the function body, so that collision does not mean "no
++/// binding," it means "the classify() path conservatively declines to name the
++/// type." The materialized signal must still see the binding so R3/R3b don't treat
++/// the qualifier as a module or owner name. Gated to Python/JS/TS/Tsx — Rust/Go
++/// pre-emption already runs off `receiver_outcome`, not this.
++fn recv_binding_materialized(ctx: &ReceiverCtx<'_>, recover_var: bool) -> bool {
++    use crate::languages::Language;
++    if !matches!(
++        ctx.parsed.language,
++        Language::Python | Language::JavaScript | Language::TypeScript | Language::Tsx
++    ) {
++        return false;
++    }
++    let Some(q) = ctx.qualifier else {
++        return false;
++    };
++    let simple = !q.is_empty() && q.chars().all(|c| c.is_alphanumeric() || c == '_');
++    if !simple || matches!(q, "self" | "this" | "cls") {
++        return false;
++    }
++    ctx.parsed
++        .receiver_type_in_fn(&ctx.fn_node, q, ctx.call_start_byte, recover_var)
++        .is_some()
++}
++
+ /// `legacy` — PR-1 behavior, no new forms.
+ pub struct LegacyClassifier;
+ impl ReceiverClassifier for LegacyClassifier {
+     fn classify(&self, ctx: ReceiverCtx<'_>) -> Option<RecoveredReceiver> {
+         legacy_recover(&ctx)
+     }
++
++    fn materialized(&self, ctx: ReceiverCtx<'_>) -> bool {
++        recv_binding_materialized(&ctx, false)
++    }
+ }
+ 
+ /// `expanded` — `legacy` ∪ the new forms.
+@@ -388,6 +437,10 @@ impl ReceiverClassifier for ExpandedClassifier {
+         }
+         None
+     }
++
++    fn materialized(&self, ctx: ReceiverCtx<'_>) -> bool {
++        recv_binding_materialized(&ctx, self.var_local)
++    }
+ }
+ 
+ /// Recover the statically-asserted type from a Go `x.(T).M()` call.
+@@ -1007,6 +1060,14 @@ impl CallGraph {
+                 // for these sites.
+                 let rust_recv_materialized = caller_lang == Some(crate::languages::Language::Rust)
+                     && site.receiver_outcome.is_some();
++                // BLOCKER 1+2 fix: gate on `site.receiver_materialized`, NOT
++                // `site.receiver_type.is_some()`. §3.3's guard can poison the
++                // recovered type (import/wildcard) or the legacy gate can bail on an
++                // import-shadowed qualifier name, leaving `receiver_type` None even
++                // though a local binding provably exists — in both cases the
++                // qualifier is still a value, not a module/owner name, so R3/R3b must
++                // still be pre-empted (mirrors `rust_recv_materialized`, which
++                // suppresses on materialize, hit or miss).
+                 let recovered_recv_materialized = matches!(
+                     caller_lang,
+                     Some(
+@@ -1015,7 +1076,7 @@ impl CallGraph {
+                             | crate::languages::Language::TypeScript
+                             | crate::languages::Language::Tsx
+                     )
+-                ) && site.receiver_type.is_some();
++                ) && site.receiver_materialized;
+                 let recv_materialized = rust_recv_materialized || recovered_recv_materialized;
+ 
+                 // R3: imported-module qualifier. If an import matches, the
+@@ -2138,6 +2199,7 @@ mod scope_resolution_predicate_tests {
+             qualifier: None,
+             receiver_type: None,
+             receiver_recovery: None,
++            receiver_materialized: false,
+             arg_count: None,
+             arg_spread: false,
+             receiver_outcome: None,
+diff --git a/src/resolution_disproof.rs b/src/resolution_disproof.rs
+index 0724bf3..c100aa2 100644
+--- a/src/resolution_disproof.rs
++++ b/src/resolution_disproof.rs
+@@ -95,6 +95,7 @@ mod tests {
+             qualifier: None,
+             receiver_type: None,
+             receiver_recovery: None,
++            receiver_materialized: false,
+             arg_count: None,
+             arg_spread: false,
+             receiver_outcome: None,
+diff --git a/tests/lang/javascript/typed_receiver_test.rs b/tests/lang/javascript/typed_receiver_test.rs
+index 695a64d..8c850c3 100644
+--- a/tests/lang/javascript/typed_receiver_test.rs
++++ b/tests/lang/javascript/typed_receiver_test.rs
+@@ -40,3 +40,15 @@ fn test_javascript_new_constructor_recovers_bare_call_does_not() {
+     assert_eq!(factory.receiver_type, None);
+     assert!(cg.resolve_call_site(&factory).is_empty());
+ }
++
++#[test]
++fn test_javascript_nested_class_static_block_assignment_not_recovered() {
++    // MAJOR scope-fix repro: a nested class's static-init-block binding is that
++    // class's own scope, not a local of the enclosing function — must not leak into
++    // `run`'s binding scan.
++    let cg = graph(
++        "class Foo { m() {} }\nfunction run() {\n  class C {\n    static {\n      let x = new Foo();\n    }\n  }\n  x.m();\n}\n",
++    );
++    let s = site(&cg, "run", "m");
++    assert_eq!(s.receiver_type, None);
++}
+diff --git a/tests/lang/python/typed_receiver_test.rs b/tests/lang/python/typed_receiver_test.rs
+index ec612c4..4781f75 100644
+--- a/tests/lang/python/typed_receiver_test.rs
++++ b/tests/lang/python/typed_receiver_test.rs
+@@ -115,3 +115,92 @@ fn test_python_r3b_collision_and_local_miss_fallthrough() {
+     assert_eq!(annotated_out.drop, plain_out.drop);
+     assert_ne!(annotated_out.drop, Some(DropReason::ExternalReceiver));
+ }
++
++#[test]
++fn test_python_poisoned_import_still_suppresses_r3b_collision() {
++    // BLOCKER 1+2 repro: the import guard poisons `receiver_type` to None (Foo is
++    // external), but a typed-param binding for `x` was still found — that
++    // materialized binding must suppress R3b so the call doesn't false-Exact to the
++    // unrelated same-named `class x`.
++    let cg = graph(&[(
++        "svc.py",
++        "from ext import Foo\nclass x:\n    def m(self):\n        pass\ndef run(x: Foo):\n    x.m()\n",
++    )]);
++    let s = site(&cg, "run", "m");
++    assert_eq!(s.receiver_type, None, "poisoned by the import guard");
++    let r = cg.resolve_call_site(&s);
++    assert_eq!(r.len(), 1);
++    assert_ne!(r[0].kind, ResolutionKind::QualifierOwner);
++    assert_eq!(r[0].confidence, ResolutionConfidence::NameOnly);
++}
++
++#[test]
++fn test_python_nested_class_body_assignment_not_recovered() {
++    // MAJOR scope-fix repro: `C.x` is a class attribute in the nested class's own
++    // binding scope; it must not be mistaken for a local binding of the `x` used in
++    // `run`'s own scope after the nested class.
++    let cg = graph(&[(
++        "svc.py",
++        "class Foo:\n    def m(self):\n        pass\ndef run():\n    class C:\n        x = Foo()\n    x.m()\n",
++    )]);
++    let s = site(&cg, "run", "m");
++    assert_eq!(s.receiver_type, None);
++}
++
++#[test]
++fn test_python_same_line_after_call_assignment_not_recovered() {
++    // MAJOR scope-fix repro: a same-line assignment AFTER the call must not count as
++    // a binding "before" the call — a line-based comparison can't see byte order
++    // within one line.
++    let cg = graph(&[(
++        "svc.py",
++        "class Foo:\n    def m(self):\n        pass\ndef run(x):\n    x.m(); x = Foo()\n",
++    )]);
++    let s = site(&cg, "run", "m");
++    assert_eq!(s.receiver_type, None);
++}
++
++#[test]
++fn test_python_outer_binding_still_recovered_despite_nested_class_shadow() {
++    // Negative/edge case for the class-scope skip: a nested class's own attribute
++    // binding must be ignored WITHOUT swallowing the enclosing function's real
++    // binding for the same name (or falsely inflating the shadow-bail count).
++    let cg = graph(&[(
++        "svc.py",
++        "class Foo:\n    def m(self):\n        pass\nclass Bar:\n    def m(self):\n        pass\ndef run():\n    x = Foo()\n    class C:\n        x = Bar()\n    x.m()\n",
++    )]);
++    let s = site(&cg, "run", "m");
++    assert_eq!(s.receiver_type.as_deref(), Some("Foo"));
++}
++
++#[test]
++fn test_python_unshadowed_import_qualifier_still_resolves_import_qualified() {
++    // Negative/edge case for the materialized signal itself: when the qualifier has
++    // NO local binding at all (a genuine module import, not shadowed by any
++    // param/local), R3 must still fire normally — the fix must not over-suppress.
++    let cg = graph(&[
++        ("utils.py", "def process(data):\n    return data\n"),
++        (
++            "caller.py",
++            "import utils\ndef run():\n    utils.process(1)\n",
++        ),
++    ]);
++    let s = site(&cg, "run", "process");
++    assert_eq!(s.receiver_type, None);
++    let r = cg.resolve_call_site(&s);
++    assert_eq!(r.len(), 1);
++    assert_eq!(r[0].kind, ResolutionKind::ImportQualified);
++    assert_eq!(r[0].confidence, ResolutionConfidence::Exact);
++}
++
++#[test]
++fn test_python_same_line_before_call_assignment_still_recovered() {
++    // Negative/edge case for the byte-based fix: only a binding written AFTER the
++    // call must be excluded — one written before it on the same line is still valid.
++    let cg = graph(&[(
++        "svc.py",
++        "class Foo:\n    def m(self):\n        pass\ndef run():\n    x = Foo(); x.m()\n",
++    )]);
++    let s = site(&cg, "run", "m");
++    assert_eq!(s.receiver_type.as_deref(), Some("Foo"));
++}
+diff --git a/tests/lang/typescript/typed_receiver_test.rs b/tests/lang/typescript/typed_receiver_test.rs
+index 77b4b71..1925ecc 100644
+--- a/tests/lang/typescript/typed_receiver_test.rs
++++ b/tests/lang/typescript/typed_receiver_test.rs
+@@ -1,7 +1,7 @@
+ use prism::ast::ParsedFile;
+ use prism::call_graph::{CallGraph, CallSite};
+ use prism::languages::Language;
+-use prism::resolution::{ReceiverRecovery, ResolutionKind};
++use prism::resolution::{ReceiverRecovery, ResolutionConfidence, ResolutionKind};
+ use std::collections::BTreeMap;
+ 
+ fn graph(src: &str) -> CallGraph {
+@@ -53,3 +53,39 @@ fn test_typescript_bare_factory_call_does_not_recover() {
+     assert_eq!(s.receiver_type, None);
+     assert!(cg.resolve_call_site(&s).is_empty());
+ }
++
++#[test]
++fn test_typescript_import_shadowing_param_suppresses_import_qualified() {
++    // BLOCKER 2 repro: `api` is both an import binding (resolving to a real free
++    // function `m` in api.ts) AND a local typed-param name; the local parameter
++    // shadows the import within `run`, so R3 must not treat the qualifier as the
++    // import and false-Exact to api.ts's unrelated free `m`.
++    let files: BTreeMap<_, _> = [
++        (
++            "api.ts".to_string(),
++            ParsedFile::parse("api.ts", "export function m() {}\n", Language::TypeScript)
++                .expect("parse ts"),
++        ),
++        (
++            "svc.ts".to_string(),
++            ParsedFile::parse(
++                "svc.ts",
++                "import api from \"./api\";\nclass Foo { m() {} }\nfunction run(api: Foo) { api.m(); }\n",
++                Language::TypeScript,
++            )
++            .expect("parse ts"),
++        ),
++    ]
++    .into_iter()
++    .collect();
++    let cg = CallGraph::build(&files);
++    let s = site(&cg, "run", "m");
++    assert_eq!(
++        s.receiver_type, None,
++        "recovery still bails on q in imports"
++    );
++    let r = cg.resolve_call_site(&s);
++    assert_eq!(r.len(), 1);
++    assert_ne!(r[0].kind, ResolutionKind::ImportQualified);
++    assert_eq!(r[0].confidence, ResolutionConfidence::NameOnly);
++}
+diff --git a/tests/name_resolution/consumer_test.rs b/tests/name_resolution/consumer_test.rs
+index 7cff2c3..dfc8a6d 100644
+--- a/tests/name_resolution/consumer_test.rs
++++ b/tests/name_resolution/consumer_test.rs
+@@ -103,6 +103,7 @@ fn call_site(file: &str, name: &str, byte: usize) -> CallSite {
+         qualifier: None,
+         receiver_type: None,
+         receiver_recovery: None,
++        receiver_materialized: false,
+         arg_count: None,
+         arg_spread: false,
+         receiver_outcome: None,
+diff --git a/tests/navigation/scoped_calls_test.rs b/tests/navigation/scoped_calls_test.rs
+index eb133c1..0af2749 100644
+--- a/tests/navigation/scoped_calls_test.rs
++++ b/tests/navigation/scoped_calls_test.rs
+@@ -56,6 +56,7 @@ fn resolved_targets(
+                 qualifier: qualifier.map(str::to_string),
+                 receiver_type: None,
+                 receiver_recovery: None,
++                receiver_materialized: false,
+                 arg_count: None,
+                 arg_spread: false,
+                 receiver_outcome: None,

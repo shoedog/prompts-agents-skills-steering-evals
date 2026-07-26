@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": false,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Arm A: mostly yes. It preserves mint error propagation by re-raising the native BridgeError from apply_model_effort; Mint keeps effort no-surface/FellBack/Skip non-fatal; Warm treats non-exact effort as NotAdvertised and distinguishes walkdown RPC rejection as Rejected; PF-5 is implemented by returning and folding the last non-empty refreshed opts from apply_effort_walkdown. Arm B: no. It preserves model native errors, but changes mint behavior for unrelated effort RPC errors by manufacturing a new BridgeError::agent_crashed inside apply_effort_walkdown before suppressing it at Mint, which can alter tracing/log details and loses the native error. More importantly, PF-5 is incomplete because it blindly folds Some(empty Vec) from set_config_option into the cache; if the agent returns no refreshed options, the returned ConfigSurface.opts can be emptied rather than retaining the previous surface. Warm semantics are mostly present for exactness and rejection, but the rejected error is not the native RPC BridgeError.",
+  "rationale": "Arm A is materially better because it satisfies the explicit PF-5 freshness requirement more carefully and preserves the native error distinction better. Its tests also cover a post-model refreshed effort surface and the kiro models surface current_model_id update, which directly exercise edge cases in the requested refactor. Arm B implements the main shape but has a correctness bug in refreshed option folding: apply_effort_walkdown returns Some(refreshed) even when refreshed is empty, and apply_model_effort replaces refreshed_opts with it. The original model path treated empty refreshed options as no refresh; Arm A mirrors that behavior for effort. Arm B also wraps non-unsupported effort RPC failures in a newly constructed agent_crashed error instead of carrying the native error, contrary"
+ },
+ "tokens_used": 11066
+}

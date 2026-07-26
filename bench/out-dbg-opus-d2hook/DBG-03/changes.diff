@@ -1,0 +1,138 @@
+# git -C /private/tmp/dbg-opusd2-ws/DBG-03 status --short
+ M src/name_resolution/binding_lookup.rs
+ M src/name_resolution/rust_populator/walk/items.rs
+ M src/name_resolution/rust_populator/walk/locals.rs
+
+# git -C /private/tmp/dbg-opusd2-ws/DBG-03 diff
+diff --git a/src/name_resolution/binding_lookup.rs b/src/name_resolution/binding_lookup.rs
+index d86d7c6..d959cb0 100644
+--- a/src/name_resolution/binding_lookup.rs
++++ b/src/name_resolution/binding_lookup.rs
+@@ -155,4 +155,66 @@ mod tests {
+             Some(InitExpr::Ctor(s)) if s == "X::new()"
+         ));
+     }
++
++    /// Build a single-file crate scope graph from `src` (file `a.rs`).
++    fn build_graph(src: &str) -> CallGraph {
++        let mut files = std::collections::BTreeMap::new();
++        files.insert(
++            "a.rs".to_string(),
++            ParsedFile::parse("a.rs", src, Rust).unwrap(),
++        );
++        let mut inputs = ScopeGraphBuildInputs::from_files_convention(&files);
++        inputs.cfg = RustCrateConfig {
++            crate_roots: files.keys().cloned().collect(),
++            ..RustCrateConfig::default()
++        };
++        CallGraph::build_with_scope_graph_inputs(&files, Some(&inputs))
++    }
++
++    #[test]
++    fn param_bindings_have_distinct_ordinals() {
++        // Inertness pin (parent 48f15d9): `fn f(a, b)` must give the two params
++        // distinct `BindingRef` ordinals 0 and 1 — NOT both 0, which the per-param
++        // `add_locals` call would produce (each 1-element slice re-starts at 0).
++        let cg = build_graph("fn f(a: i32, b: i32) -> i32 { a + b }\n");
++        let graph = cg.scope_graph.as_ref().expect("scope graph");
++
++        let local_ref = |name: &str| {
++            graph.bindings.iter().find_map(|bd| match &bd.target {
++                BindTarget::Resolved(Target::Local(r)) if bd.name == name => Some(r.clone()),
++                _ => None,
++            })
++        };
++        let a = local_ref("a").expect("param `a` local binding");
++        let b = local_ref("b").expect("param `b` local binding");
++        assert_eq!(
++            a.scope, b.scope,
++            "both params bind in the same callable scope"
++        );
++        assert_eq!(a.ordinal, 0, "first param ordinal must be 0");
++        assert_eq!(
++            b.ordinal, 1,
++            "second param ordinal must be 1 (was 0: ordinal breach)"
++        );
++        assert_ne!(
++            a.ordinal, b.ordinal,
++            "params must resolve to distinct BindingRefs"
++        );
++    }
++
++    #[test]
++    fn duplicated_same_rib_local_lookup_is_none() {
++        // Two `let x` in ONE block are a same-rib ambiguity: the visible-binding
++        // lookup must return None (recall-safe), never guess one.
++        let src = "fn f() { let x = 1; let x = 2; let _z = x; }\n";
++        let cg = build_graph(src);
++        let graph = cg.scope_graph.as_ref().expect("scope graph");
++        let file = graph.file_paths["a.rs"];
++        let use_byte = src.rfind("x;").unwrap();
++
++        assert!(
++            lookup_visible_binding(graph, file, use_byte, "x").is_none(),
++            "duplicated same-rib local must be ambiguous → None"
++        );
++    }
+ }
+diff --git a/src/name_resolution/rust_populator/walk/items.rs b/src/name_resolution/rust_populator/walk/items.rs
+index f55a1dd..087daa2 100644
+--- a/src/name_resolution/rust_populator/walk/items.rs
++++ b/src/name_resolution/rust_populator/walk/items.rs
+@@ -14,7 +14,7 @@ use super::super::scopes::{
+     child_of_kind, name_text, parse_cfg_for_item, parse_use, parse_vis, pattern_idents, vis,
+     UseItem,
+ };
+-use super::locals::{add_locals, walk_block_body};
++use super::locals::{add_local_bindings, walk_block_body};
+ use super::{
+     full_file_span, full_scope_span, node_range, resolve_restrict, vis_extent_from, with_node, Ctx,
+     NodeId,
+@@ -357,7 +357,13 @@ fn bind_params(
+         }
+         out
+     });
++    // Attach each parameter's fact by its def-byte, then bind ALL params in ONE
++    // ordered pass so `BindingRef` ordinals stay 0,1,2,… (parent-48f15d9 parity).
++    // A per-param `add_locals` call would restart the ordinal at 0 each time.
++    let mut names = Vec::with_capacity(facts.len());
+     for (name, fact) in facts {
+-        add_locals(b, body_scope, file, body_end, &[name], fact);
++        b.add_local_fact(file, name.1, fact);
++        names.push(name);
+     }
++    add_local_bindings(b, body_scope, file, body_end, &names);
+ }
+diff --git a/src/name_resolution/rust_populator/walk/locals.rs b/src/name_resolution/rust_populator/walk/locals.rs
+index 2905c9d..b1ac112 100644
+--- a/src/name_resolution/rust_populator/walk/locals.rs
++++ b/src/name_resolution/rust_populator/walk/locals.rs
+@@ -346,8 +346,26 @@ pub(in crate::name_resolution::rust_populator::walk) fn add_locals(
+     names: &[(String, usize)],
+     fact: LocalFact,
+ ) {
+-    for (i, (name, def_byte)) in names.iter().enumerate() {
++    for (_name, def_byte) in names {
+         b.add_local_fact(file, *def_byte, fact.clone());
++    }
++    add_local_bindings(b, scope, file, scope_end, names);
++}
++
++/// Add the `Target::Local` bindings (Value ns) only — one per `(name, def_byte)`
++/// with a scope-relative ordinal from the slice index. Split out from
++/// [`add_locals`] so callers with per-binding [`LocalFact`]s (parameters) can
++/// attach facts by def-byte yet still bind every name in ONE ordered pass, so
++/// `BindingRef` ordinals stay `0,1,2,…` (facts are keyed by def-byte, so adding
++/// them first leaves the binding order — and thus every ordinal — unchanged).
++pub(in crate::name_resolution::rust_populator::walk) fn add_local_bindings(
++    b: &mut Builder<'_>,
++    scope: ScopeId,
++    file: FileId,
++    scope_end: usize,
++    names: &[(String, usize)],
++) {
++    for (i, (name, def_byte)) in names.iter().enumerate() {
+         b.add_binding(
+             scope,
+             name.clone(),
+

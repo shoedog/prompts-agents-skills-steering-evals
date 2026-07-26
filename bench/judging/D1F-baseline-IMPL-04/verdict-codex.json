@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": false,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms add tests that would fail on the pre-change code: the parse test would not compile/pass because WorkflowNodeToml had no retry field, and the graph-mapping test would observe WorkflowNode.retry as None. Both assert real behavior for the required path by using RegistryConfig::load_workflows for the mandatory mapping test. Neither arm adds meaningful negative or edge coverage beyond the requested default None for omitted backoff_cap_ms. Arm A's strongest test is workflow_node_retry_maps_into_graph because it exercises the real loader and asserts the resulting RetryPolicy; its weakest is workflow_node_retry_parses because it only verifies TOML deserialization. Arm B's strongest test is also workflow_node_retry_maps_into_graph; its weakest is workflow_node_retry_parses, slightly weaker than A's because it does not assert backoff_cap_ms is None.",
+  "rationale": "Arm B is the better implementation because it completes T3 with the requested config-only changes and mandatory load_workflows mapping test while staying in scope. Arm A also completes the functional task and has marginally stronger parse-test assertion, but it edits crates/bridge-workflow/src/graph.rs even though T3 was explicitly scoped to bin/a2a-bridge/src/config.rs. That extra RetryPolicy change appears behavior-preserving, so it is not a WRONG finding, but it is an out-of-scope SMELL under the task's strict scope discipline. The difference is enough to prefer B materially despite A's tiny test-strength edge."
+ },
+ "tokens_used": 20328
+}

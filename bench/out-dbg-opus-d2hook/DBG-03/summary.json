@@ -1,0 +1,114 @@
+{
+  "id": "DBG-03",
+  "ws": "/private/tmp/dbg-opusd2-ws/DBG-03",
+  "dry_run": false,
+  "model": "claude-opus-4-8",
+  "replay_preface": "Replay note: you are working in /private/tmp/dbg-opusd2-ws/DBG-03 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged.",
+  "run_status": "ok",
+  "subtype": "success",
+  "api_error_status": null,
+  "returncode": 0,
+  "session_id": "322a377b-312b-4cb3-a4f4-cb8820412686",
+  "duration_ms": 683293,
+  "num_turns": 41,
+  "usage": {
+    "input_tokens": 15632,
+    "cache_creation_input_tokens": 195772,
+    "cache_read_input_tokens": 2960246,
+    "output_tokens": 34914,
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 195772,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 245,
+        "cache_read_input_tokens": 118489,
+        "cache_creation_input_tokens": 1531,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1531
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "total_cost_usd": 4.388853,
+  "stop_reason": "end_turn",
+  "is_error": false,
+  "result_text": "Waiter launched \u2014 it will notify me with the summed totals when the suite finishes. Waiting for that event before proceeding to `cargo build`, the eval matrix, VERIFICATION.md, and the commit amend.",
+  "timed_out": false,
+  "parse_error": null,
+  "terminal_reason": "completed",
+  "tests_passed_guess": "pass",
+  "evidence_summary": [
+    {
+      "cmd": "cargo test --lib binding_lookup",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": 1,
+      "matched_tests": 3,
+      "min_tests_satisfied": true
+    },
+    {
+      "cmd": "cargo test",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": 1500,
+      "matched_tests": 2237,
+      "min_tests_satisfied": true
+    },
+    {
+      "cmd": "cargo build",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    }
+  ],
+  "scaffold": {
+    "tracked_scaffold_paths": [
+      ".claude-plugin/marketplace.json",
+      ".claude-plugin/plugin.json",
+      "AGENTS.md",
+      "CLAUDE.md"
+    ],
+    "missing_on_disk_after_checkout": [],
+    "has_CLAUDE_md": true,
+    "has_dot_claude_dir": false,
+    "has_AGENTS_md": true,
+    "agents_md_shimmed": false,
+    "global_hooks_present": true,
+    "shim": {
+      "present": false,
+      "sha256_at_write": null,
+      "sha256_after_run": null,
+      "changed": false
+    },
+    "injected": {
+      "from": "bench/hooks-d1",
+      "files": [
+        ".claude/hooks/verify_gate.sh",
+        ".claude/settings.json"
+      ]
+    }
+  },
+  "shim": {
+    "present": false,
+    "changed": false,
+    "sha256_at_write": null,
+    "sha256_after_run": null
+  },
+  "source_repo_touched": false,
+  "transcript_lookup_note": null,
+  "transcript_path": "bench/out-dbg-opus-d2hook/DBG-03/transcript.jsonl"
+}

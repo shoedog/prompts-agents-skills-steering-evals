@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Both arms' new tests are 4-arg calls that wouldn't compile pre-change, so they trivially 'fail' pre-change; the real bar is whether a plausible wrong reimplementation slips through. Arm A's `commit_precedence_and_comment_only_falls_back_to_title` asserts the FULL tuple (message + CommitSource) across 5 cases: typed-wins, comment-only-typed\u2192absent\u2192Title, none\u2192Title, file>title, and a unique 64KiB-oversize-typed\u2192absent\u2192Title case exercising RR2-FIX-5's new bounding requirement on the typed channel \u2014 untested anywhere in Arm B. Arm B's equivalent test asserts only `.0` (message string) for its 4 cases, never checking CommitSource \u2014 a real gap since CommitSource is the exact mechanism gating the warning re-spec; a bug returning the right string but wrong source would pass B's suite but fail A's. B does add one good touch: its updated `commit_message_file_else_fallback` uses a non-empty 'ignored title' to prove File beats a real Title (A used an empty title in that slot, only proving File beats Derived). Strongest: A's precedence test (oversize + full-tuple checks); B's file-beats-real-title assertion. Weakest: A's blank-file assertion checks only `.1` not the message; B's entire new precedence test checks only `.0` and never the source \u2014 the larger gap of the two.",
+  "rationale": "Both correctly implement typed>file>title>derived precedence, HTML-comment stripping, NUL-stripping, and the CommitSource-gated warning identically at both call sites (main.rs, merge.rs) per spec. Arm A is more scope-disciplined: it recomputes a (String,bool) before calling decide(), leaving decide()'s signature and its test untouched; Arm B instead generalizes decide<S> to take CommitSource directly \u2014 an unrequested design change outside the task's stated ripple (main.rs/merge.rs/tests/warning) that also forced editing decide_matrix. Arm A's tests are also stronger: its new precedence test asserts the full (message, CommitSource) tuple across 5 cases including a 64KiB oversize-typed test unique to A, while Arm B's equivalent test never asserts CommitSource at all, missing coverage of the exact enum this task introduces. Both share an untested design ambiguity (bound-check before vs after comment-stripping). Net: Arm A is both more minimal in scope and more rigorously tested."
+ },
+ "cost_usd": 0.5526147
+}

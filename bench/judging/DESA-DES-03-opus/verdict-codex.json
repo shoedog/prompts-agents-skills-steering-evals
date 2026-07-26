@@ -1,0 +1,11 @@
+{
+ "verdict": {
+  "recommendation_matches_vindicated": true,
+  "load_bearing_caveats_matched": true,
+  "scope_calibrated": true,
+  "would_have_prevented_wasted_work": true,
+  "probe_answer": "The memo matches the settled outcome: it recommends the import-binding/path-narrowing rung for bare calls after local resolution and before FreeMulti, Exact only when resolution narrows to one candidate. It also explicitly rejects same-directory/same-package Exact as unsound for Python because co-location is not scope. The only mild mismatch is sizing/coverage confidence: it describes Py/JS/TS intent and a small implementation, while the landed history needed Python-only hardening, but the memo's core shape and fail-open caveats were the vindicated design.",
+  "rationale": "Full credit. The memo would have steered the team away from the naive Go-style same-directory preference and toward the import-qualified narrowing that landed, including the decisive guards: use import bindings, resolve paths, fall through on miss/external/multiple candidates, and avoid raising multi-target Exact canaries."
+ },
+ "tokens_used": 17301
+}

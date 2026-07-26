@@ -1,0 +1,48 @@
+# DRAFT v0 seed (2026-07-25) — not execution-verified.
+seeded: true
+defects:
+- id: mc-03-d1
+  defect_class: unrunnable handoff claim (documented next step rejected by the flag-acceptance guard)
+  location: 'docs/RESUME-g4c.md next-step command vs src/main.rs acceptance guard'
+  hunk_lines: the RESUME "backfill audit-canonical --spinoff-binding ..." line vs the
+    `!matches!(cmd.as_str(), "load-canonical" | "adjudicate-canonical")` guard hunk
+  description: 'The handoff doc added by this diff instructs the next session to run `backfill
+    audit-canonical --spinoff-binding out/rev9-bindings.json` as a "runnable now" step. The acceptance
+    guard added in the same diff enumerates the accepting subcommands as exactly load-canonical and
+    adjudicate-canonical; audit-canonical is not in the list, so the documented command exits at parse
+    time with "--spinoff-binding is accepted only by load-canonical and adjudicate-canonical".'
+  root_cause: the handoff was written from the intent (replay rev 9 with its frozen inputs) without
+    checking the accept-list the same diff introduces; the binding is an input to the load, and the
+    audit path never loads.
+  bad_behavior: 'the next session starts by running the handoff step verbatim and gets a config error;
+    if the claim is relayed without being traced, it survives until someone finally reads the guard.'
+  minimal_trigger: 'run the documented command: the guard fires before any work happens, because
+    cmd == "audit-canonical" fails the matches! accept-list while spinoff_binding.is_some().'
+  acceptable_match: any finding that audit-canonical rejects --spinoff-binding (the accept-list guard
+    excludes it), so the RESUME next step is not runnable as written. CITATION REQUIRED — the finding
+    must point at the implementing guard line(s) in src/main.rs (the matches! accept-list or the
+    returned Config error), not only at the RESUME doc line.
+  reject_if: a finding that says the doc "may be stale" or "should be double-checked" without naming
+    the accept-list; a finding claiming --spinoff-binding does not exist at all (it exists for the two
+    load-path subcommands); or a finding citing only docs/RESUME-g4c.md with no reference to the
+    implementing guard in src/main.rs.
+neutral_findings:
+- the guard's error message does not name the offending subcommand the user actually typed; a minor
+  usability gap in the new code, not the seeded unrunnable-handoff defect.
+- audit_canonical() takes no binding parameter, so supporting the documented replay would need a code
+  change, not just a doc fix; true consequence, same underlying defect only if the accept-list is named.
+provenance:
+  incident: 'fb80415b L334 (stockTrading orchestrator, 2026-07-25): "The handoff''s next step is not
+    runnable, and I repeated that claim to you earlier — it''s wrong." main.rs:374-379 accepted
+    --spinoff-binding only for load-canonical / adjudicate-canonical-g4c; audit-canonical-g4c-v2
+    rejected it; load_backend.rs hardcoded &[] bindings on the audit path. Survived ~35 min until an
+    expensive Sol review caught it. Forensics mode 9 exemplar.'
+  repo_ref: 'stockTrading crates/tools/historical-backfill/src/main.rs — the --spinoff-binding
+    accept-list matches! guard; crates/tools/historical-backfill/src/canonical/load_backend.rs —
+    audit-path binding wiring (symbols, not copied code; the real accept-list has since gained
+    audit-canonical-g4c-v2, which is the fix direction)'
+  detector_rows: 'mining/out/failure_signatures.jsonl session fb80415b (user_correction/pipe rows);
+    the L334 admission is quoted in the forensics report section 1, mode 9'
+rubric_emphasis: 'claim-has-citation AND citation-correct, absence-claim flavor — the accepting
+  subcommands are ENUMERATED by the guard; credit requires citing that enumeration, not asserting
+  absence from memory of the doc.'

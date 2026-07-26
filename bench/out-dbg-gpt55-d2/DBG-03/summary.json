@@ -1,0 +1,80 @@
+{
+  "id": "DBG-03",
+  "ws": "/private/tmp/dbg-g5d2-ws/DBG-03",
+  "dry_run": false,
+  "model": "claude-fable-5",
+  "replay_preface": "Replay note: you are working in /private/tmp/dbg-g5d2-ws/DBG-03 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged.",
+  "run_status": "ok",
+  "subtype": "success",
+  "api_error_status": null,
+  "returncode": 0,
+  "session_id": null,
+  "duration_ms": 642281,
+  "num_turns": null,
+  "usage": {
+    "tokens_used": 155413
+  },
+  "total_cost_usd": null,
+  "stop_reason": null,
+  "is_error": false,
+  "result_text": "STATUS: DONE\n\nImplemented the inertness fix and amended `f89dd5c` to new SHA `17aa46cd5ed484092b642dfd52a692bb97460233`.\n\nWhat changed:\n- Restored function params to one ordered `add_locals` pass, so `BindingRef.ordinal` stays `0,1,2,...`.\n- Kept `local_facts` attached by `(file, def_byte)` per binding.\n- Verified other let/pattern call sites were still single ordered passes; no extra ordinal fix needed there.\n- Added regressions for param ordinal preservation and duplicate same-rib lookup returning `None`.\n\nFiles changed by this fix:\n- `src/name_resolution/rust_populator/walk/items.rs`\n- `src/name_resolution/rust_populator/walk/locals.rs`\n- `src/name_resolution/binding_lookup.rs`\n- `tests/name_resolution/rust_populate_test.rs`\n\nVerification:\n- Pre-fix ordinal regression failed as expected: second param resolved with ordinal `0`, expected `1`.\n- `cargo test --lib`: 273 passed / 0 failed.\n- `cargo test --test name_resolution`: 92 passed / 0 failed.\n- Full `cargo test`: 2,237 passed / 0 failed / 1 ignored.\n- `cargo fmt` and `cargo fmt --check`: passed.\n- `cargo clippy --all-targets`: exited 0; existing warnings remain outside touched files, none in touched files.\n- `cargo build`: passed.\n- `cargo build --release`: passed.\n- `cd eval && uv run tier-a --matrix-only --allow-stale-sut`: passed, 0 regressions.\n- `git diff --check`: clean.\n- Working tree: clean.\n\nSelf-review:\n- Recall safety preserved: duplicate same-rib locals return `None`, not an arbitrary binding.\n- Inertness restored: params now use the same full-slice ordinal enumeration shape as parent `48f15d9`; let/pattern sites already retained that shape.\n- No file split. No untracked eval/snapshot artifacts touched.\n- Did not run `cargo build --features mcp`; this fix does not touch build/cache-related code.",
+  "timed_out": false,
+  "parse_error": null,
+  "terminal_reason": null,
+  "tests_passed_guess": "pass",
+  "evidence_summary": [
+    {
+      "cmd": "cargo test --lib binding_lookup",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": 1,
+      "matched_tests": 2,
+      "min_tests_satisfied": true
+    },
+    {
+      "cmd": "cargo test",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": 1500,
+      "matched_tests": 2237,
+      "min_tests_satisfied": true
+    },
+    {
+      "cmd": "cargo build",
+      "returncode": 0,
+      "timed_out": false,
+      "expect_min_tests": null,
+      "matched_tests": null,
+      "min_tests_satisfied": null
+    }
+  ],
+  "scaffold": {
+    "tracked_scaffold_paths": [
+      ".claude-plugin/marketplace.json",
+      ".claude-plugin/plugin.json",
+      "AGENTS.md",
+      "CLAUDE.md"
+    ],
+    "missing_on_disk_after_checkout": [],
+    "has_CLAUDE_md": true,
+    "has_dot_claude_dir": false,
+    "has_AGENTS_md": true,
+    "agents_md_shimmed": false,
+    "global_hooks_present": true,
+    "shim": {
+      "present": false,
+      "sha256_at_write": null,
+      "sha256_after_run": null,
+      "changed": false
+    }
+  },
+  "shim": {
+    "present": false,
+    "changed": false,
+    "sha256_at_write": null,
+    "sha256_after_run": null
+  },
+  "source_repo_touched": false,
+  "transcript_lookup_note": "matched codex rollout by cwd (1 candidate(s))",
+  "transcript_path": "bench/out-dbg-gpt55-d2/DBG-03/transcript.jsonl"
+}

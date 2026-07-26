@@ -1,0 +1,36 @@
+{
+  "harness": {
+    "executor": "codex",
+    "effort": "high",
+    "cwd": "/private/tmp/dbg-g5-ws/DBG-02",
+    "argv": [
+      "/opt/homebrew/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "-o",
+      "/private/tmp/dbg-g5-ws/DBG-02/.codex-final-message.md",
+      "-"
+    ],
+    "started_at": "2026-07-05T05:08:33+00:00",
+    "returncode": 0,
+    "timed_out": false,
+    "timeout_sec": 4500,
+    "stderr_tail": "         && candidate.confidence == ResolutionConfidence::Exact)\n+    }));\n+}\n+\n+#[test]\n+fn test_python_nested_class_body_assignment_does_not_recover_outer_local() {\n+    let cg = graph(&[(\n+        \"svc.py\",\n+        \"class Foo:\\n    def m(self):\\n        pass\\ndef run():\\n    class C:\\n        x = Foo()\\n    x.m()\\n\",\n+    )]);\n+    let s = site(&cg, \"run\", \"m\");\n+\n+    assert_eq!(s.receiver_type, None);\n+    assert!(cg.resolve_call_site(&s).iter().all(|candidate| {\n+        candidate.kind != ResolutionKind::ConstructorLocal\n+            && candidate.kind != ResolutionKind::TypedParam\n+    }));\n+}\n+\n+#[test]\n+fn test_python_same_line_after_call_assignment_does_not_recover() {\n+    let cg = graph(&[(\n+        \"svc.py\",\n+        \"class Foo:\\n    def m(self):\\n        pass\\ndef run():\\n    x.m(); x = Foo()\\n\",\n+    )]);\n+    let s = site(&cg, \"run\", \"m\");\n+\n+    assert_eq!(s.receiver_type, None);\n+    assert!(cg.resolve_call_site(&s).iter().all(|candidate| {\n+        candidate.kind != ResolutionKind::ConstructorLocal\n+            && candidate.kind != ResolutionKind::TypedParam\n+    }));\n+}\ndiff --git a/tests/lang/typescript/typed_receiver_test.rs b/tests/lang/typescript/typed_receiver_test.rs\nindex 77b4b719a5810db98879fbf30b7f468dcd5d75e0..9a11ac00c07829a3a751ce3de9f0ce0702c8b390\n--- a/tests/lang/typescript/typed_receiver_test.rs\n+++ b/tests/lang/typescript/typed_receiver_test.rs\n@@ -5,10 +5,19 @@\n use std::collections::BTreeMap;\n \n fn graph(src: &str) -> CallGraph {\n-    let files = BTreeMap::from([(\n-        \"svc.ts\".to_string(),\n-        ParsedFile::parse(\"svc.ts\", src, Language::TypeScript).expect(\"parse ts\"),\n-    )]);\n+    graph_files(&[(\"svc.ts\", src)])\n+}\n+\n+fn graph_files(srcs: &[(&str, &str)]) -> CallGraph {\n+    let files: BTreeMap<_, _> = srcs\n+        .iter()\n+        .map(|(path, src)| {\n+            (\n+                (*path).to_string(),\n+                ParsedFile::parse(path, src, Language::TypeScript).expect(\"parse ts\"),\n+            )\n+        })\n+        .collect();\n     CallGraph::build(&files)\n }\n \n@@ -53,3 +62,23 @@\n     assert_eq!(s.receiver_type, None);\n     assert!(cg.resolve_call_site(&s).is_empty());\n }\n+\n+#[test]\n+fn test_typescript_import_poisoned_typed_param_suppresses_import_qualified() {\n+    let cg = graph_files(&[\n+        (\n+            \"svc.ts\",\n+            \"import api from './api';\\nclass Foo { m() {} }\\nfunction run(api: Foo) { api.m(); }\\n\",\n+        ),\n+        (\"api.ts\", \"export function m() {}\\n\"),\n+    ]);\n+    let s = site(&cg, \"run\", \"m\");\n+    assert_eq!(s.receiver_type.as_deref(), Some(\"Foo\"));\n+\n+    let resolved = cg.resolve_call_site(&s);\n+    assert!(resolved.iter().all(|candidate| {\n+        candidate.kind != ResolutionKind::ImportQualified\n+    }));\n+    assert_eq!(resolved.len(), 1);\n+    assert_eq!(resolved[0].kind, ResolutionKind::TypedParam);\n+}\ndiff --git a/tests/name_resolution/consumer_test.rs b/tests/name_resolution/consumer_test.rs\nindex 7cff2c3f54d559f3e603c3d04ae8d477b437039e..dfc8a6dd210740cb3c1448b2d8cedb703613d821\n--- a/tests/name_resolution/consumer_test.rs\n+++ b/tests/name_resolution/consumer_test.rs\n@@ -103,6 +103,7 @@\n         qualifier: None,\n         receiver_type: None,\n         receiver_recovery: None,\n+        receiver_materialized: false,\n         arg_count: None,\n         arg_spread: false,\n         receiver_outcome: None,\ndiff --git a/tests/navigation/scoped_calls_test.rs b/tests/navigation/scoped_calls_test.rs\nindex eb133c15a7e7765c7eb1cd9954157e5f9c19bfeb..0af274941d5451403ae988fc91b4990f5b0a814e\n--- a/tests/navigation/scoped_calls_test.rs\n+++ b/tests/navigation/scoped_calls_test.rs\n@@ -56,6 +56,7 @@\n                 qualifier: qualifier.map(str::to_string),\n                 receiver_type: None,\n                 receiver_recovery: None,\n+                receiver_materialized: false,\n                 arg_count: None,\n                 arg_spread: false,\n                 receiver_outcome: None,\n\nhook: Stop\nhook: Stop Completed\ntokens used\n508,117\n"
+  },
+  "cli_result": {
+    "subtype": "success",
+    "is_error": false,
+    "num_turns": null,
+    "usage": {
+      "tokens_used": 508117
+    },
+    "total_cost_usd": null,
+    "result": "Added [VERIFICATION.md](/private/tmp/dbg-g5-ws/DBG-02/VERIFICATION.md) with the required command list, pass totals, verified behaviors, and not-verified items.\n\nCurrent status includes the implementation/test changes plus the new verification file. The full suites were already run from the final code state before adding this doc-only file:\n`cargo test` passed with 2,491 listed tests; `cargo test --features mcp` passed with 2,584 listed tests. Tier-A quick exited `2` with `baseline_invalid: true` and `sut_error_rate: 0.0`, recorded as the known harness/oracle condition.",
+    "session_id": null,
+    "duration_ms": 1097551
+  },
+  "replay_preface": "Replay note: you are working in /private/tmp/dbg-g5-ws/DBG-02 (an isolated clone). Treat this directory as the repository root; ignore any absolute paths or branch names mentioned below \u2014 the task content is otherwise unchanged."
+}

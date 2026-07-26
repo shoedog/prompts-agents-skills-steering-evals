@@ -1,0 +1,231 @@
+POST-RUN evidence (workspace after the Fable session)
+=====================================================
+
+$ cargo test -p bridge-acp watchdog_cancels_a_hung_turn_as_timed_out
+  # named test 1/3
+  # expect_min_tests=1 matched_tests=1 min_tests_satisfied=True
+  [exit 0, 2.027s]
+  --- stdout (tail) ---
+  
+  running 1 test
+  test acp_backend::tests::watchdog_cancels_a_hung_turn_as_timed_out ... ok
+  
+  test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 107 filtered out; finished in 0.11s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+  
+  --- stderr (tail) ---
+     Compiling bridge-acp v0.1.0 (/private/tmp/sonnet-base-ws/IMPL-01/crates/bridge-acp)
+      Finished `test` profile [unoptimized + debuginfo] target(s) in 1.43s
+       Running unittests src/lib.rs (target/debug/deps/bridge_acp-a037f20744f180f5)
+       Running tests/corpus_replay.rs (target/debug/deps/corpus_replay-989699fdb735df47)
+       Running tests/golden_frames.rs (target/debug/deps/golden_frames-bd9602494875037a)
+
+$ cargo test -p bridge-acp watchdog_does_not_trip_active_or_unmodeled_turn
+  # named test 2/3
+  # expect_min_tests=1 matched_tests=1 min_tests_satisfied=True
+  [exit 0, 0.257s]
+  --- stdout (tail) ---
+  
+  running 1 test
+  test acp_backend::tests::watchdog_does_not_trip_active_or_unmodeled_turn ... ok
+  
+  test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 107 filtered out; finished in 0.16s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+  
+  --- stderr (tail) ---
+      Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+       Running unittests src/lib.rs (target/debug/deps/bridge_acp-a037f20744f180f5)
+       Running tests/corpus_replay.rs (target/debug/deps/corpus_replay-989699fdb735df47)
+       Running tests/golden_frames.rs (target/debug/deps/golden_frames-bd9602494875037a)
+
+$ cargo test -p bridge-acp no_watchdog_config_is_byte_identical
+  # named test 3/3 — the disabled-path byte-identical golden oracle
+  # expect_min_tests=1 matched_tests=1 min_tests_satisfied=True
+  [exit 0, 0.401s]
+  --- stdout (tail) ---
+  
+  running 1 test
+  test acp_backend::tests::no_watchdog_config_is_byte_identical ... ok
+  
+  test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 107 filtered out; finished in 0.30s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+  
+  --- stderr (tail) ---
+      Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+       Running unittests src/lib.rs (target/debug/deps/bridge_acp-a037f20744f180f5)
+       Running tests/corpus_replay.rs (target/debug/deps/corpus_replay-989699fdb735df47)
+       Running tests/golden_frames.rs (target/debug/deps/golden_frames-bd9602494875037a)
+
+$ cargo test -p bridge-acp
+  # full bridge-acp crate suite (all existing turn/cancel tests must stay green alongside the 3 new ones)
+  [exit 0, 0.494s]
+  --- stdout (tail) ---
+  test framing::tests::non_json_line_is_frame_error ... ok
+  test framing::tests::parses_message_split_across_two_reads ... ok
+  test framing::tests::read_error_is_frame_error ... ok
+  test model_effort::tests::advertised_model_is_applied ... ok
+  test framing::tests::truncated_frame_at_eof_is_frame_error ... ok
+  test acp_backend::tests::set_mode_bad_id_is_hard_error_and_leaves_cell_uninitialized ... ok
+  test model_effort::tests::alias_target_not_advertised_errs ... ok
+  test model_effort::tests::codex_base_id_is_valid ... ok
+  test model_effort::tests::caps_from_config_options_maps_all_three ... ok
+  test model_effort::tests::effort_level_name_maps_max_to_max ... ok
+  test model_effort::tests::effort_opt_reads_thought_level_and_filters_default ... ok
+  test acp_backend::tests::usage_update_reaches_prompt_stream ... ok
+  test model_effort::tests::fable_alias_maps_to_1m ... ok
+  test model_effort::tests::high_effort_applies_when_advertised ... ok
+  test model_effort::tests::max_effort_applies_when_advertised ... ok
+  test model_effort::tests::max_effort_falls_back_to_xhigh_for_codex_levels ... ok
+  test model_effort::tests::mode_values_reads_mode_select ... ok
+  test model_effort::tests::model_state_values_lists_available_model_ids ... ok
+  test model_effort::tests::model_values_falls_back_to_id_for_missing_category ... ok
+  test model_effort::tests::model_values_falls_back_to_id_for_other_category ... ok
+  test model_effort::tests::model_values_flattens_grouped_model_option ... ok
+  test model_effort::tests::model_values_reads_ungrouped_model_option ... ok
+  test model_effort::tests::models_surface_id_is_applied ... ok
+  test model_effort::tests::non_matching_option_is_not_model_values ... ok
+  test model_effort::tests::none_effort_skips ... ok
+  test model_effort::tests::none_model_uses_default ... ok
+  test model_effort::tests::opus_alias_maps_to_default ... ok
+  test model_effort::tests::raw_advertised_id_preferred_over_alias ... ok
+  test model_effort::tests::resolved_log_line_uses_resolved_values ... ok
+  test model_effort::tests::typo_errs_with_valid_list ... ok
+  test model_effort::tests::unadvertised_models_surface_id_errs_with_valid_list ... ok
+  test model_effort::tests::unsupported_effort_error_matches_message_or_data ... ok
+  test model_effort::tests::xhigh_falls_back_to_high_when_high_is_best_available ... ok
+  test replay::tests::malformed_frame_yields_frame_error ... ok
+  test replay::tests::streams_text_then_done_from_raw_ndjson ... ok
+  test replay::tests::permission_update_maps_to_permission ... ok
+  test replay::tests::unknown_json_frame_is_skipped ... ok
+  test acp_backend::tests::spawn_handshake_failure_reaps_the_container ... ok
+  test acp_backend::tests::watchdog_cancels_a_hung_turn_as_timed_out ... ok
+  test acp_backend::tests::cancel_hung_agent_is_terminated_within_grace ... ok
+  test acp_backend::tests::watchdog_does_not_trip_active_or_unmodeled_turn ... ok
+  test acp_backend::tests::authenticate_hang_is_bounded ... ok
+  test acp_backend::tests::connect_times_out_when_agent_opens_but_never_answers_initialize ... ok
+  test acp_backend::tests::handshake_timeout_surfaces_clear_error ... ok
+  test acp_backend::tests::retire_is_idempotent ... ok
+  test acp_backend::tests::second_prompt_on_active_session_serializes ... ok
+  test acp_backend::tests::spawn_holds_child_alive_after_returning ... ok
+  test acp_backend::tests::no_watchdog_config_is_byte_identical ... ok
+  
+  test result: ok. 108 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+  
+  
+  running 7 tests
+  test gemini_real_capture_replays_through_backend ... ok
+  test kiro_real_capture_replays_through_backend ... ok
+  test usage_update_is_modeled_and_surfaced_not_a_minus_32602 ... ok
+  test codex_real_capture_replays_pong_and_drops_unmodeled ... ok
+  test gemini_available_commands_update_is_modeled_not_parse_error ... ok
+  test claude_agent_acp_real_capture_replays_through_backend ... ok
+  test real_capture_corpus_present ... ok
+  
+  test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+  
+  
+  running 7 tests
+  test initialize_request_is_wire_conformant ... ok
+  test new_session_request_params_are_wire_conformant ... ok
+  test set_config_option_request_is_wire_conformant ... ok
+  test cancel_notification_is_a_wire_conformant_notification ... ok
+  test set_mode_request_is_wire_conformant ... ok
+  test prompt_request_params_are_wire_conformant ... ok
+  test new_session_request_includes_substituted_mcp_servers ... ok
+  
+  test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+  
+  --- stderr (tail) ---
+      Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+       Running unittests src/lib.rs (target/debug/deps/bridge_acp-a037f20744f180f5)
+       Running tests/corpus_replay.rs (target/debug/deps/corpus_replay-989699fdb735df47)
+       Running tests/golden_frames.rs (target/debug/deps/golden_frames-bd9602494875037a)
+     Doc-tests bridge_acp
+
+$ cargo test --workspace --no-run
+  # workspace-wide compile check — the AgentEntry/AcpConfig/ContainerRwConfig literal ripple (~31 struct literals) means a missed site is a compile error here
+  [exit 0, 0.191s]
+  --- stderr (tail) ---
+      Blocking waiting for file lock on package cache
+      Blocking waiting for file lock on package cache
+      Blocking waiting for file lock on package cache
+      Finished `test` profile [unoptimized + debuginfo] target(s) in 0.16s
+    Executable unittests src/main.rs (target/debug/deps/a2a_bridge-eb0076f40e84212a)
+    Executable tests/e2e_acp_codex.rs (target/debug/deps/e2e_acp_codex-96b4f2bd2f5c3d4c)
+    Executable tests/e2e_acp_kiro.rs (target/debug/deps/e2e_acp_kiro-08341c925aa72c88)
+    Executable tests/e2e_delegate_bridge.rs (target/debug/deps/e2e_delegate_bridge-f49ebb575ed2e949)
+    Executable tests/e2e_fanout_bridge.rs (target/debug/deps/e2e_fanout_bridge-06b5c97ec7ff3149)
+    Executable tests/e2e_kiro.rs (target/debug/deps/e2e_kiro-82e1dd86e985132b)
+    Executable tests/e2e_registry.rs (target/debug/deps/e2e_registry-b0884f37dc3eb6c4)
+    Executable tests/integration_delegate.rs (target/debug/deps/integration_delegate-03a3fac1f365afce)
+    Executable tests/integration_fanout.rs (target/debug/deps/integration_fanout-2c81f392f61e29e5)
+    Executable tests/integration_inbound_kiro.rs (target/debug/deps/integration_inbound_kiro-45c9af045f4202be)
+    Executable tests/integration_run_workflow.rs (target/debug/deps/integration_run_workflow-f1033d9b78b8f478)
+    Executable unittests src/lib.rs (target/debug/deps/bridge_a2a_inbound-2db7cd1a0065311c)
+    Executable tests/workflow_producer.rs (target/debug/deps/workflow_producer-cc888d3d1255491b)
+    Executable unittests src/lib.rs (target/debug/deps/bridge_a2a_outbound-d60abc3f0ebcc1fe)
+    Executable unittests src/lib.rs (target/debug/deps/bridge_acp-758070898f8b8c4b)
+    Executable tests/corpus_replay.rs (target/debug/deps/corpus_replay-19e97bf09b464312)
+    Executable tests/golden_frames.rs (target/debug/deps/golden_frames-a9871046676a6cc8)
+    Executable unittests src/lib.rs (target/debug/deps/bridge_api-493eea86210ad795)
+    Executable tests/corpus_replay.rs (target/debug/deps/corpus_replay-bc0d2d78ca8f43ea)
+    Executable tests/deny_through_translator.rs (target/debug/deps/deny_through_translator-cdaf2e22a099aedb)
+    Executable tests/live_ollama.rs (target/debug/deps/live_ollama-f12c430ed9e026f3)
+    Executable tests/wiremock_turns.rs (target/debug/deps/wiremock_turns-e267a7054587f28b)
+    Executable unittests src/lib.rs (target/debug/deps/bridge_container-d745dbab68753249)
+    Executable unittests src/lib.rs (target/debug/deps/bridge_core-afa934b3288e1ef6)
+    Executable tests/compile_fail.rs (target/debug/deps/compile_fail-cd9e8ccc8b332b55)
+    Executable unittests src/lib.rs (target/debug/deps/bridge_observ-b90276162827038b)
+    Executable unittests src/lib.rs (target/debug/deps/bridge_policy-08f798c99cf7af34)
+    Executable unittests src/lib.rs (target/debug/deps/bridge_registry-cf12ce26f7837a22)
+    Executable unittests src/lib.rs (target/debug/deps/bridge_store-28cf68275e21d2d1)
+    Executable unittests src/lib.rs (target/debug/deps/bridge_workflow-5cdf1b98edeac9ec)
+    Executable unittests src/lib.rs (target/debug/deps/lsp_mcp-838ce99011fc518c)
+    Executable unittests src/main.rs (target/debug/deps/lsp_mcp-1c156b4507f8e416)
+    Executable tests/characterization.rs (target/debug/deps/characterization-3a28ef6398b354e0)
+    Executable tests/go_nav.rs (target/debug/deps/go_nav-bcf9884fec2c0fc4)
+    Executable tests/integration.rs (target/debug/deps/integration-bd01d98cf2521c93)
+    Executable tests/lang_detect.rs (target/debug/deps/lang_detect-cfb302276cac821f)
+    Executable tests/python_nav.rs (target/debug/deps/python_nav-52021e93cb8bbefa)
+
+$ cargo fmt --all --check
+  # formatting gate
+  [exit 0, 0.337s]
+
+$ cargo clippy -p bridge-acp --all-targets -- -D warnings
+  # clippy gate scoped to the touched crate, per the task prompt
+  [exit 0, 0.155s]
+  --- stderr (tail) ---
+      Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.09s

@@ -1,0 +1,16 @@
+# source_repo: /Users/wesleyjinks/code/slicing
+# before: git -C <source_repo> status --porcelain
+?? .superpowers/
+?? docs/eval/tier-a/2026-07-04-prism.json
+?? docs/eval/tier-a/2026-07-04-prism.md
+?? eval/snapshots/prism-fb81481dafa7.json
+
+# before_returncode: 0
+
+# after: git -C <source_repo> status --porcelain
+?? .superpowers/
+?? docs/eval/tier-a/2026-07-04-prism.json
+?? docs/eval/tier-a/2026-07-04-prism.md
+?? eval/snapshots/prism-fb81481dafa7.json
+
+# after_returncode: 0

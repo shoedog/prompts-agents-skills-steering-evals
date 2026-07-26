@@ -1,0 +1,38 @@
+{
+ "type": "object",
+ "additionalProperties": false,
+ "properties": {
+  "recommendation_matches_vindicated": {
+   "type": "boolean"
+  },
+  "guarded_fallthrough_shape": {
+   "type": "boolean"
+  },
+  "buy_sized_realistically": {
+   "type": "boolean"
+  },
+  "js_ts_scope_correct": {
+   "type": "boolean"
+  },
+  "would_have_prevented_wasted_work": {
+   "type": "boolean"
+  },
+  "probe_answer": {
+   "type": "string",
+   "maxLength": 1200
+  },
+  "rationale": {
+   "type": "string",
+   "maxLength": 800
+  }
+ },
+ "required": [
+  "recommendation_matches_vindicated",
+  "guarded_fallthrough_shape",
+  "buy_sized_realistically",
+  "js_ts_scope_correct",
+  "would_have_prevented_wasted_work",
+  "probe_answer",
+  "rationale"
+ ]
+}

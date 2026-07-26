@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": false,
+  "arm_a_scope_ok": false,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": true,
+  "b_materially_better": false,
+  "probe_answer": "Arm A: its tests would fail on pre-change code via the new 4-arg signature and the title/comment-only expectations. Strongest test is commit_precedence_and_comment_only_falls_back_to_title, especially comment-only typed -> Title. Weakest is the retained long derived fallback assertion: it mostly preserves old behavior and does not test the new 64 KiB candidate bound, NUL stripping, or source enum. Arm B: its tests would also fail on pre-change code and cover more edge paths. Strongest test is commit_candidate_bounded_to_64kib_not_rejected because it exercises the new candidate-bounding path. Weakest is commit_candidate_nul_bytes_stripped_not_rejected: it proves embedded NUL removal but misses the whitespace-after-NUL case that Arm B actually mishandles; the bound test also uses ASCII only, so it misses char-count vs byte-count overflow.",
+  "rationale": "Arm A implements the requested precedence, CommitSource return, main/merge call-site wiring, Derived-only warning, and required tests. [SMELL] It changes decide's tuple type and edits tweak.rs even though the task explicitly said tweak.rs is not a commit_message caller and should be left alone; I do not see a concrete behavior failure, but it is unnecessary scope expansion. Arm B stays better scoped and has stronger tests, but has concrete correctness bugs. [WRONG] clean_commit_candidate bounds by chars, not bytes: U+00E9 repeated 65,536 times can return about 128 KiB, violating the 64 KiB bound. [WRONG] trimming before NUL-strip without re-trimming lets typed Some(\"\\0   \\0\") resolve as a whitespace Typed message instead of falling back to Title/Derived. [SMELL] Arm B also keeps the old (\u6731"
+ },
+ "tokens_used": 52851
+}

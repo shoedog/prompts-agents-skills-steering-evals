@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": false,
+  "arm_b_complete": false,
+  "arm_a_scope_ok": false,
+  "arm_b_scope_ok": false,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Both arms remove the per-param ordinal collision at the implementation root by splitting fact recording from a single ordered binding pass, so the main inertness repair is present in both. Arm B adds a dedicated scope-graph ordinal regression in the existing rust population test target that would fail on the buggy per-param code, plus a non-vacuous duplicate-same-rib lookup test. Arm A's ordinal test would also catch the bug, but its duplicate lookup test appears to pick the byte of `x;` inside `let _z = x;`, i.e. after the use identifier, so it is more fragile and may pass for the wrong reason. Neither arm shows verification of other split binding sites or an amended commit, and both expand `add_locals` with a new helper beyond params, but Arm B is the materially stronger, more targeted result.",
+  "rationale": "WRONG: Arm A's duplicate-same-rib test uses `src.rfind(\"x;\")`, which points at the semicolon-ending substring after the use, not the use identifier's start byte. If visibility extents are half-open or lookup expects the identifier byte, this can be an off-by-one/vacuous assertion rather than the requested lookup-at-use regression. SMELL: Arm A puts the ordinal inertness regression in `binding_lookup.rs` using the full CallGraph path; it still likely fails on the buggy code, but it is less directly tied to rust population/Phase-1 scope-graph serialization than Arm B's `populate_rust` test. SMELL: Neither arm demonstrates checking all other `add_locals` call sites against parent `48f15d9`; from the diff both only repair params and refactor the helper. If a let/pattern split also existed, the"
+ },
+ "tokens_used": 7656
+}

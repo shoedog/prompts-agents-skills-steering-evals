@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": true,
+  "tests_b_stronger": false,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A: yes, all 9 methods are implemented and claim is transactional under the mutex with BEGIN IMMEDIATE, but it inserts rec.status instead of forcing the new child to working. Arm B: yes, all 9 methods are implemented and claim is transactional under BEGIN IMMEDIATE with commit/rollback, so there is no TOCTOU.",
+  "rationale": "Both arms are scoped correctly and cover the required migration, batch table, task batch_id/item_id persistence, and 9 SqliteStore methods. Arm A's tests are stronger because they also exercise CAS/fail/list/active behavior and task metadata round-trip. However, Arm B is materially better on implementation correctness: the spec requires claim_batch_child to insert a newly claimed child with status='working', while Arm A uses the caller-provided rec.status. That is a semantic hole a reviewer should require Arm A to adopt."
+ },
+ "tokens_used": 31967
+}

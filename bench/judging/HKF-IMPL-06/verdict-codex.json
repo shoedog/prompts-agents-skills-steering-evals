@@ -1,0 +1,15 @@
+{
+ "verdict": {
+  "arm_a_complete": true,
+  "arm_b_complete": true,
+  "arm_a_scope_ok": true,
+  "arm_b_scope_ok": true,
+  "tests_a_stronger": false,
+  "tests_b_stronger": true,
+  "a_materially_better": false,
+  "b_materially_better": true,
+  "probe_answer": "Arm A: the new rich tests would fail on pre-change code because `rich_snapshot_frames` did not exist, and would fail a node-only stub because they expect rich tags and patched status. They assert real fold behavior, especially `rich_snapshot_folds_toolcall_interleaved`, which is the strongest because it checks order and the completed status payload. Weakest is the unchanged S6 no-rich golden, since it is important for regression but would pass pre-change; weakest new test is the combined plan/orphan/cursor test because the orphan branch is only tag-checked. Arm B: the direct rich tests would fail pre-change, and the terminal/working subscribe tests would fail behaviorally on pre-change code because the old call sites dropped rich frames. It covers more negative/edge paths: orphan update, latest-plan-only, cursor filtering, base-only fold, and both reattach sites. Strongest is `subscribe_working_snapshot_includes_rich_toolcall_frame` because it exercises the working reattach call site plus snapshot sentinel/live-tail behavior. Weakest is `rich_snapshot_folds_toolcall_interleaved`, which checks seq/tag but not that the ToolCallUpdate actually patched the status payload.",
+  "rationale": "Both arms implement the requested merged projection, return events with the folded snapshot, wire both terminal and working reattach paths, rederive the sentinel from merged frames, preserve the no-rich path, and remove the now-obsolete dead_code allows in reattach.rs. WRONG: none apparent from the supplied diffs. SMELL: both keep the inherited fallback branch where `progress_snapshot` is read separately while returning `journal_fold_inputs` events, so the literal one-consistent-read guarantee is not fully demonstrated for legacy fallback cases. Arm B is materially better because its tests cover both real subscribe call sites and several edge paths; Arm A's implementation is comparable, but its tests mostly exercise the helper directly and would not catch missed wiring at either reattach \u2014"
+ },
+ "tokens_used": 65194
+}

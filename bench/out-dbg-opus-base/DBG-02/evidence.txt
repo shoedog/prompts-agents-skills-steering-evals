@@ -1,0 +1,173 @@
+POST-RUN evidence (workspace after the Fable session)
+=====================================================
+
+$ cargo fmt --check
+  # fmt gate
+  [exit 0, 0.717s]
+
+$ cargo test
+  # full suite green incl. the new regression tests
+  # expect_min_tests=2000 matched_tests=2492 min_tests_satisfied=True
+  [exit 0, 41.648s]
+  --- stdout (tail) ---
+  test nodes_at_test::nodes_at_enclosing_function_location_carries_function_bytes ... ok
+  test module_graph_test::module_deps_skipped_or_unknown_file_warns_not_errors ... ok
+  test nodes_at_test::nodes_at_includes_enclosing_function ... ok
+  test module_graph_test::module_deps_non_rust_is_byte_identical_when_scope_graph_is_present ... ok
+  test module_graph_test::module_deps_python_cross_file_call_and_import ... ok
+  test nodes_at_test::nodes_at_skipped_path_warns_empty ... ok
+  test module_graph_test::module_deps_uses_resolution_score_and_reason ... ok
+  test nodes_at_test::nodes_at_skipped_file_reports_skip_reason ... ok
+  test module_graph_test::module_deps_rust_without_authoritative_scope_graph_keeps_existing_fallback ... ok
+  test scoped_calls_test::callers_finds_scoped_dispatcher ... ok
+  test scoped_calls_test::external_crate_path_does_not_resolve_without_stem_match ... ok
+  test scoped_calls_test::callees_resolves_scoped_dispatch ... ok
+  test module_graph_test::module_deps_rust_reexport_chain_targets_defining_file ... ok
+  test scoped_calls_test::scoped_ns_fn_resolves_cross_file_cpp ... ok
+  test scoped_calls_test::unscoped_resolution_is_unchanged ... ok
+  test scoped_calls_test::scoped_mod_fn_resolves_cross_file_rust ... ok
+  test types_test::evidence_without_graph_omits_key ... ok
+  test types_test::evidence_serializes_to_expected_shape ... ok
+  test module_graph_test::repo_map_emits_whole_repo_file_graph ... ok
+  test types_test::evidence_with_graph_serializes_payload ... ok
+  test scoped_calls_test::multi_segment_scoped_path_uses_last_module_segment ... ok
+  test seed_test::location_resolves_to_innermost_nested_function ... ok
+  test scoped_calls_test::module_deps_and_repo_map_include_scoped_edge ... ok
+  test seed_test::ambiguous_symbol_errors_with_candidates ... ok
+  test scoped_calls_test::scoped_call_to_wrong_stem_does_not_resolve ... ok
+  test seed_test::resolves_location_to_enclosing ... ok
+  test scoped_calls_test::reserved_keyword_hints_do_not_resolve ... ok
+  test scoped_calls_test::callers_excludes_other_stem_scoped_call ... ok
+  test seed_test::resolves_symbol_unique ... ok
+  test module_graph_test::module_deps_rust_resolves_named_type_external_and_glob_imports ... ok
+  
+  test result: ok. 64 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+  
+  
+  running 1 test
+  test mermaid_snapshot_test::mermaid_report_snapshot_taint_finding ... ok
+  
+  test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+  
+  
+  running 31 tests
+  test scope_honesty_test::python_decorated_function_warns_for_decorator_and_body_constructs ... ok
+  test scope_honesty_test::go_concurrency_and_channel_ops_emit_scope_honesty_warnings ... ok
+  test scope_honesty_test::go_func_literal_body_constructs_are_not_attributed_to_outer_function ... ok
+  test scope_honesty_test::python_and_js_yield_emit_scope_honesty_warnings ... ok
+  test scope_honesty_test::js_and_ts_async_constructs_emit_scope_honesty_warnings ... ok
+  test scope_honesty_test::python_with_and_comprehension_emit_scope_honesty_warnings ... ok
+  test scope_honesty_test::duplicate_constructs_are_deduped_per_function ... ok
+  test scope_honesty_test::rust_try_and_closure_emit_scope_honesty_warnings ... ok
+  test scope_honesty_test::js_nested_callback_is_reported_without_leaking_inner_await ... ok
+  test scope_honesty_test::anonymous_callable_scopes_do_not_leak_inner_constructs_to_outer_function ... ok
+  test scope_honesty_test::js_promise_handler_detection_uses_direct_callee_property ... ok
+  test scope_honesty_test::nested_callable_boundaries_emit_warnings_even_without_language_constructs ... ok
+  test scope_honesty_test::sink_location_on_same_line_unions_all_candidate_function_warnings ... ok
+  test scope_honesty_test::sink_location_warnings_are_scoped_to_the_sink_function ... ok
+  test scope_honesty_test::trace_scope_honesty_disambiguates_same_name_same_line_functions_by_var_byte_span ... ok
+  test scope_honesty_test::trace_scope_honesty_uses_traversed_functions ... ok
+  test scope_honesty_test::python_decorated_function_entry_points_use_the_wrapper_consistently ... ok
+  test taint_reaches_test::callee_identifier_collision_is_not_reported_as_sink ... ok
+  test taint_reaches_test::multiline_function_symbol_seed_resolves_parameter_node ... ok
+  test taint_reaches_test::same_line_body_def_on_function_start_line_reaches_instead_of_boundary ... ok
+  test scope_honesty_test::trace_scope_honesty_uses_cpg_function_identity_on_same_line_code ... ok
+  test taint_reaches_test::identifier_substring_in_callee_name_does_not_block_reachability ... ok
+  test taint_reaches_test::same_name_callee_argument_is_kept_as_sink_argument ... ok
+  test smoke_test::taint_trace_reachability_end_to_end ... ok
+  test taint_reaches_test::same_line_collapsed_occurrence_fails_open_with_warning ... ok
+  test taint_reaches_test::same_line_loop_carried_field_occurrence_fails_open_with_warning ... ok
+  test taint_reaches_test::field_qualified_call_argument_reports_boundary_exited ... ok
+  test taint_reaches_test::cross_function_sink_reports_boundary_exited_and_warning ... ok
+  test taint_reaches_test::same_line_multi_function_body_local_reaches_instead_of_boundary ... ok
+  test taint_reaches_test::sink_resolution_errors_are_hard_failures ... ok
+  test taint_reaches_test::witness_mode_reports_reached_sink_and_witness_graph ... ok
+  
+  test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+  
+  
+  running 0 tests
+  
+  test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+  
+  --- stderr (tail) ---
+   --> tests/lang/typescript/../../common/mod.rs:5:9
+    |
+  5 | pub use prism::access_path::AccessPath;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+  
+  warning: unused import: `prism::call_graph::CallGraph`
+   --> tests/lang/typescript/../../common/mod.rs:8:9
+    |
+  8 | pub use prism::call_graph::CallGraph;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  
+  warning: unused import: `prism::data_flow::DataFlowGraph`
+    --> tests/lang/typescript/../../common/mod.rs:10:9
+     |
+  10 | pub use prism::data_flow::DataFlowGraph;
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  
+  warning: unused import: `prism::output`
+    --> tests/lang/typescript/../../common/mod.rs:13:9
+     |
+  13 | pub use prism::output;
+     |         ^^^^^^^^^^^^^
+  
+  warning: unused imports: `MultiReviewOutput` and `to_review_output`
+    --> tests/lang/typescript/../../common/mod.rs:14:25
+     |
+  14 | pub use prism::output::{to_review_output, MultiReviewOutput};
+     |                         ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+  
+  warning: unused imports: `DiagramWarningKind`, `DiagramWarning`, `MultiSliceResult`, `SliceFinding`, and `SliceResult`
+    --> tests/lang/typescript/../../common/mod.rs:16:5
+     |
+  16 |     DiagramWarning, DiagramWarningKind, MultiSliceResult, SliceConfig, SliceFinding, SliceResult,
+     |     ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^               ^^^^^^^^^^^^  ^^^^^^^^^^^
+  
+  warning: unused import: `std::path::Path`
+    --> tests/lang/typescript/../../common/mod.rs:20:9
+     |
+  20 | pub use std::path::Path;
+     |         ^^^^^^^^^^^^^^^
+  
+  warning: `prism` (test "lang_go") generated 5 warnings (run `cargo fix --test "lang_go" -p prism` to apply 5 suggestions)
+  warning: `prism` (test "algo_taxonomy") generated 9 warnings (run `cargo fix --test "algo_taxonomy" -p prism` to apply 9 suggestions)
+  warning: `prism` (test "algo_theoretical") generated 6 warnings (run `cargo fix --test "algo_theoretical" -p prism` to apply 6 suggestions)
+  warning: `prism` (test "algo_paper") generated 8 warnings (run `cargo fix --test "algo_paper" -p prism` to apply 8 suggestions)
+  warning: `prism` (test "ast") generated 6 warnings (run `cargo fix --test "ast" -p prism` to apply 6 suggestions)
+  warning: `prism` (test "lang_tsx") generated 6 warnings (run `cargo fix --test "lang_tsx" -p prism` to apply 6 suggestions)
+  warning: `prism` (test "lang_java") generated 7 warnings (run `cargo fix --test "lang_java" -p prism` to apply 7 suggestions)
+  warning: `prism` (test "lang_typescript") generated 7 warnings (run `cargo fix --test "lang_typescript" -p prism` to apply 7 suggestions)
+      Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s
+       Running unittests src/lib.rs (target/debug/deps/prism-67b1e8306ecba215)
+       Running unittests src/main.rs (target/debug/deps/prism-677b1f196faa0135)
+       Running tests/algo/novel/main.rs (target/debug/deps/algo_novel-edc564dc3e1f8c61)
+       Running tests/algo/paper/main.rs (target/debug/deps/algo_paper-240d9d66a6d44a8b)
+       Running tests/algo/taxonomy/main.rs (target/debug/deps/algo_taxonomy-5dcf1bf432a0d47d)
+       Running tests/algo/theoretical/main.rs (target/debug/deps/algo_theoretical-30bf6d110b49e3cc)
+       Running tests/ast/main.rs (target/debug/deps/ast-1b1aa5136b01a610)
+       Running tests/cli/main.rs (target/debug/deps/cli-54f5534934ed596e)
+       Running tests/frameworks/main.rs (target/debug/deps/frameworks-7b0948fa714a711f)
+       Running tests/infra/main.rs (target/debug/deps/infra-8c917b5ac8b5d9d4)
+       Running tests/integration/main.rs (target/debug/deps/integration-d5351dc850a24cc9)
+       Running tests/lang/bash/main.rs (target/debug/deps/lang_bash-dace945e68bed73a)
+       Running tests/lang/c/main.rs (target/debug/deps/lang_c-6d5a93e0aac0e5f4)
+       Running tests/lang/cpp/main.rs (target/debug/deps/lang_cpp-a29fe528bdbcd691)
+       Running tests/lang/go/main.rs (target/debug/deps/lang_go-36c3b19ee2a513aa)
+       Running tests/lang/java/main.rs (target/debug/deps/lang_java-121498a74b4dffad)
+       Running tests/lang/javascript/main.rs (target/debug/deps/lang_javascript-65584d5546f6f651)
+       Running tests/lang/lua/main.rs (target/debug/deps/lang_lua-170d9a66d383a04a)
+       Running tests/lang/python/main.rs (target/debug/deps/lang_python-8cd3077691409f49)
+       Running tests/lang/rust/main.rs (target/debug/deps/lang_rust-b20a7995e75f66d4)
+       Running tests/lang/terraform/main.rs (target/debug/deps/lang_terraform-c89c77698f7326bb)
+       Running tests/lang/tsx/main.rs (target/debug/deps/lang_tsx-c9b246633c19e962)
+       Running tests/lang/typescript/main.rs (target/debug/deps/lang_typescript-1ec893e4152666e1)
+       Running tests/name_resolution/main.rs (target/debug/deps/name_resolution-3f1d806f0e660d51)
+       Running tests/navigation/main.rs (target/debug/deps/navigation-919488aa7ba9eb5c)
+       Running tests/output/main.rs (target/debug/deps/output-ee5f0124f4c8e523)
+       Running tests/reasoning/main.rs (target/debug/deps/reasoning-0214a6e2a473125a)
+     Doc-tests prism
