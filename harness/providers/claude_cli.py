@@ -29,12 +29,16 @@ DISALLOWED_TOOLS = "Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch,Glob,Grep,Re
 # probes in the ssot dogfood corpus (2026-07-25, slice-D FAILURE-1). Skill is
 # disallowed above as belt for the same incident.
 #
-# CAVEAT (falsified 2026-07-26, exp-w3a run 2 transcripts): `--settings` ADDS a
-# settings source; it does not replace the user-global one — PostToolUse hooks
-# from ~/.claude/settings.json were observed firing inside executor children.
-# The real severs are (a) CLAUDE_INSTRUMENT_CHILD=1 in the child env, which the
-# operator's guarded SessionStart hook keys on, and (b) `--tools ""` below,
-# which removes the built-in tool surface entirely.
+# THE ACTUAL SEVER is `--setting-sources ""` (proved 2026-07-26: zero hook
+# events in the probe transcript). History of insufficient layers, kept as
+# belts: (a) `--settings` with this empty file only ADDS a source — user-global
+# hooks kept firing (exp-w3a run 2: PostToolUse inside executor children; run
+# 4: SessionStart superpowers injection + verify_gate Stop-block forced a 2nd
+# turn = 100% error_max_turns across both arms); (b) CLAUDE_INSTRUMENT_CHILD=1
+# keys the operator's guarded settings.json SessionStart entry but not plugin
+# hooks; (c) BENCH_CLEAN_ENV=1 is verify_gate.sh's own escape hatch — harmless
+# if that gate is reached through some future source. `--tools ""` separately
+# removes the built-in tool surface (run 2's ToolSearch-burns-the-turn class).
 ISOLATED_SETTINGS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "isolated_settings.json")
 
 
@@ -71,6 +75,11 @@ def run_claude(prompt: str, model: str, cwd: str, timeout: int = 300) -> dict:
         DISALLOWED_TOOLS,
         "--settings",
         ISOLATED_SETTINGS,
+        # Load NO settings sources (user/project/local): severs every
+        # settings-borne hook and plugin at the root — see the block comment
+        # on ISOLATED_SETTINGS for the failure history this closes.
+        "--setting-sources",
+        "",
         # No tools AT ALL: with --max-turns 1, ANY tool interaction (even a
         # denied one, even ToolSearch loading a deferred tool) ends the run as
         # max_turns_reached with no result -> CLI exit 1 with empty stderr.
@@ -86,9 +95,13 @@ def run_claude(prompt: str, model: str, cwd: str, timeout: int = 300) -> dict:
     # (promptfoo runs us with one) and logs a stderr warning. One retry on
     # nonzero exit: transient rc-1 blips under load cost a whole arm's
     # integrity otherwise (observed: rh-07/rh-14, exp-d7 treatment arm).
-    # CLAUDE_INSTRUMENT_CHILD keys the guard on the operator's SessionStart
-    # hook — the one hook event --settings does NOT sever (see CAVEAT above).
-    child_env = {**os.environ, "CLAUDE_INSTRUMENT_CHILD": "1"}
+    # Belt env vars (see ISOLATED_SETTINGS comment): the instrument-child guard
+    # key and verify_gate.sh's own bench escape hatch.
+    child_env = {
+        **os.environ,
+        "CLAUDE_INSTRUMENT_CHILD": "1",
+        "BENCH_CLEAN_ENV": "1",
+    }
     proc = None
     for attempt in (1, 2):
         try:

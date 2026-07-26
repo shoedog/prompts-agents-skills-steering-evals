@@ -99,8 +99,17 @@ class TestRunClaude:
         argv = mock_run.call_args.args[0]
         assert "--tools" in argv
         assert argv[argv.index("--tools") + 1] == ""
+        # exp-w3a run 4 (2026-07-26): user-global hooks reached executor
+        # children through settings sources — superpowers SessionStart
+        # injection wrecked the review text and verify_gate's Stop-block
+        # forced a 2nd turn (error_max_turns, 100% of both arms). Loading NO
+        # setting sources is the root sever (probe: zero hook events);
+        # BENCH_CLEAN_ENV is verify_gate.sh's own escape hatch, kept as belt.
+        assert "--setting-sources" in argv
+        assert argv[argv.index("--setting-sources") + 1] == ""
         env = mock_run.call_args.kwargs["env"]
         assert env["CLAUDE_INSTRUMENT_CHILD"] == "1"
+        assert env["BENCH_CLEAN_ENV"] == "1"
 
     def test_nonzero_exit_error_carries_stdout_tail(self):
         # The CLI reports error_max_turns (and friends) as JSON on STDOUT with
