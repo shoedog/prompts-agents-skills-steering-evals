@@ -14,13 +14,22 @@ between arms still isolate the effect of the artifact under test even though
 the absolute totals include that constant overhead.
 """
 import json
+import os
 import subprocess
 import time
 
 from harness.providers.binpath import resolve_executable
 from harness.providers.errors import ProviderError
 
-DISALLOWED_TOOLS = "Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch,Glob,Grep,Read,Task"
+DISALLOWED_TOOLS = "Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch,Glob,Grep,Read,Task,Skill"
+
+# Executor children must NOT inherit the operator's user-global settings: the
+# SessionStart hook there (moshi-hooks/superpowers) injects framework context
+# that overrides terse instructions — observed destroying 3/7 fixed-token
+# probes in the ssot dogfood corpus (2026-07-25, slice-D FAILURE-1). An empty
+# settings file severs the whole settings-borne class (hooks, plugins), not
+# just the one hook. Skill is disallowed above as belt for the same incident.
+ISOLATED_SETTINGS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "isolated_settings.json")
 
 
 def _stderr_tail(text: str, n: int = 4000) -> str:
@@ -54,6 +63,8 @@ def run_claude(prompt: str, model: str, cwd: str, timeout: int = 300) -> dict:
         '{"mcpServers":{}}',
         "--disallowedTools",
         DISALLOWED_TOOLS,
+        "--settings",
+        ISOLATED_SETTINGS,
     ]
 
     # stdin=DEVNULL: without it the CLI waits 3s probing an inherited pipe

@@ -66,6 +66,24 @@ class TestRunClaude:
         assert "--strict-mcp-config" in argv
         assert "--mcp-config" in argv
 
+    def test_executor_child_is_isolated_from_user_settings(self):
+        # SessionStart hooks in the user-global settings (moshi-hooks/
+        # superpowers) inject framework context into child sessions and can
+        # override terse executor instructions (2026-07-25 dogfood: 3/7
+        # fixed-token probes destroyed). The executor must pass an isolated
+        # settings file and must not permit the Skill tool.
+        with patch("harness.providers.claude_cli.subprocess.run") as mock_run:
+            mock_run.return_value = _completed(stdout=json.dumps(CANNED_CLAUDE_JSON))
+            run_claude("hi", "claude-haiku-4-5-20251001", cwd="/tmp")
+
+        argv = mock_run.call_args.args[0]
+        assert "--settings" in argv
+        settings_path = argv[argv.index("--settings") + 1]
+        with open(settings_path) as f:
+            assert json.load(f) == {}
+        disallowed = argv[argv.index("--disallowedTools") + 1]
+        assert "Skill" in disallowed.split(",")
+
     def test_timeout_raises_provider_error(self):
         with patch("harness.providers.claude_cli.subprocess.run") as mock_run:
             mock_run.side_effect = subprocess.TimeoutExpired(cmd=["claude"], timeout=300)
