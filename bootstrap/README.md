@@ -17,6 +17,12 @@ back here and commit in the same turn (durable-custody rule).
 
 ## Other carriers (Codex, Kiro)
 
+On the personal machine, `~/.codex/AGENTS.md` and `~/.kiro/steering/ssot.md`
+are exact mirrors of `global-CLAUDE.md` — sync them with a plain `cp` from
+this file after any steering change (verified mirrors 2026-08-07; `.pre-v2`
+backups sit alongside). The merge-not-overwrite guidance below is for the
+WORK machine, where those files may carry work-specific content.
+
 The steering content is tool-agnostic markdown; only the carrier file
 differs. `install.sh` deliberately handles only the Claude carrier — the
 others may already hold work-specific content, and an installer that
