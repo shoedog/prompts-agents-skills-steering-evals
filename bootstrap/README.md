@@ -26,6 +26,13 @@ On the personal machine (2026-08-07 layout):
   `cat global-CLAUDE.md codex-AGENTS-tail.md > ~/.codex/AGENTS.md`.
 - `~/.codex/rules/default.rules` (execpolicy approved commands) is mirrored
   here as `codex-default.rules` — sync with a plain `cp`.
+- `handoff-template.md` rides EVERY carrier sync (the steering's durable-
+  custody clause references "the installed handoff-template.md adjacent to
+  this steering carrier"): `install.sh` puts it at
+  `~/.claude/handoff-template.md`; copy it to `~/.codex/handoff-template.md`
+  and `~/.kiro/steering/handoff-template.md` whenever syncing those
+  carriers. Work machine / per-project kiro: `.kiro/steering/
+  handoff-template.md` in each repo that carries the steering.
 
 The merge-not-overwrite guidance below is for the WORK machine, where those
 files may carry work-specific content.
