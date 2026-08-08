@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-w3a-negative-control",
+  "arm": "treatment",
+  "task_id": "mc-05",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-05/truth.yaml",
+  "truth_defect_ids": [
+    "mc-05-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. ci/run-suite.sh:18 — `cargo test --workspace 2>&1 | tail -40` is a pipeline without `set -o pipefail`, so the script's exit status reflects `tail`'s exit code (always 0) rather than `cargo test`'s; a failing test suite still produces a 0 exit status, making CI report green despite failing tests, directly violating the script's stated contract.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "mc-05-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 2909,
+  "judge_cost_usd": null
+}

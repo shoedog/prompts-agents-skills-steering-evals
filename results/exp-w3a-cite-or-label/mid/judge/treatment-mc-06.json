@@ -1,0 +1,24 @@
+{
+  "exp_id": "exp-w3a-cite-or-label",
+  "arm": "treatment",
+  "task_id": "mc-06",
+  "tier": "mid",
+  "seeded": false,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-06/truth.yaml",
+  "truth_defect_ids": [],
+  "normalized_block": "## FINDINGS\nVERDICT: APPROVE\n1. src/target_spool.rs:34 — SMELL: `push()` uses `.expect()` on `u32::try_from(body.len())`, so a serialized record body over 4 GiB panics instead of returning the `io::Result` error the rest of the API promises (no concrete triggering input identified, since `MarketBar` records are expected to be small).\n2. src/target_spool.rs (whole file) — SMELL: no unit tests accompany a new integrity-bearing binary format (framing, big-endian length prefix, running SHA-256, footer), despite the doc stating other tooling relies on this format staying accurate.\n",
+  "parse_ok": true,
+  "defects": [],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": false,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 18383,
+  "judge_cost_usd": null
+}

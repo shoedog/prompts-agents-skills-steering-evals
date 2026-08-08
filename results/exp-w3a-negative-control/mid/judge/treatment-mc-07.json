@@ -1,0 +1,24 @@
+{
+  "exp_id": "exp-w3a-negative-control",
+  "arm": "treatment",
+  "task_id": "mc-07",
+  "tier": "mid",
+  "seeded": false,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-07/truth.yaml",
+  "truth_defect_ids": [],
+  "normalized_block": "## FINDINGS\nVERDICT: APPROVE\n1. src/main.rs:~114-124 — SMELL: flag-acceptance checks run before the subcommand-validity check, so an unrecognized subcommand combined with `--rebuild-index`/`--emit-report` reports \"accepted only by X/Y\" instead of \"unknown subcommand\", a misleading (but still erroring) message.\n2. src/main.rs:~127-131 — SMELL: call sites for `verify_archive`/`load_canonical`/`adjudicate_canonical` gain new parameters, but the diff doesn't show the matching function-definition changes, so compilability can't be verified from this diff alone.\n",
+  "parse_ok": true,
+  "defects": [],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": false,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 334,
+  "judge_cost_usd": null
+}

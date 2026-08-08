@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-w3a-negative-control",
+  "arm": "treatment",
+  "task_id": "mc-04",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-04/truth.yaml",
+  "truth_defect_ids": [
+    "mc-04-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. src/pathfold.ts:13 — `foldSegments` drops `.` segments, contradicting the doc comment's promise (lines 4-7) that `.` segments are \"preserved verbatim in the output\"; `foldSegments(\"a/./b\")` yields `[\"a\",\"b\"]` instead of `[\"a\",\".\",\"b\"]`.\n2. src/pathfold.ts:14-16 — `foldSegments` resolves `..` by popping the previous segment, contradicting the doc comment's promise that `..` segments are preserved verbatim and that resolution is left to the alias-resolution stage; `foldSegments(\"a/../b\")` yields `[\"b\"]` instead of `[\"a\",\"..\",\"b\"]`, silently performing resolution the module contract says it must not do.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "mc-04-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 2419,
+  "judge_cost_usd": null
+}

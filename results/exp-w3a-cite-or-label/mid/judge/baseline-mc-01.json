@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-w3a-cite-or-label",
+  "arm": "baseline",
+  "task_id": "mc-01",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-01/truth.yaml",
+  "truth_defect_ids": [
+    "mc-01-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. src/replay_spool.rs:53 (encode_entry) — WRONG: records are encoded with `serde_json::to_writer`, but docs/spool-format.md states \"there is no JSON anywhere on the write path,\" a direct contradiction between the code and the doc added in the same diff.\n2. docs/spool-format.md (added block, \"Protobuf bar bytes are stored raw...size of the raw protobuf data plus framing overhead\") — WRONG: since `market_bar: Vec<u8>` is JSON-serialized without `serde_bytes`, it's emitted as a comma-separated JSON array of decimal byte values, inflating spool size ~3-4x versus the raw protobuf bytes the doc claims, which will cause operators to under-provision scratch volumes per the stated contract.\n3. src/replay_spool.rs:19-20 (RunWriter::push) — SMELL: `u32::try_from(body.len()).expect(...)` panics on any record body ≥ 4 GiB instead of returning an error; unreachable with normal single-bar payloads but no graceful handling.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "mc-01-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 1,
+  "neutral_matched": 1,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 2841,
+  "judge_cost_usd": null
+}

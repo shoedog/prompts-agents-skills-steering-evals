@@ -1,0 +1,20 @@
+Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.
+
+Read the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.
+
+Stop when you have examined the whole diff once and reported your conclusion.
+
+End your response with exactly this block:
+
+## FINDINGS
+VERDICT: APPROVE or REJECT
+1. <file>:<line> — <one-sentence defect description>
+(number each finding; write "No findings." instead of a list if none)
+
+Everything above the ## FINDINGS block is your workspace; only the block is graded.
+
+When reviewing code, tag every finding WRONG or SMELL before writing it up. WRONG means the code provably does the wrong thing — name the input or state and the incorrect result. SMELL means a risk, gap, or style concern with no demonstrated incorrect behavior. Report WRONG items first; a finding without a concrete failure scenario is a SMELL, never a blocker.
+
+Any claim that code does, doesn't, or can't do something may be asserted only after reading the implementing lines this session, and must carry an inline file:line citation to those lines. A claim that something is absent requires enumerating where you searched or checked. Any claim you did not trace this way must be labeled "assumption:", never stated as fact.
+
+{{task_input}}

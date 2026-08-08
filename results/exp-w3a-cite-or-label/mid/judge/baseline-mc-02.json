@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-w3a-cite-or-label",
+  "arm": "baseline",
+  "task_id": "mc-02",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-02/truth.yaml",
+  "truth_defect_ids": [
+    "mc-02-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. CHANGELOG.md:5-8 (WRONG) — Claims peak scratch usage is bounded to \"one merge group... including seal,\" but since compaction only reduces run *count* (not total bytes), the ≤8 runs remaining after `compact_runs` still hold ~all the spool's data; `seal()`'s final `merge_sorted` over them still needs the full remaining dataset plus the full sealed output simultaneously on disk — the same 2x high-water mark the entry claims is gone. This is an operator-facing capacity-planning claim that is factually inaccurate.\n2. src/replay_spool.rs:214-226 (SMELL) — If `fs::remove_file` fails partway through the group-deletion loop in `compact_runs`, `self.runs` has already been updated to drop those paths, so the un-removed files become untracked orphans, silently undercounted by `scratch_bytes()`.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "mc-02-d1",
+      "found": false
+    }
+  ],
+  "false_findings": 1,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 2578,
+  "judge_cost_usd": null
+}

@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-w3a-negative-control",
+  "arm": "treatment",
+  "task_id": "mc-02",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-02/truth.yaml",
+  "truth_defect_ids": [
+    "mc-02-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. src/replay_spool.rs:217-220 — WRONG: in `compact_runs`, `self.runs` is updated (drain+push) before all group files are removed; if `fs::remove_file` fails or the process is interrupted mid-loop, the remaining un-removed files become permanently untracked orphans, leaking shared scratch space indefinitely.\n2. src/replay_spool.rs:232-233 — WRONG: same pattern in `seal`; since `self` is consumed by the function, a partial failure in the removal loop leaves the un-removed remainder of `self.runs` unreachable once `self` is dropped, with no path to clean them up.\n3. CHANGELOG.md:9 — SMELL: \"the old 2x ... high-water mark ... is gone\" reads as fixing pre-existing behavior, but the diff shows `compact_runs`/`seal` as entirely new code with nothing removed, so there was no \"old\" version of this code path to regress from.\n4. src/replay_spool.rs — SMELL: no tests accompany `compact_runs`/`seal`, despite them being the safety-critical logic the stated contract (never delete the only durable copy) depends on.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "mc-02-d1",
+      "found": false
+    }
+  ],
+  "false_findings": 2,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 616,
+  "judge_cost_usd": null
+}

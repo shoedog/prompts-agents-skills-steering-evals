@@ -1,0 +1,14 @@
+{
+  "exp_id": "exp-w3a-cite-or-label",
+  "arm": "baseline",
+  "task_id": "mc-07",
+  "tier": "mid",
+  "model": "claude-sonnet-5",
+  "fresh_input_tokens": 2,
+  "cache_creation_tokens": 8042,
+  "cache_read_tokens": 3289,
+  "output_tokens": 5077,
+  "input_tokens_logical": 11333,
+  "cost_usd": 0.12718770000000001,
+  "duration_ms": 49410
+}

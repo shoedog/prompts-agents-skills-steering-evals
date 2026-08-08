@@ -1,0 +1,24 @@
+{
+  "exp_id": "exp-w3a-negative-control",
+  "arm": "baseline",
+  "task_id": "mc-07",
+  "tier": "mid",
+  "seeded": false,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-07/truth.yaml",
+  "truth_defect_ids": [],
+  "normalized_block": "## FINDINGS\nVERDICT: APPROVE\n1. src/main.rs:~110 (comment above the `--emit-report` check) — SMELL: comment claims `--emit-report is a load-pipeline artifact` (implying `load-canonical` only), but the code correctly accepts it for both `load-canonical` and `adjudicate-canonical`, making the comment inaccurate/misleading about scope.\n",
+  "parse_ok": true,
+  "defects": [],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": false,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 2323,
+  "judge_cost_usd": null
+}

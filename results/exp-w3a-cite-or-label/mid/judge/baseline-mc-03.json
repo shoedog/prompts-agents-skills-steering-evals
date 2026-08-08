@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-w3a-cite-or-label",
+  "arm": "baseline",
+  "task_id": "mc-03",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-03/truth.yaml",
+  "truth_defect_ids": [
+    "mc-03-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. docs/RESUME-g4c.md:9-13 (paired with src/main.rs ~131-141) — the handoff's literal runnable command `backfill audit-canonical --spinoff-binding out/rev9-bindings.json` will fail at parse time because `--spinoff-binding` is rejected for every subcommand except `load-canonical`/`adjudicate-canonical`, violating the contract that the next-step section must run exactly as written.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "mc-03-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 2397,
+  "judge_cost_usd": null
+}

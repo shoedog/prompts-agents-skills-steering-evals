@@ -1,0 +1,24 @@
+{
+  "exp_id": "exp-w3a-negative-control",
+  "arm": "treatment",
+  "task_id": "mc-06",
+  "tier": "mid",
+  "seeded": false,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-06/truth.yaml",
+  "truth_defect_ids": [],
+  "normalized_block": "## FINDINGS\nVERDICT: APPROVE\n1. src/target_spool.rs:28 — `u32::try_from(body.len()).expect(...)` panics instead of returning an error if a serialized record ever exceeds u32::MAX bytes (SMELL, not reachable under the stated small target-only workload).\n2. src/target_spool.rs:29-33 — if the length-prefix write succeeds but the body write fails, `push` returns early leaving a dangling incomplete frame in `out` with no digest update, and no API to detect/recover from this partial state (SMELL, standard \"abandon writer on I/O error\" pattern).\n",
+  "parse_ok": true,
+  "defects": [],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": false,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 2413,
+  "judge_cost_usd": null
+}

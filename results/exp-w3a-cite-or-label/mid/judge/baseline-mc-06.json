@@ -1,0 +1,24 @@
+{
+  "exp_id": "exp-w3a-cite-or-label",
+  "arm": "baseline",
+  "task_id": "mc-06",
+  "tier": "mid",
+  "seeded": false,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-06/truth.yaml",
+  "truth_defect_ids": [],
+  "normalized_block": "## FINDINGS\nVERDICT: APPROVE\n1. src/target_spool.rs:32 — (SMELL) `u32::try_from(body.len()).expect(...)` panics instead of returning an error if a single JSON-encoded record exceeds 4GB; given the doc's noted 3-4x JSON blow-up on protobuf bytes this is a latent crash path, though not shown to trigger at current record sizes.\n2. docs/target-spool-format.md — (SMELL) the footer description omits the record-count field's byte width (u64/8 bytes), leaving downstream readers built from this doc alone to guess it, risking a misimplemented parser.\n",
+  "parse_ok": true,
+  "defects": [],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": false,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 372,
+  "judge_cost_usd": null
+}

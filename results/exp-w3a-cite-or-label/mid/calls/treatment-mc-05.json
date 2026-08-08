@@ -1,0 +1,14 @@
+{
+  "exp_id": "exp-w3a-cite-or-label",
+  "arm": "treatment",
+  "task_id": "mc-05",
+  "tier": "mid",
+  "model": "claude-sonnet-5",
+  "fresh_input_tokens": 2,
+  "cache_creation_tokens": 7349,
+  "cache_read_tokens": 3289,
+  "output_tokens": 2238,
+  "input_tokens_logical": 10640,
+  "cost_usd": 0.0798917,
+  "duration_ms": 20685
+}

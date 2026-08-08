@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-w3a-cite-or-label",
+  "arm": "baseline",
+  "task_id": "mc-05",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-05/truth.yaml",
+  "truth_defect_ids": [
+    "mc-05-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. ci/run-suite.sh:19 — WRONG: `cargo test --workspace 2>&1 | tail -40` is piped without `pipefail` set, so if `cargo test` fails (e.g., exit 101) but `tail` succeeds (exit 0), the pipeline's exit status is 0, causing the script to exit 0 and CI to report green on a failing test suite.\n2. ci/run-suite.sh:4-6 — WRONG: the header comment asserts \"the script's exit status is the test runner's own exit code,\" which is false given the missing `pipefail` (see finding 1); this directly misleads on-call engineers who the contract says rely on this comment to debug red/green CI.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "mc-05-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 832,
+  "judge_cost_usd": null
+}

@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-w3a-negative-control",
+  "arm": "baseline",
+  "task_id": "mc-01",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-01/truth.yaml",
+  "truth_defect_ids": [
+    "mc-01-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. docs/spool-format.md:8 — WRONG: doc states \"there is no JSON anywhere on the write path,\" but `src/replay_spool.rs:53-56` encodes every record with `serde_json::to_writer`, making the write path JSON-based.\n2. docs/spool-format.md:9-11 — WRONG: doc claims protobuf bar bytes are stored \"raw\" and spool size stays \"roughly the size of the raw protobuf data plus framing overhead,\" but `Entry` (src/replay_spool.rs:9) derives plain `Serialize` with no `serde_bytes`, so `market_bar: Vec<u8>` is JSON-encoded as an array of decimal byte values under `serde_json`, several times larger than the raw bytes — invalidating the sizing guidance operators would use.\n3. src/replay_spool.rs:28 — SMELL: `u32::try_from(body.len()).expect(...)` panics if a single encoded entry exceeds 4 GiB; more plausible now given JSON's size blowup on binary payloads, but no concrete record currently triggers it.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "mc-01-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 1,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 2718,
+  "judge_cost_usd": null
+}

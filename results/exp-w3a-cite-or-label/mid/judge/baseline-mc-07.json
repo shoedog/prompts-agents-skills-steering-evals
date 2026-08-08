@@ -1,0 +1,24 @@
+{
+  "exp_id": "exp-w3a-cite-or-label",
+  "arm": "baseline",
+  "task_id": "mc-07",
+  "tier": "mid",
+  "seeded": false,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-07/truth.yaml",
+  "truth_defect_ids": [],
+  "normalized_block": "## FINDINGS\nVERDICT: APPROVE\n1. src/main.rs:108-118 — SMELL: flag-acceptance checks run before subcommand-name validation, so an unrecognized subcommand paired with a rejected flag (e.g. `foobar --rebuild-index`) surfaces the flag-acceptance error instead of \"unknown subcommand\"; not incorrect, just a minor message-precedence choice.\n",
+  "parse_ok": true,
+  "defects": [],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": false,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 2306,
+  "judge_cost_usd": null
+}

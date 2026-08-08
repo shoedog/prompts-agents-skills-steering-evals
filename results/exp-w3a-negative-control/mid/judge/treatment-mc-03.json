@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-w3a-negative-control",
+  "arm": "treatment",
+  "task_id": "mc-03",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-03/truth.yaml",
+  "truth_defect_ids": [
+    "mc-03-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. docs/RESUME-g4c.md (Next step section) — the documented \"runnable now\" command `backfill audit-canonical --spinoff-binding out/rev9-bindings.json` will fail with a `CliError::Config` because src/main.rs's new acceptance check (src/main.rs, `if !matches!(cmd.as_str(), \"load-canonical\" | \"adjudicate-canonical\") ...`) rejects `--spinoff-binding` for `audit-canonical`, violating the contract that the handoff doc's next step must be executable exactly as written.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "mc-03-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 2413,
+  "judge_cost_usd": null
+}

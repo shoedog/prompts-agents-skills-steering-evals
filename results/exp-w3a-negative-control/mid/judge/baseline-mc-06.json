@@ -1,0 +1,24 @@
+{
+  "exp_id": "exp-w3a-negative-control",
+  "arm": "baseline",
+  "task_id": "mc-06",
+  "tier": "mid",
+  "seeded": false,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-06/truth.yaml",
+  "truth_defect_ids": [],
+  "normalized_block": "## FINDINGS\nVERDICT: APPROVE\n1. src/target_spool.rs:29 — SMELL: `push()` panics via `.expect()` on record bodies >u32::MAX instead of returning an `Err`, inconsistent with its `Result`-returning signature (only reachable with an unrealistic >4GB single record).\n2. docs/target-spool-format.md:9-13 — SMELL: doc specifies the record-count footer field exists but omits its byte width (u64/8 bytes), leaving external implementers to guess despite the doc being the stated reference for reconstructing the format.\n",
+  "parse_ok": true,
+  "defects": [],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": false,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 2385,
+  "judge_cost_usd": null
+}

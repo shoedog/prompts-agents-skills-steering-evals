@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-w3a-negative-control",
+  "arm": "treatment",
+  "task_id": "mc-01",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-01/truth.yaml",
+  "truth_defect_ids": [
+    "mc-01-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. src/replay_spool.rs:53 — `encode_entry` uses `serde_json::to_writer`, but docs/spool-format.md states \"there is no JSON anywhere on the write path,\" a direct contradiction of the implemented codec.\n2. docs/spool-format.md (added lines) — claims spool size is \"roughly the size of the raw protobuf data plus framing overhead,\" but JSON-encoding `Vec<u8>` as a comma-separated decimal array inflates the payload ~3-4x over raw bytes, invalidating the scratch-volume sizing guidance operators rely on.\n3. src/replay_spool.rs:24 — `u32::try_from(body.len()).expect(\"record fits u32\")` panics if an encoded entry exceeds 4 GiB; JSON inflation from finding 1 makes this more reachable than the raw-protobuf size would suggest (SMELL, no concrete triggering input demonstrated).\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "mc-01-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 1,
+  "neutral_matched": 1,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 2911,
+  "judge_cost_usd": null
+}

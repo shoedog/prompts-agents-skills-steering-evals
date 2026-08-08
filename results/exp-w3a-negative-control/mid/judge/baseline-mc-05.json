@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-w3a-negative-control",
+  "arm": "baseline",
+  "task_id": "mc-05",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-05/truth.yaml",
+  "truth_defect_ids": [
+    "mc-05-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. ci/run-suite.sh:19 — WRONG: pipeline exit status is `tail`'s, not `cargo test`'s (no `pipefail`), so a failing test suite (e.g. cargo test exit 101) still yields script exit 0, making CI report green on a failing suite, contradicting the stated contract and the header comment's exit-policy claim.\n2. ci/run-suite.sh:19 — WRONG: the full `cargo test` output is discarded after piping through `tail -40`; nothing tees it to a log file, so the header comment's claim that \"full output stays in the job log\" is false — on-call engineers debugging a red run cannot recover output beyond the last 40 lines.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "mc-05-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 1,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 2492,
+  "judge_cost_usd": null
+}

@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-w3a-negative-control",
+  "arm": "baseline",
+  "task_id": "mc-03",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-03/truth.yaml",
+  "truth_defect_ids": [
+    "mc-03-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. docs/RESUME-g4c.md:12 (paired with src/main.rs ~134) — The doc's \"Next step (runnable now)\" command `backfill audit-canonical --spinoff-binding out/rev9-bindings.json` is rejected by the flag-acceptance check, which only allows `--spinoff-binding` for `load-canonical`/`adjudicate-canonical`, so the mandated next step fails with a `CliError::Config` before running.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "mc-03-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 360,
+  "judge_cost_usd": null
+}

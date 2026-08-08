@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-w3a-cite-or-label",
+  "arm": "treatment",
+  "task_id": "mc-02",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-02/truth.yaml",
+  "truth_defect_ids": [
+    "mc-02-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. src/replay_spool.rs:230-234 — `seal` merges all remaining runs into `sealed` and only deletes them after, so when `self.runs` already holds the full remaining dataset (e.g., starting at exactly `MERGE_FANIN` runs, where `compact_runs` at line 212 is a no-op), peak scratch usage is ~2x total data, not bounded by \"one merge group\" as intended.\n2. CHANGELOG.md:6-8 — claims peak scratch is bounded by one merge group \"including seal\" and that the old 2x seal-time high-water mark is gone; this is false (see finding 1), and since the contract states these entries drive shared-scratch capacity planning, the inaccurate claim can lead operators to under-provision.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "mc-02-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 2601,
+  "judge_cost_usd": null
+}

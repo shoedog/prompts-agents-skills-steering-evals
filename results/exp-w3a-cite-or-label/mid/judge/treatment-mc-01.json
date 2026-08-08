@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-w3a-cite-or-label",
+  "arm": "treatment",
+  "task_id": "mc-01",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-01/truth.yaml",
+  "truth_defect_ids": [
+    "mc-01-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. docs/spool-format.md:8 (new) — Doc states \"no JSON anywhere on the write path\" but `encode_entry` in src/replay_spool.rs:53-56 encodes every record via `serde_json::to_writer`, so this is factually false (WRONG).\n2. docs/spool-format.md:8-11 (new) — Doc states protobuf bar bytes are \"stored raw\" and the spool stays \"roughly the size of the raw protobuf data plus framing overhead,\" but `Entry::market_bar` (src/replay_spool.rs:9-11) is a plain `Vec<u8>` with no `serde_bytes` annotation, so `serde_json` (src/replay_spool.rs:53-56) encodes it as a JSON array of decimal numbers, inflating size several-fold beyond raw bytes and contradicting both claims (WRONG).\n3. src/replay_spool.rs:26 — `u32::try_from(body.len()).expect(...)` panics instead of returning an error if a record body exceeds 4GiB, an unhandled failure mode for outsized records (SMELL).\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "mc-01-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 1,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 681,
+  "judge_cost_usd": null
+}

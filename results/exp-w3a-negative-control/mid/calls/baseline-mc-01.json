@@ -1,0 +1,14 @@
+{
+  "exp_id": "exp-w3a-negative-control",
+  "arm": "baseline",
+  "task_id": "mc-01",
+  "tier": "mid",
+  "model": "claude-sonnet-5",
+  "fresh_input_tokens": 2,
+  "cache_creation_tokens": 8155,
+  "cache_read_tokens": 3289,
+  "output_tokens": 3395,
+  "input_tokens_logical": 11446,
+  "cost_usd": 0.1027637,
+  "duration_ms": 34758
+}

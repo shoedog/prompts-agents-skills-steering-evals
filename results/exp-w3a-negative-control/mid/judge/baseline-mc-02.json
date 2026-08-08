@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-w3a-negative-control",
+  "arm": "baseline",
+  "task_id": "mc-02",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-02/truth.yaml",
+  "truth_defect_ids": [
+    "mc-02-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. src/replay_spool.rs:212-216 (WRONG) — in `compact_runs`, `self.runs` is drained/updated to drop the group's paths before the `fs::remove_file` loop runs; if a deletion in the middle of the group fails, the function returns `Err` but the remaining un-removed files in that group are no longer tracked in `self.runs`, permanently leaking scratch space that `scratch_bytes()` will silently undercount.\n2. src/replay_spool.rs:227-229 (WRONG) — in `seal`, a mid-loop `fs::remove_file` failure returns `Err` and drops `self` (owned by value), destroying the only record of which remaining runs still need deletion, so any un-removed files from that final group are permanently orphaned with no future chance of cleanup.\n3. CHANGELOG.md (SMELL) — the \"peak scratch bounded by one merge group at every stage\" claim holds only on the error-free path; given findings 1–2, a deletion failure under shared-scratch contention (the exact scenario the changelog is meant to help operators plan for) can cause unbounded orphaned-file accumulation that the claim doesn't account for.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "mc-02-d1",
+      "found": false
+    }
+  ],
+  "false_findings": 2,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 575,
+  "judge_cost_usd": null
+}

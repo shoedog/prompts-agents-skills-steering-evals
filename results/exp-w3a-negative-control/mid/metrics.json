@@ -1,0 +1,127 @@
+{
+  "baseline_pass": {
+    "k": 6,
+    "n": 7,
+    "rate": 0.8571428571428571,
+    "wilson_ci": [
+      0.4868721707256811,
+      0.9743203756552565
+    ],
+    "judge_errors": 0
+  },
+  "treatment_pass": {
+    "k": 5,
+    "n": 7,
+    "rate": 0.7142857142857143,
+    "wilson_ci": [
+      0.35893445183261935,
+      0.9177810759959433
+    ],
+    "judge_errors": 0
+  },
+  "baseline_tokens": {
+    "fresh_input": 14,
+    "cache_creation": 54982,
+    "cache_read": 23023,
+    "output": 37126,
+    "logical_total": 78019,
+    "cost_usd": 0.9052889000000001
+  },
+  "treatment_tokens": {
+    "fresh_input": 14,
+    "cache_creation": 60624,
+    "cache_read": 23023,
+    "output": 42598,
+    "logical_total": 83661,
+    "cost_usd": 1.0250979
+  },
+  "token_delta": {
+    "fresh_input": {
+      "abs": 0,
+      "pct": 0.0
+    },
+    "cache_creation": {
+      "abs": 5642,
+      "pct": 10.26154014040959
+    },
+    "cache_read": {
+      "abs": 0,
+      "pct": 0.0
+    },
+    "output": {
+      "abs": 5472,
+      "pct": 14.73899692937564
+    },
+    "logical_total": {
+      "abs": 5642,
+      "pct": 7.231571796613645
+    },
+    "cost_usd": {
+      "abs": 0.11980899999999994,
+      "pct": 13.23433878400585
+    }
+  },
+  "baseline_confusion": {
+    "tp": 5,
+    "fp": 0,
+    "tn": 2,
+    "fn": 0,
+    "n": 7,
+    "base_rate": 0.7142857142857143,
+    "defect_recall": {
+      "found": 4,
+      "total": 5,
+      "rate": 0.8,
+      "judge_id_mismatches": 0
+    },
+    "false_findings_total": 2,
+    "neutral_matched_total": 2
+  },
+  "treatment_confusion": {
+    "tp": 5,
+    "fp": 0,
+    "tn": 2,
+    "fn": 0,
+    "n": 7,
+    "base_rate": 0.7142857142857143,
+    "defect_recall": {
+      "found": 4,
+      "total": 5,
+      "rate": 0.8,
+      "judge_id_mismatches": 0
+    },
+    "false_findings_total": 3,
+    "neutral_matched_total": 1
+  },
+  "flips": {
+    "both_pass": 5,
+    "both_fail": 1,
+    "only_baseline": 1,
+    "only_treatment": 0
+  },
+  "mcnemar_p": 1.0,
+  "adherence": {
+    "review-shape.checklist": 0.0,
+    "review-shape.disconfirm": 0.0,
+    "review-shape.verify": 0.0,
+    "review-shape.all_three": 0.0
+  },
+  "baseline_judge_tokens": {
+    "judge_tokens_total": 11164,
+    "judge_tokens_missing": 0,
+    "judge_cost_usd_total": null
+  },
+  "treatment_judge_tokens": {
+    "judge_tokens_total": 14015,
+    "judge_tokens_missing": 0,
+    "judge_cost_usd_total": null
+  },
+  "flags": {
+    "cost_adjusted_verdict": false,
+    "harness_broken": false,
+    "composite_floored": false,
+    "judge_errors": 0
+  },
+  "judge_errors": 0,
+  "parse_failures": 0
+}

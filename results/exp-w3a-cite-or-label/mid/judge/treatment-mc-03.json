@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-w3a-cite-or-label",
+  "arm": "treatment",
+  "task_id": "mc-03",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-03/truth.yaml",
+  "truth_defect_ids": [
+    "mc-03-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. src/main.rs:134-141 (rejection check) + docs/RESUME-g4c.md:12 — the RESUME doc's \"runnable now\" command (`backfill audit-canonical --spinoff-binding out/rev9-bindings.json`) is rejected by the new acceptance check, which only allows `--spinoff-binding` for `load-canonical`/`adjudicate-canonical`, not `audit-canonical`; the documented next step is not executable as written.\n2. src/main.rs:146 — `audit_canonical(&opts)` never accepts or forwards `spinoff_binding`, so even if the rejection in finding 1 were removed, the audit path has no mechanism to consume the frozen bindings, contradicting the doc's claim that the command \"reproduces rev 9's inputs bit-for-bit.\"\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "mc-03-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 0,
+  "neutral_matched": 1,
+  "verdict_flagged": true,
+  "item_pass": true,
+  "judge_error": false,
+  "judge_tokens": 2533,
+  "judge_cost_usd": null
+}

@@ -1,0 +1,1119 @@
+{
+  "evalId": "eval-Hco-2026-07-26T09:35:28",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-07-26T09:35:28.385Z",
+    "prompts": [
+      {
+        "raw": "Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nWhen reviewing code, tag every finding WRONG or SMELL before writing it up. WRONG means the code provably does the wrong thing — name the input or state and the incorrect result. SMELL means a risk, gap, or style concern with no demonstrated incorrect behavior. Report WRONG items first; a finding without a concrete failure scenario is a SMELL, never a blocker.\n\n# Repository Overview\n\nThis repository follows a layered architecture that has evolved organically over several years of active development. At its core, the service is a Python application built to handle inbound requests, transform and persist data, and expose results through a set of well-defined interfaces. The team has generally favored clarity and convention over cleverness, and much of the code reflects that sensibility, with descriptive names and a preference for explicit flow over implicit magic.\n\nThe application is organized into several conceptual layers. The presentation layer sits at the top and is responsible for accepting requests, performing lightweight validation, and shaping responses for consumers. Beneath it lives the service layer, where the bulk of the business logic resides. This is where the interesting decisions happen, and where most of the domain knowledge is encoded. Below that sits the data-access layer, which mediates between the service layer and the various persistence backends the system relies upon. Cross-cutting concerns such as logging, configuration, and authentication are woven throughout, and the team has historically debated whether these belong in dedicated modules or closer to the code that uses them.\n\nData generally flows in one direction. A request arrives at the edge, is authenticated and validated, and is then handed to a service that orchestrates the work. Services tend to be moderately sized and are composed of smaller collaborators, each with a fairly narrow responsibility. When persistence is required, the service delegates to a repository abstraction, which hides the details of the underlying store. Results propagate back up through the same layers, gathering any presentation-specific formatting along the way before finally being returned to the caller.\n\nConfiguration is handled through a combination of environment variables and configuration files, with sensible defaults baked in for local development. The team has tried, with varying degrees of success, to keep environment-specific concerns out of the core logic. Observability is provided through structured logging and a modest collection of metrics, and there is an ongoing conversation about how much tracing the system truly needs versus how much simply adds noise.\n\nHistorically, the codebase has grown in bursts, often in response to shifting product priorities. As a result, some corners are more polished than others, and a handful of modules carry the fingerprints of older conventions that the team has since moved away from. Newcomers usually find the overall shape approachable, though they occasionally stumble over the parts of the system that predate the current structure. On the whole, the repository aims to be a comfortable place to work: familiar in its patterns, unsurprising in its layout, and forgiving of the ordinary mistakes that come with everyday development.\n\n{{task_input}}",
+        "label": "treatment: /Users/wesleyjinks/code/prompts-skills-steering/results/exp-w3a-negative-control/mid/prompts/treatment.txt: Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nWhen reviewing code, tag every finding WRONG or SMELL before writing it up. WRONG means the code provably does the wrong thing — name the input or state and the incorrect result. SMELL means a risk, gap, or style concern with no demonstrated incorrect behavior. Report WRONG items first; a finding without a concrete failure scenario is a SMELL, never a blocker.\n\n# Repository Overview\n\nThis repository follows a layered architecture that has evolved organically over several years of active development. At its core, the service is a Python application built to handle inbound requests, transform and persist data, and expose results through a set of well-defined interfaces. The team has generally favored clarity and convention over cleverness, and much of the code reflects that sensibility, with descriptive names and a preference for explicit flow over implicit magic.\n\nThe application is organized into several conceptual layers. The presentation layer sits at the top and is responsible for accepting requests, performing lightweight validation, and shaping responses for consumers. Beneath it lives the service layer, where the bulk of the business logic resides. This is where the interesting decisions happen, and where most of the domain knowledge is encoded. Below that sits the data-access layer, which mediates between the service layer and the various persistence backends the system relies upon. Cross-cutting concerns such as logging, configuration, and authentication are woven throughout, and the team has historically debated whether these belong in dedicated modules or closer to the code that uses them.\n\nData generally flows in one direction. A request arrives at the edge, is authenticated and validated, and is then handed to a service that orchestrates the work. Services tend to be moderately sized and are composed of smaller collaborators, each with a fairly narrow responsibility. When persistence is required, the service delegates to a repository abstraction, which hides the details of the underlying store. Results propagate back up through the same layers, gathering any presentation-specific formatting along the way before finally being returned to the caller.\n\nConfiguration is handled through a combination of environment variables and configuration files, with sensible defaults baked in for local development. The team has tried, with varying degrees of success, to keep environment-specific concerns out of the core logic. Observability is provided through structured logging and a modest collection of metrics, and there is an ongoing conversation about how much tracing the system truly needs versus how much simply adds noise.\n\nHistorically, the codebase has grown in bursts, often in response to shifting product priorities. As a result, some corners are more polished than others, and a handful of modules carry the fingerprints of older conventions that the team has since moved away from. Newcomers usually find the overall shape approachable, though they occasionally stumble over the parts of the system that predate the current structure. On the whole, the repository aims to be a comfortable place to work: familiar in its patterns, unsurprising in its layout, and forgiving of the ordinary mistakes that come with everyday development.\n\n{{task_input}}",
+        "id": "d309da69cbc354041cdedd1268963273dc7428dcc145e75363aa1845420c6fb8",
+        "provider": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/providers/promptfoo_claude.py",
+        "metrics": {
+          "score": 5,
+          "testPassCount": 5,
+          "testFailCount": 2,
+          "testErrorCount": 0,
+          "assertPassCount": 5,
+          "assertFailCount": 2,
+          "totalLatencyMs": 445977,
+          "tokenUsage": {
+            "prompt": 83661,
+            "completion": 42598,
+            "cached": 0,
+            "total": 126259,
+            "numRequests": 7,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "namedScoreWeights": {},
+          "cost": 1.0250979
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0.1063557,
+        "error": "item_pass=False seeded=True verdict_flagged=True false_findings=1 found=['mc-01-d1']",
+        "gradingResult": {
+          "pass": false,
+          "score": 0,
+          "reason": "item_pass=False seeded=True verdict_flagged=True false_findings=1 found=['mc-01-d1']",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "item_pass=False seeded=True verdict_flagged=True false_findings=1 found=['mc-01-d1']",
+              "assertion": {
+                "type": "python",
+                "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+              }
+            }
+          ]
+        },
+        "id": "4fdffe8b-3db1-4296-9717-7b92c1470218",
+        "latencyMs": 34913,
+        "namedScores": {},
+        "prompt": {
+          "raw": "Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nWhen reviewing code, tag every finding WRONG or SMELL before writing it up. WRONG means the code provably does the wrong thing — name the input or state and the incorrect result. SMELL means a risk, gap, or style concern with no demonstrated incorrect behavior. Report WRONG items first; a finding without a concrete failure scenario is a SMELL, never a blocker.\n\n# Repository Overview\n\nThis repository follows a layered architecture that has evolved organically over several years of active development. At its core, the service is a Python application built to handle inbound requests, transform and persist data, and expose results through a set of well-defined interfaces. The team has generally favored clarity and convention over cleverness, and much of the code reflects that sensibility, with descriptive names and a preference for explicit flow over implicit magic.\n\nThe application is organized into several conceptual layers. The presentation layer sits at the top and is responsible for accepting requests, performing lightweight validation, and shaping responses for consumers. Beneath it lives the service layer, where the bulk of the business logic resides. This is where the interesting decisions happen, and where most of the domain knowledge is encoded. Below that sits the data-access layer, which mediates between the service layer and the various persistence backends the system relies upon. Cross-cutting concerns such as logging, configuration, and authentication are woven throughout, and the team has historically debated whether these belong in dedicated modules or closer to the code that uses them.\n\nData generally flows in one direction. A request arrives at the edge, is authenticated and validated, and is then handed to a service that orchestrates the work. Services tend to be moderately sized and are composed of smaller collaborators, each with a fairly narrow responsibility. When persistence is required, the service delegates to a repository abstraction, which hides the details of the underlying store. Results propagate back up through the same layers, gathering any presentation-specific formatting along the way before finally being returned to the caller.\n\nConfiguration is handled through a combination of environment variables and configuration files, with sensible defaults baked in for local development. The team has tried, with varying degrees of success, to keep environment-specific concerns out of the core logic. Observability is provided through structured logging and a modest collection of metrics, and there is an ongoing conversation about how much tracing the system truly needs versus how much simply adds noise.\n\nHistorically, the codebase has grown in bursts, often in response to shifting product priorities. As a result, some corners are more polished than others, and a handful of modules carry the fingerprints of older conventions that the team has since moved away from. Newcomers usually find the overall shape approachable, though they occasionally stumble over the parts of the system that predate the current structure. On the whole, the repository aims to be a comfortable place to work: familiar in its patterns, unsurprising in its layout, and forgiving of the ordinary mistakes that come with everyday development.\n\n# replay_spool: external-sort run files (writer, first cut)\n\nSpooling layer for a canonical-data backfill: records are buffered, spilled\nto sorted \"run\" files under a scratch directory, then merged and finally\nsealed; an emitter reads the sealed run back one instrument group at a time.\n\nContract:\n- Run files carry a magic header and length-framed records, with an\n  integrity digest over the framed stream and a count/digest footer.\n- `docs/spool-format.md` is the format's reference documentation and must\n  stay accurate: operators size scratch volumes and debug spools from it.\n- The diff adds the first cut of the record writer plus the format doc.\n\n\n--- /dev/null\n+++ b/src/replay_spool.rs\n@@ -0,0 +1,57 @@\n+use std::io::Write;\n+\n+use serde::Serialize;\n+use sha2::{Digest, Sha256};\n+\n+pub const RUN_MAGIC: &[u8] = b\"REPLAY_RUN_V2\\n\";\n+\n+/// One spooled record, per bar.\n+#[derive(Serialize)]\n+pub struct Entry {\n+    /// Protobuf-encoded MarketBar, exactly as `MarketBar::encode` produced it.\n+    pub market_bar: Vec<u8>,\n+    pub source_ordinal: u32,\n+    pub close_token: String,\n+    pub closeadj_token: String,\n+    /// 64-char hex SHA-256 of the exact raw source row.\n+    pub raw_row_sha256: String,\n+}\n+\n+pub struct RunWriter<W: Write> {\n+    out: W,\n+    digest: Sha256,\n+    records: u64,\n+}\n+\n+impl<W: Write> RunWriter<W> {\n+    pub fn create(mut out: W) -> std::io::Result<Self> {\n+        out.write_all(RUN_MAGIC)?;\n+        Ok(Self { out, digest: Sha256::new(), records: 0 })\n+    }\n+\n+    /// Append one record: u32 big-endian length prefix, then the record bytes.\n+    pub fn push(&mut self, entry: &Entry) -> std::io::Result<()> {\n+        let body = encode_entry(entry)?;\n+        let len = u32::try_from(body.len()).expect(\"record fits u32\");\n+        self.out.write_all(&len.to_be_bytes())?;\n+        self.out.write_all(&body)?;\n+        self.digest.update(len.to_be_bytes());\n+        self.digest.update(&body);\n+        self.records += 1;\n+        Ok(())\n+    }\n+\n+    /// Finish the run: append the record count and the stream digest as a footer.\n+    pub fn finish(mut self) -> std::io::Result<()> {\n+        self.out.write_all(&self.records.to_be_bytes())?;\n+        let digest = self.digest.finalize();\n+        self.out.write_all(&digest)?;\n+        self.out.flush()\n+    }\n+}\n+\n+fn encode_entry(entry: &Entry) -> std::io::Result<Vec<u8>> {\n+    let mut encoded = Vec::new();\n+    serde_json::to_writer(&mut encoded, entry).map_err(std::io::Error::other)?;\n+    Ok(encoded)\n+}\n--- a/docs/spool-format.md\n+++ b/docs/spool-format.md\n@@ -1,3 +1,11 @@\n # Replay spool format\n \n-TBD.\n+Run files start with `RUN_MAGIC`, then a stream of length-framed records —\n+a u32 big-endian length prefix followed by the record bytes — and end with\n+a record-count + SHA-256 footer computed over the framed stream.\n+\n+Record payloads use our compact custom binary codec; there is no JSON\n+anywhere on the write path. Protobuf bar bytes are stored raw inside the\n+record, so even a full-population spool (tens of millions of bars) stays\n+comfortably within one scratch volume at roughly the size of the raw\n+protobuf data plus framing overhead.",
+          "label": "treatment: /Users/wesleyjinks/code/prompts-skills-steering/results/exp-w3a-negative-control/mid/prompts/treatment.txt: Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nWhen reviewing code, tag every finding WRONG or SMELL before writing it up. WRONG means the code provably does the wrong thing — name the input or state and the incorrect result. SMELL means a risk, gap, or style concern with no demonstrated incorrect behavior. Report WRONG items first; a finding without a concrete failure scenario is a SMELL, never a blocker.\n\n# Repository Overview\n\nThis repository follows a layered architecture that has evolved organically over several years of active development. At its core, the service is a Python application built to handle inbound requests, transform and persist data, and expose results through a set of well-defined interfaces. The team has generally favored clarity and convention over cleverness, and much of the code reflects that sensibility, with descriptive names and a preference for explicit flow over implicit magic.\n\nThe application is organized into several conceptual layers. The presentation layer sits at the top and is responsible for accepting requests, performing lightweight validation, and shaping responses for consumers. Beneath it lives the service layer, where the bulk of the business logic resides. This is where the interesting decisions happen, and where most of the domain knowledge is encoded. Below that sits the data-access layer, which mediates between the service layer and the various persistence backends the system relies upon. Cross-cutting concerns such as logging, configuration, and authentication are woven throughout, and the team has historically debated whether these belong in dedicated modules or closer to the code that uses them.\n\nData generally flows in one direction. A request arrives at the edge, is authenticated and validated, and is then handed to a service that orchestrates the work. Services tend to be moderately sized and are composed of smaller collaborators, each with a fairly narrow responsibility. When persistence is required, the service delegates to a repository abstraction, which hides the details of the underlying store. Results propagate back up through the same layers, gathering any presentation-specific formatting along the way before finally being returned to the caller.\n\nConfiguration is handled through a combination of environment variables and configuration files, with sensible defaults baked in for local development. The team has tried, with varying degrees of success, to keep environment-specific concerns out of the core logic. Observability is provided through structured logging and a modest collection of metrics, and there is an ongoing conversation about how much tracing the system truly needs versus how much simply adds noise.\n\nHistorically, the codebase has grown in bursts, often in response to shifting product priorities. As a result, some corners are more polished than others, and a handful of modules carry the fingerprints of older conventions that the team has since moved away from. Newcomers usually find the overall shape approachable, though they occasionally stumble over the parts of the system that predate the current structure. On the whole, the repository aims to be a comfortable place to work: familiar in its patterns, unsurprising in its layout, and forgiving of the ordinary mistakes that come with everyday development.\n\n{{task_input}}",
+          "config": {}
+        },
+        "promptId": "d309da69cbc354041cdedd1268963273dc7428dcc145e75363aa1845420c6fb8",
+        "promptIdx": 0,
+        "provider": {
+          "id": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/providers/promptfoo_claude.py",
+          "label": ""
+        },
+        "response": {
+          "output": "I reviewed the writer implementation against the documented contract in `docs/spool-format.md`.\n\n**Encoding mismatch (critical):** `encode_entry` in `src/replay_spool.rs:53-56` serializes each `Entry` via `serde_json::to_writer`. The updated `docs/spool-format.md` explicitly states \"Record payloads use our compact custom binary codec; there is no JSON anywhere on the write path.\" That's flatly contradicted by the code — this is JSON, not a custom binary codec.\n\n**Size claim mismatch (critical, follows from the above):** The doc says a full spool \"stays comfortably within one scratch volume at roughly the size of the raw protobuf data plus framing overhead.\" But `Entry::market_bar` is `Vec<u8>`, and `#[derive(Serialize)]` with `serde_json` encodes a `Vec<u8>` as a JSON array of decimal numbers by default (e.g. byte `200` becomes the text `\"200,\"`), not as compact binary or base64. For tens of millions of bars, this inflates the protobuf payload by roughly 3-4x, not \"raw protobuf plus framing overhead.\" Since the repo context states operators size scratch volumes directly from this doc, this is a real capacity-planning hazard, not just a style nit.\n\n**Minor:** `src/replay_spool.rs:24` — `u32::try_from(body.len()).expect(\"record fits u32\")` will panic and abort the writer if a single JSON-encoded entry (inflated as above) exceeds 4 GiB. Unlikely for a single bar record today, but worth flagging as a latent risk given how much the JSON encoding inflates size relative to the documented assumption.\n\nEverything else — magic header, length-prefix framing, digest computed over length+body per record, count+digest footer — matches the documented format and looks correct.\n\n## FINDINGS\nVERDICT: REJECT\n1. src/replay_spool.rs:53 — `encode_entry` uses `serde_json::to_writer`, but docs/spool-format.md states \"there is no JSON anywhere on the write path,\" a direct contradiction of the implemented codec.\n2. docs/spool-format.md (added lines) — claims spool size is \"roughly the size of the raw protobuf data plus framing overhead,\" but JSON-encoding `Vec<u8>` as a comma-separated decimal array inflates the payload ~3-4x over raw bytes, invalidating the scratch-volume sizing guidance operators rely on.\n3. src/replay_spool.rs:24 — `u32::try_from(body.len()).expect(\"record fits u32\")` panics if an encoded entry exceeds 4 GiB; JSON inflation from finding 1 makes this more reachable than the raw-protobuf size would suggest (SMELL, no concrete triggering input demonstrated).",
+          "tokenUsage": {
+            "prompt": 12252,
+            "completion": 3276,
+            "total": 15528,
+            "numRequests": 1
+          },
+          "cost": 0.1063557,
+          "cached": false
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "vars": {
+            "task_id": "mc-01",
+            "seeded": true,
+            "arm": "treatment",
+            "task_input": "# replay_spool: external-sort run files (writer, first cut)\n\nSpooling layer for a canonical-data backfill: records are buffered, spilled\nto sorted \"run\" files under a scratch directory, then merged and finally\nsealed; an emitter reads the sealed run back one instrument group at a time.\n\nContract:\n- Run files carry a magic header and length-framed records, with an\n  integrity digest over the framed stream and a count/digest footer.\n- `docs/spool-format.md` is the format's reference documentation and must\n  stay accurate: operators size scratch volumes and debug spools from it.\n- The diff adds the first cut of the record writer plus the format doc.\n\n\n--- /dev/null\n+++ b/src/replay_spool.rs\n@@ -0,0 +1,57 @@\n+use std::io::Write;\n+\n+use serde::Serialize;\n+use sha2::{Digest, Sha256};\n+\n+pub const RUN_MAGIC: &[u8] = b\"REPLAY_RUN_V2\\n\";\n+\n+/// One spooled record, per bar.\n+#[derive(Serialize)]\n+pub struct Entry {\n+    /// Protobuf-encoded MarketBar, exactly as `MarketBar::encode` produced it.\n+    pub market_bar: Vec<u8>,\n+    pub source_ordinal: u32,\n+    pub close_token: String,\n+    pub closeadj_token: String,\n+    /// 64-char hex SHA-256 of the exact raw source row.\n+    pub raw_row_sha256: String,\n+}\n+\n+pub struct RunWriter<W: Write> {\n+    out: W,\n+    digest: Sha256,\n+    records: u64,\n+}\n+\n+impl<W: Write> RunWriter<W> {\n+    pub fn create(mut out: W) -> std::io::Result<Self> {\n+        out.write_all(RUN_MAGIC)?;\n+        Ok(Self { out, digest: Sha256::new(), records: 0 })\n+    }\n+\n+    /// Append one record: u32 big-endian length prefix, then the record bytes.\n+    pub fn push(&mut self, entry: &Entry) -> std::io::Result<()> {\n+        let body = encode_entry(entry)?;\n+        let len = u32::try_from(body.len()).expect(\"record fits u32\");\n+        self.out.write_all(&len.to_be_bytes())?;\n+        self.out.write_all(&body)?;\n+        self.digest.update(len.to_be_bytes());\n+        self.digest.update(&body);\n+        self.records += 1;\n+        Ok(())\n+    }\n+\n+    /// Finish the run: append the record count and the stream digest as a footer.\n+    pub fn finish(mut self) -> std::io::Result<()> {\n+        self.out.write_all(&self.records.to_be_bytes())?;\n+        let digest = self.digest.finalize();\n+        self.out.write_all(&digest)?;\n+        self.out.flush()\n+    }\n+}\n+\n+fn encode_entry(entry: &Entry) -> std::io::Result<Vec<u8>> {\n+    let mut encoded = Vec::new();\n+    serde_json::to_writer(&mut encoded, entry).map_err(std::io::Error::other)?;\n+    Ok(encoded)\n+}\n--- a/docs/spool-format.md\n+++ b/docs/spool-format.md\n@@ -1,3 +1,11 @@\n # Replay spool format\n \n-TBD.\n+Run files start with `RUN_MAGIC`, then a stream of length-framed records —\n+a u32 big-endian length prefix followed by the record bytes — and end with\n+a record-count + SHA-256 footer computed over the framed stream.\n+\n+Record payloads use our compact custom binary codec; there is no JSON\n+anywhere on the write path. Protobuf bar bytes are stored raw inside the\n+record, so even a full-population spool (tens of millions of bars) stays\n+comfortably within one scratch volume at roughly the size of the raw\n+protobuf data plus framing overhead.\n",
+            "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-01/truth.yaml",
+            "results_dir": "[REDACTED]",
+            "exp_id": "exp-w3a-negative-control",
+            "tier": "mid",
+            "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+          },
+          "assert": [
+            {
+              "type": "python",
+              "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 12252,
+          "completion": 3276,
+          "cached": 0,
+          "total": 15528,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "task_id": "mc-01",
+          "seeded": true,
+          "arm": "treatment",
+          "task_input": "# replay_spool: external-sort run files (writer, first cut)\n\nSpooling layer for a canonical-data backfill: records are buffered, spilled\nto sorted \"run\" files under a scratch directory, then merged and finally\nsealed; an emitter reads the sealed run back one instrument group at a time.\n\nContract:\n- Run files carry a magic header and length-framed records, with an\n  integrity digest over the framed stream and a count/digest footer.\n- `docs/spool-format.md` is the format's reference documentation and must\n  stay accurate: operators size scratch volumes and debug spools from it.\n- The diff adds the first cut of the record writer plus the format doc.\n\n\n--- /dev/null\n+++ b/src/replay_spool.rs\n@@ -0,0 +1,57 @@\n+use std::io::Write;\n+\n+use serde::Serialize;\n+use sha2::{Digest, Sha256};\n+\n+pub const RUN_MAGIC: &[u8] = b\"REPLAY_RUN_V2\\n\";\n+\n+/// One spooled record, per bar.\n+#[derive(Serialize)]\n+pub struct Entry {\n+    /// Protobuf-encoded MarketBar, exactly as `MarketBar::encode` produced it.\n+    pub market_bar: Vec<u8>,\n+    pub source_ordinal: u32,\n+    pub close_token: String,\n+    pub closeadj_token: String,\n+    /// 64-char hex SHA-256 of the exact raw source row.\n+    pub raw_row_sha256: String,\n+}\n+\n+pub struct RunWriter<W: Write> {\n+    out: W,\n+    digest: Sha256,\n+    records: u64,\n+}\n+\n+impl<W: Write> RunWriter<W> {\n+    pub fn create(mut out: W) -> std::io::Result<Self> {\n+        out.write_all(RUN_MAGIC)?;\n+        Ok(Self { out, digest: Sha256::new(), records: 0 })\n+    }\n+\n+    /// Append one record: u32 big-endian length prefix, then the record bytes.\n+    pub fn push(&mut self, entry: &Entry) -> std::io::Result<()> {\n+        let body = encode_entry(entry)?;\n+        let len = u32::try_from(body.len()).expect(\"record fits u32\");\n+        self.out.write_all(&len.to_be_bytes())?;\n+        self.out.write_all(&body)?;\n+        self.digest.update(len.to_be_bytes());\n+        self.digest.update(&body);\n+        self.records += 1;\n+        Ok(())\n+    }\n+\n+    /// Finish the run: append the record count and the stream digest as a footer.\n+    pub fn finish(mut self) -> std::io::Result<()> {\n+        self.out.write_all(&self.records.to_be_bytes())?;\n+        let digest = self.digest.finalize();\n+        self.out.write_all(&digest)?;\n+        self.out.flush()\n+    }\n+}\n+\n+fn encode_entry(entry: &Entry) -> std::io::Result<Vec<u8>> {\n+    let mut encoded = Vec::new();\n+    serde_json::to_writer(&mut encoded, entry).map_err(std::io::Error::other)?;\n+    Ok(encoded)\n+}\n--- a/docs/spool-format.md\n+++ b/docs/spool-format.md\n@@ -1,3 +1,11 @@\n # Replay spool format\n \n-TBD.\n+Run files start with `RUN_MAGIC`, then a stream of length-framed records —\n+a u32 big-endian length prefix followed by the record bytes — and end with\n+a record-count + SHA-256 footer computed over the framed stream.\n+\n+Record payloads use our compact custom binary codec; there is no JSON\n+anywhere on the write path. Protobuf bar bytes are stored raw inside the\n+record, so even a full-population spool (tens of millions of bars) stays\n+comfortably within one scratch volume at roughly the size of the raw\n+protobuf data plus framing overhead.\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-01/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "exp-w3a-negative-control",
+          "tier": "mid",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0.3441897,
+        "error": "item_pass=False seeded=True verdict_flagged=True false_findings=2 found=[]",
+        "gradingResult": {
+          "pass": false,
+          "score": 0,
+          "reason": "item_pass=False seeded=True verdict_flagged=True false_findings=2 found=[]",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "item_pass=False seeded=True verdict_flagged=True false_findings=2 found=[]",
+              "assertion": {
+                "type": "python",
+                "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+              }
+            }
+          ]
+        },
+        "id": "e3718578-10bd-4d03-888c-d25ded7991fa",
+        "latencyMs": 205362,
+        "namedScores": {},
+        "prompt": {
+          "raw": "Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nWhen reviewing code, tag every finding WRONG or SMELL before writing it up. WRONG means the code provably does the wrong thing — name the input or state and the incorrect result. SMELL means a risk, gap, or style concern with no demonstrated incorrect behavior. Report WRONG items first; a finding without a concrete failure scenario is a SMELL, never a blocker.\n\n# Repository Overview\n\nThis repository follows a layered architecture that has evolved organically over several years of active development. At its core, the service is a Python application built to handle inbound requests, transform and persist data, and expose results through a set of well-defined interfaces. The team has generally favored clarity and convention over cleverness, and much of the code reflects that sensibility, with descriptive names and a preference for explicit flow over implicit magic.\n\nThe application is organized into several conceptual layers. The presentation layer sits at the top and is responsible for accepting requests, performing lightweight validation, and shaping responses for consumers. Beneath it lives the service layer, where the bulk of the business logic resides. This is where the interesting decisions happen, and where most of the domain knowledge is encoded. Below that sits the data-access layer, which mediates between the service layer and the various persistence backends the system relies upon. Cross-cutting concerns such as logging, configuration, and authentication are woven throughout, and the team has historically debated whether these belong in dedicated modules or closer to the code that uses them.\n\nData generally flows in one direction. A request arrives at the edge, is authenticated and validated, and is then handed to a service that orchestrates the work. Services tend to be moderately sized and are composed of smaller collaborators, each with a fairly narrow responsibility. When persistence is required, the service delegates to a repository abstraction, which hides the details of the underlying store. Results propagate back up through the same layers, gathering any presentation-specific formatting along the way before finally being returned to the caller.\n\nConfiguration is handled through a combination of environment variables and configuration files, with sensible defaults baked in for local development. The team has tried, with varying degrees of success, to keep environment-specific concerns out of the core logic. Observability is provided through structured logging and a modest collection of metrics, and there is an ongoing conversation about how much tracing the system truly needs versus how much simply adds noise.\n\nHistorically, the codebase has grown in bursts, often in response to shifting product priorities. As a result, some corners are more polished than others, and a handful of modules carry the fingerprints of older conventions that the team has since moved away from. Newcomers usually find the overall shape approachable, though they occasionally stumble over the parts of the system that predate the current structure. On the whole, the repository aims to be a comfortable place to work: familiar in its patterns, unsurprising in its layout, and forgiving of the ordinary mistakes that come with everyday development.\n\n# replay_spool: compaction + seal for the external-sort spool\n\nThe spool spills sorted \"run\" files to a scratch directory; SpoolDir tracks\nthem in `self.runs`. `merge_sorted(inputs, out)` k-way-merges input runs\ninto one output run. `fsync_file` makes a run durable. MERGE_FANIN is the\nmerge fan-in constant (8). Scratch space is shared with other jobs and is\nthe binding constraint at full-population scale.\n\nContract:\n- Compaction and sealing must never delete the only durable copy of data.\n- `CHANGELOG.md` entries are operator-facing: capacity planning for shared\n  scratch volumes is done from them, so their claims must be accurate.\n- The diff adds group-wise compaction, sealing, and the changelog entry.\n\n\n--- a/src/replay_spool.rs\n+++ b/src/replay_spool.rs\n@@ -204,9 +204,38 @@ impl SpoolDir {\n     fn next_run_path(&mut self, kind: &str) -> PathBuf {\n         self.seq += 1;\n         self.dir.join(format!(\"{kind}-{:020}.run\", self.seq))\n     }\n \n+    /// Merge run files group-by-group, deleting each group's inputs as soon\n+    /// as the group's merged run is durable.\n+    pub fn compact_runs(&mut self) -> Result<()> {\n+        while self.runs.len() > MERGE_FANIN {\n+            let group: Vec<PathBuf> = self.runs[..MERGE_FANIN].to_vec();\n+            let merged = self.next_run_path(\"merge\");\n+            merge_sorted(&group, &merged)?;\n+            fsync_file(&merged)?;\n+            self.runs.drain(..MERGE_FANIN);\n+            self.runs.push(merged);\n+            for run in &group {\n+                fs::remove_file(run)?;\n+            }\n+        }\n+        Ok(())\n+    }\n+\n+    /// Produce the final sealed run the emitter reads back.\n+    pub fn seal(mut self) -> Result<PathBuf> {\n+        self.compact_runs()?;\n+        let sealed = self.dir.join(\"sealed.run\");\n+        merge_sorted(&self.runs, &sealed)?;\n+        fsync_file(&sealed)?;\n+        for run in &self.runs {\n+            fs::remove_file(run)?;\n+        }\n+        Ok(sealed)\n+    }\n+\n     pub fn scratch_bytes(&self) -> u64 {\n         self.runs.iter().filter_map(|p| fs::metadata(p).ok()).map(|m| m.len()).sum()\n     }\n }\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -1,2 +1,9 @@\n # Changelog\n \n+## Unreleased\n+\n+- Spool compaction deletes each merge group's inputs as soon as the group's\n+  merged run is fsynced. Peak scratch usage is therefore bounded by one\n+  merge group at every stage, including seal: the old 2x (all remaining\n+  runs + full sealed output) high-water mark at seal time is gone.\n+",
+          "label": "treatment: /Users/wesleyjinks/code/prompts-skills-steering/results/exp-w3a-negative-control/mid/prompts/treatment.txt: Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nWhen reviewing code, tag every finding WRONG or SMELL before writing it up. WRONG means the code provably does the wrong thing — name the input or state and the incorrect result. SMELL means a risk, gap, or style concern with no demonstrated incorrect behavior. Report WRONG items first; a finding without a concrete failure scenario is a SMELL, never a blocker.\n\n# Repository Overview\n\nThis repository follows a layered architecture that has evolved organically over several years of active development. At its core, the service is a Python application built to handle inbound requests, transform and persist data, and expose results through a set of well-defined interfaces. The team has generally favored clarity and convention over cleverness, and much of the code reflects that sensibility, with descriptive names and a preference for explicit flow over implicit magic.\n\nThe application is organized into several conceptual layers. The presentation layer sits at the top and is responsible for accepting requests, performing lightweight validation, and shaping responses for consumers. Beneath it lives the service layer, where the bulk of the business logic resides. This is where the interesting decisions happen, and where most of the domain knowledge is encoded. Below that sits the data-access layer, which mediates between the service layer and the various persistence backends the system relies upon. Cross-cutting concerns such as logging, configuration, and authentication are woven throughout, and the team has historically debated whether these belong in dedicated modules or closer to the code that uses them.\n\nData generally flows in one direction. A request arrives at the edge, is authenticated and validated, and is then handed to a service that orchestrates the work. Services tend to be moderately sized and are composed of smaller collaborators, each with a fairly narrow responsibility. When persistence is required, the service delegates to a repository abstraction, which hides the details of the underlying store. Results propagate back up through the same layers, gathering any presentation-specific formatting along the way before finally being returned to the caller.\n\nConfiguration is handled through a combination of environment variables and configuration files, with sensible defaults baked in for local development. The team has tried, with varying degrees of success, to keep environment-specific concerns out of the core logic. Observability is provided through structured logging and a modest collection of metrics, and there is an ongoing conversation about how much tracing the system truly needs versus how much simply adds noise.\n\nHistorically, the codebase has grown in bursts, often in response to shifting product priorities. As a result, some corners are more polished than others, and a handful of modules carry the fingerprints of older conventions that the team has since moved away from. Newcomers usually find the overall shape approachable, though they occasionally stumble over the parts of the system that predate the current structure. On the whole, the repository aims to be a comfortable place to work: familiar in its patterns, unsurprising in its layout, and forgiving of the ordinary mistakes that come with everyday development.\n\n{{task_input}}",
+          "config": {}
+        },
+        "promptId": "d309da69cbc354041cdedd1268963273dc7428dcc145e75363aa1845420c6fb8",
+        "promptIdx": 0,
+        "provider": {
+          "id": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/providers/promptfoo_claude.py",
+          "label": ""
+        },
+        "response": {
+          "output": "I've reviewed the diff against the stated contract (never delete the only durable copy of data) and the changelog's scratch-bounding claims.\n\n**Happy-path correctness is sound**: in both `compact_runs` and `seal`, `merge_sorted` + `fsync_file` complete before any input file is removed, so on the success path the durable-copy contract holds and the changelog's \"peak bounded by one merge group\" claim checks out arithmetically (extra overhead per stage ≈ size of one merge group, not the full remaining set).\n\n**The defect is in the bookkeeping/removal ordering on interruption.** In `compact_runs` (src/replay_spool.rs:217-220):\n```rust\nself.runs.drain(..MERGE_FANIN);\nself.runs.push(merged);\nfor run in &group {\n    fs::remove_file(run)?;\n}\n```\n`self.runs` is updated (group entries dropped, merged entry added) *before* the removal loop finishes. If any `fs::remove_file` call fails (I/O error, permission race) or the process is interrupted partway through the loop, the not-yet-removed files in `group` are still on disk but no longer referenced anywhere in `self.runs`. Nothing else in the diff ever revisits them — they become permanently untracked, leaking shared scratch space. Given the stated context that \"scratch space is shared with other jobs and is the binding constraint at full-population scale,\" an unbounded leak triggered by any interruption is a real operational defect, not hypothetical.\n\nThe same pattern exists in `seal` (src/replay_spool.rs:232-233): `self` is consumed by the function, so if the removal loop fails partway, the un-removed remainder of `self.runs` is dropped along with `self` and can never be cleaned up through this code path.\n\nNote: this doesn't violate the \"never delete the only durable copy\" contract (no data is lost — the merged/sealed output is always durable before deletion begins), but it does undermine the scratch-bounding guarantee the changelog advertises.\n\n**Minor changelog wording issue**: \"the old 2x ... high-water mark at seal time is gone\" implies this diff fixes a previously-existing behavior, but the diff is purely additive — `compact_runs`/`seal` didn't exist before. This is a small accuracy nit given the stated requirement that changelog claims must be accurate for capacity planning.\n\nNo test coverage was added for this safety-critical compaction/seal logic.\n\n## FINDINGS\nVERDICT: REJECT\n1. src/replay_spool.rs:217-220 — WRONG: in `compact_runs`, `self.runs` is updated (drain+push) before all group files are removed; if `fs::remove_file` fails or the process is interrupted mid-loop, the remaining un-removed files become permanently untracked orphans, leaking shared scratch space indefinitely.\n2. src/replay_spool.rs:232-233 — WRONG: same pattern in `seal`; since `self` is consumed by the function, a partial failure in the removal loop leaves the un-removed remainder of `self.runs` unreachable once `self` is dropped, with no path to clean them up.\n3. CHANGELOG.md:9 — SMELL: \"the old 2x ... high-water mark ... is gone\" reads as fixing pre-existing behavior, but the diff shows `compact_runs`/`seal` as entirely new code with nothing removed, so there was no \"old\" version of this code path to regress from.\n4. src/replay_spool.rs — SMELL: no tests accompany `compact_runs`/`seal`, despite them being the safety-critical logic the stated contract (never delete the only durable copy) depends on.",
+          "tokenUsage": {
+            "prompt": 11957,
+            "completion": 19267,
+            "total": 31224,
+            "numRequests": 1
+          },
+          "cost": 0.3441897,
+          "cached": false
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "vars": {
+            "task_id": "mc-02",
+            "seeded": true,
+            "arm": "treatment",
+            "task_input": "# replay_spool: compaction + seal for the external-sort spool\n\nThe spool spills sorted \"run\" files to a scratch directory; SpoolDir tracks\nthem in `self.runs`. `merge_sorted(inputs, out)` k-way-merges input runs\ninto one output run. `fsync_file` makes a run durable. MERGE_FANIN is the\nmerge fan-in constant (8). Scratch space is shared with other jobs and is\nthe binding constraint at full-population scale.\n\nContract:\n- Compaction and sealing must never delete the only durable copy of data.\n- `CHANGELOG.md` entries are operator-facing: capacity planning for shared\n  scratch volumes is done from them, so their claims must be accurate.\n- The diff adds group-wise compaction, sealing, and the changelog entry.\n\n\n--- a/src/replay_spool.rs\n+++ b/src/replay_spool.rs\n@@ -204,9 +204,38 @@ impl SpoolDir {\n     fn next_run_path(&mut self, kind: &str) -> PathBuf {\n         self.seq += 1;\n         self.dir.join(format!(\"{kind}-{:020}.run\", self.seq))\n     }\n \n+    /// Merge run files group-by-group, deleting each group's inputs as soon\n+    /// as the group's merged run is durable.\n+    pub fn compact_runs(&mut self) -> Result<()> {\n+        while self.runs.len() > MERGE_FANIN {\n+            let group: Vec<PathBuf> = self.runs[..MERGE_FANIN].to_vec();\n+            let merged = self.next_run_path(\"merge\");\n+            merge_sorted(&group, &merged)?;\n+            fsync_file(&merged)?;\n+            self.runs.drain(..MERGE_FANIN);\n+            self.runs.push(merged);\n+            for run in &group {\n+                fs::remove_file(run)?;\n+            }\n+        }\n+        Ok(())\n+    }\n+\n+    /// Produce the final sealed run the emitter reads back.\n+    pub fn seal(mut self) -> Result<PathBuf> {\n+        self.compact_runs()?;\n+        let sealed = self.dir.join(\"sealed.run\");\n+        merge_sorted(&self.runs, &sealed)?;\n+        fsync_file(&sealed)?;\n+        for run in &self.runs {\n+            fs::remove_file(run)?;\n+        }\n+        Ok(sealed)\n+    }\n+\n     pub fn scratch_bytes(&self) -> u64 {\n         self.runs.iter().filter_map(|p| fs::metadata(p).ok()).map(|m| m.len()).sum()\n     }\n }\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -1,2 +1,9 @@\n # Changelog\n \n+## Unreleased\n+\n+- Spool compaction deletes each merge group's inputs as soon as the group's\n+  merged run is fsynced. Peak scratch usage is therefore bounded by one\n+  merge group at every stage, including seal: the old 2x (all remaining\n+  runs + full sealed output) high-water mark at seal time is gone.\n+\n",
+            "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-02/truth.yaml",
+            "results_dir": "[REDACTED]",
+            "exp_id": "exp-w3a-negative-control",
+            "tier": "mid",
+            "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+          },
+          "assert": [
+            {
+              "type": "python",
+              "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 11957,
+          "completion": 19267,
+          "cached": 0,
+          "total": 31224,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "task_id": "mc-02",
+          "seeded": true,
+          "arm": "treatment",
+          "task_input": "# replay_spool: compaction + seal for the external-sort spool\n\nThe spool spills sorted \"run\" files to a scratch directory; SpoolDir tracks\nthem in `self.runs`. `merge_sorted(inputs, out)` k-way-merges input runs\ninto one output run. `fsync_file` makes a run durable. MERGE_FANIN is the\nmerge fan-in constant (8). Scratch space is shared with other jobs and is\nthe binding constraint at full-population scale.\n\nContract:\n- Compaction and sealing must never delete the only durable copy of data.\n- `CHANGELOG.md` entries are operator-facing: capacity planning for shared\n  scratch volumes is done from them, so their claims must be accurate.\n- The diff adds group-wise compaction, sealing, and the changelog entry.\n\n\n--- a/src/replay_spool.rs\n+++ b/src/replay_spool.rs\n@@ -204,9 +204,38 @@ impl SpoolDir {\n     fn next_run_path(&mut self, kind: &str) -> PathBuf {\n         self.seq += 1;\n         self.dir.join(format!(\"{kind}-{:020}.run\", self.seq))\n     }\n \n+    /// Merge run files group-by-group, deleting each group's inputs as soon\n+    /// as the group's merged run is durable.\n+    pub fn compact_runs(&mut self) -> Result<()> {\n+        while self.runs.len() > MERGE_FANIN {\n+            let group: Vec<PathBuf> = self.runs[..MERGE_FANIN].to_vec();\n+            let merged = self.next_run_path(\"merge\");\n+            merge_sorted(&group, &merged)?;\n+            fsync_file(&merged)?;\n+            self.runs.drain(..MERGE_FANIN);\n+            self.runs.push(merged);\n+            for run in &group {\n+                fs::remove_file(run)?;\n+            }\n+        }\n+        Ok(())\n+    }\n+\n+    /// Produce the final sealed run the emitter reads back.\n+    pub fn seal(mut self) -> Result<PathBuf> {\n+        self.compact_runs()?;\n+        let sealed = self.dir.join(\"sealed.run\");\n+        merge_sorted(&self.runs, &sealed)?;\n+        fsync_file(&sealed)?;\n+        for run in &self.runs {\n+            fs::remove_file(run)?;\n+        }\n+        Ok(sealed)\n+    }\n+\n     pub fn scratch_bytes(&self) -> u64 {\n         self.runs.iter().filter_map(|p| fs::metadata(p).ok()).map(|m| m.len()).sum()\n     }\n }\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -1,2 +1,9 @@\n # Changelog\n \n+## Unreleased\n+\n+- Spool compaction deletes each merge group's inputs as soon as the group's\n+  merged run is fsynced. Peak scratch usage is therefore bounded by one\n+  merge group at every stage, including seal: the old 2x (all remaining\n+  runs + full sealed output) high-water mark at seal time is gone.\n+\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-02/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "exp-w3a-negative-control",
+          "tier": "mid",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0.08714269999999999,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "item_pass=True seeded=True verdict_flagged=True false_findings=0 found=['mc-03-d1']",
+              "assertion": {
+                "type": "python",
+                "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+              }
+            }
+          ]
+        },
+        "id": "8cb569da-8109-494b-8dfd-853f27fa384b",
+        "latencyMs": 20502,
+        "namedScores": {},
+        "prompt": {
+          "raw": "Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nWhen reviewing code, tag every finding WRONG or SMELL before writing it up. WRONG means the code provably does the wrong thing — name the input or state and the incorrect result. SMELL means a risk, gap, or style concern with no demonstrated incorrect behavior. Report WRONG items first; a finding without a concrete failure scenario is a SMELL, never a blocker.\n\n# Repository Overview\n\nThis repository follows a layered architecture that has evolved organically over several years of active development. At its core, the service is a Python application built to handle inbound requests, transform and persist data, and expose results through a set of well-defined interfaces. The team has generally favored clarity and convention over cleverness, and much of the code reflects that sensibility, with descriptive names and a preference for explicit flow over implicit magic.\n\nThe application is organized into several conceptual layers. The presentation layer sits at the top and is responsible for accepting requests, performing lightweight validation, and shaping responses for consumers. Beneath it lives the service layer, where the bulk of the business logic resides. This is where the interesting decisions happen, and where most of the domain knowledge is encoded. Below that sits the data-access layer, which mediates between the service layer and the various persistence backends the system relies upon. Cross-cutting concerns such as logging, configuration, and authentication are woven throughout, and the team has historically debated whether these belong in dedicated modules or closer to the code that uses them.\n\nData generally flows in one direction. A request arrives at the edge, is authenticated and validated, and is then handed to a service that orchestrates the work. Services tend to be moderately sized and are composed of smaller collaborators, each with a fairly narrow responsibility. When persistence is required, the service delegates to a repository abstraction, which hides the details of the underlying store. Results propagate back up through the same layers, gathering any presentation-specific formatting along the way before finally being returned to the caller.\n\nConfiguration is handled through a combination of environment variables and configuration files, with sensible defaults baked in for local development. The team has tried, with varying degrees of success, to keep environment-specific concerns out of the core logic. Observability is provided through structured logging and a modest collection of metrics, and there is an ongoing conversation about how much tracing the system truly needs versus how much simply adds noise.\n\nHistorically, the codebase has grown in bursts, often in response to shifting product priorities. As a result, some corners are more polished than others, and a handful of modules carry the fingerprints of older conventions that the team has since moved away from. Newcomers usually find the overall shape approachable, though they occasionally stumble over the parts of the system that predate the current structure. On the whole, the repository aims to be a comfortable place to work: familiar in its patterns, unsurprising in its layout, and forgiving of the ordinary mistakes that come with everyday development.\n\n# backfill CLI: canonical-data subcommands + session handoff doc\n\nA hand-rolled argument loop parses global flags, then dispatches on the\nsubcommand name. `next_value` pulls a flag's value from the arg iterator.\nSubcommands: `load-canonical` (loads a candidate revision from frozen\ninputs), `adjudicate-canonical` (adjudicates a loaded candidate),\n`audit-canonical` (read-only replay/audit of a failed candidate).\n\nContract:\n- Flags that only make sense for some subcommands must be rejected for the\n  others at parse time, with an error naming the accepting subcommands.\n- `docs/RESUME-g4c.md` is the session handoff: its \"Next step (runnable\n  now)\" section must be executable exactly as written — the next session\n  starts by running it.\n- The diff adds the `--spinoff-binding` flag, its acceptance rule, the\n  `audit-canonical` dispatch arm, and the handoff's next-step section.\n\n\n--- a/src/main.rs\n+++ b/src/main.rs\n@@ -118,14 +118,31 @@ fn run(cmd: String, mut args: env::Args) -> Result<(), CliError> {\n     let mut dry_run = false;\n+    let mut spinoff_binding: Option<PathBuf> = None;\n     while let Some(arg) = args.next() {\n         match arg.as_str() {\n             \"--dry-run\" => dry_run = true,\n+            \"--spinoff-binding\" => {\n+                spinoff_binding = Some(PathBuf::from(next_value(&mut args, &arg)?));\n+            }\n             other => return Err(CliError::Config(format!(\"unknown flag {other}\"))),\n         }\n     }\n+    // --spinoff-binding is an input to the *load*: it reconstructs the frozen\n+    // spinoff-ratio inputs a candidate revision loaded with. Replay-only\n+    // subcommands never load, so they must refuse it rather than silently\n+    // ignore it.\n+    if !matches!(cmd.as_str(), \"load-canonical\" | \"adjudicate-canonical\")\n+        && spinoff_binding.is_some()\n+    {\n+        return Err(CliError::Config(\n+            \"--spinoff-binding is accepted only by load-canonical and adjudicate-canonical\"\n+                .to_string(),\n+        ));\n+    }\n     let opts = Opts { dry_run };\n     match cmd.as_str() {\n-        \"load-canonical\" => load_canonical(&opts),\n+        \"load-canonical\" => load_canonical(&opts, spinoff_binding.as_deref()),\n-        \"adjudicate-canonical\" => adjudicate_canonical(&opts),\n+        \"adjudicate-canonical\" => adjudicate_canonical(&opts, spinoff_binding.as_deref()),\n+        \"audit-canonical\" => audit_canonical(&opts),\n         other => Err(CliError::Config(format!(\"unknown subcommand {other}\"))),\n     }\n }\n--- a/docs/RESUME-g4c.md\n+++ b/docs/RESUME-g4c.md\n@@ -4,4 +4,11 @@\n Rev 9 failed with 1.13M incomplete rows; its spinoff-ratio bindings were\n regenerated this session and written to `out/rev9-bindings.json`.\n \n ## Next step (runnable now)\n+\n+Replay the failed candidate against the audit path with its frozen\n+spinoff-ratio inputs supplied explicitly:\n+\n+    backfill audit-canonical --spinoff-binding out/rev9-bindings.json\n+\n+This reproduces rev 9's inputs bit-for-bit before any new load is attempted.",
+          "label": "treatment: /Users/wesleyjinks/code/prompts-skills-steering/results/exp-w3a-negative-control/mid/prompts/treatment.txt: Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nWhen reviewing code, tag every finding WRONG or SMELL before writing it up. WRONG means the code provably does the wrong thing — name the input or state and the incorrect result. SMELL means a risk, gap, or style concern with no demonstrated incorrect behavior. Report WRONG items first; a finding without a concrete failure scenario is a SMELL, never a blocker.\n\n# Repository Overview\n\nThis repository follows a layered architecture that has evolved organically over several years of active development. At its core, the service is a Python application built to handle inbound requests, transform and persist data, and expose results through a set of well-defined interfaces. The team has generally favored clarity and convention over cleverness, and much of the code reflects that sensibility, with descriptive names and a preference for explicit flow over implicit magic.\n\nThe application is organized into several conceptual layers. The presentation layer sits at the top and is responsible for accepting requests, performing lightweight validation, and shaping responses for consumers. Beneath it lives the service layer, where the bulk of the business logic resides. This is where the interesting decisions happen, and where most of the domain knowledge is encoded. Below that sits the data-access layer, which mediates between the service layer and the various persistence backends the system relies upon. Cross-cutting concerns such as logging, configuration, and authentication are woven throughout, and the team has historically debated whether these belong in dedicated modules or closer to the code that uses them.\n\nData generally flows in one direction. A request arrives at the edge, is authenticated and validated, and is then handed to a service that orchestrates the work. Services tend to be moderately sized and are composed of smaller collaborators, each with a fairly narrow responsibility. When persistence is required, the service delegates to a repository abstraction, which hides the details of the underlying store. Results propagate back up through the same layers, gathering any presentation-specific formatting along the way before finally being returned to the caller.\n\nConfiguration is handled through a combination of environment variables and configuration files, with sensible defaults baked in for local development. The team has tried, with varying degrees of success, to keep environment-specific concerns out of the core logic. Observability is provided through structured logging and a modest collection of metrics, and there is an ongoing conversation about how much tracing the system truly needs versus how much simply adds noise.\n\nHistorically, the codebase has grown in bursts, often in response to shifting product priorities. As a result, some corners are more polished than others, and a handful of modules carry the fingerprints of older conventions that the team has since moved away from. Newcomers usually find the overall shape approachable, though they occasionally stumble over the parts of the system that predate the current structure. On the whole, the repository aims to be a comfortable place to work: familiar in its patterns, unsurprising in its layout, and forgiving of the ordinary mistakes that come with everyday development.\n\n{{task_input}}",
+          "config": {}
+        },
+        "promptId": "d309da69cbc354041cdedd1268963273dc7428dcc145e75363aa1845420c6fb8",
+        "promptIdx": 0,
+        "provider": {
+          "id": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/providers/promptfoo_claude.py",
+          "label": ""
+        },
+        "response": {
+          "output": "I reviewed the CLI flag-parsing diff and the paired documentation change together.\n\n**Main finding (WRONG):** The code adds a rule that `--spinoff-binding` is rejected for any subcommand other than `load-canonical` and `adjudicate-canonical`:\n\n```rust\nif !matches!(cmd.as_str(), \"load-canonical\" | \"adjudicate-canonical\")\n    && spinoff_binding.is_some()\n{\n    return Err(CliError::Config(\n        \"--spinoff-binding is accepted only by load-canonical and adjudicate-canonical\"\n            .to_string(),\n    ));\n}\n```\n\n`audit-canonical` is explicitly *not* in that allow-list — the accompanying comment even states the rationale (\"Replay-only subcommands never load, so they must refuse it rather than silently ignore it\").\n\nBut `docs/RESUME-g4c.md`'s \"Next step (runnable now)\" section instructs the next session to run:\n\n```\nbackfill audit-canonical --spinoff-binding out/rev9-bindings.json\n```\n\nGiven the parsing logic added in the same diff, invoking `audit-canonical` with `--spinoff-binding` will hit the rejection branch and return `CliError::Config(\"--spinoff-binding is accepted only by load-canonical and adjudicate-canonical\")` instead of running the audit. This directly violates the stated contract that the handoff doc's next step \"must be executable exactly as written\" — running it as written produces an immediate config error, not a replay.\n\nI found no other defects: `next_value` usage, the `dry_run`/`Opts` threading, and the `load_canonical`/`adjudicate_canonical` signature changes are internally consistent with the new `Option<PathBuf>` parameter.\n\n## FINDINGS\nVERDICT: REJECT\n1. docs/RESUME-g4c.md (Next step section) — the documented \"runnable now\" command `backfill audit-canonical --spinoff-binding out/rev9-bindings.json` will fail with a `CliError::Config` because src/main.rs's new acceptance check (src/main.rs, `if !matches!(cmd.as_str(), \"load-canonical\" | \"adjudicate-canonical\") ...`) rejects `--spinoff-binding` for `audit-canonical`, violating the contract that the handoff doc's next step must be executable exactly as written.",
+          "tokenUsage": {
+            "prompt": 12127,
+            "completion": 2054,
+            "total": 14181,
+            "numRequests": 1
+          },
+          "cost": 0.08714269999999999,
+          "cached": false
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "vars": {
+            "task_id": "mc-03",
+            "seeded": true,
+            "arm": "treatment",
+            "task_input": "# backfill CLI: canonical-data subcommands + session handoff doc\n\nA hand-rolled argument loop parses global flags, then dispatches on the\nsubcommand name. `next_value` pulls a flag's value from the arg iterator.\nSubcommands: `load-canonical` (loads a candidate revision from frozen\ninputs), `adjudicate-canonical` (adjudicates a loaded candidate),\n`audit-canonical` (read-only replay/audit of a failed candidate).\n\nContract:\n- Flags that only make sense for some subcommands must be rejected for the\n  others at parse time, with an error naming the accepting subcommands.\n- `docs/RESUME-g4c.md` is the session handoff: its \"Next step (runnable\n  now)\" section must be executable exactly as written — the next session\n  starts by running it.\n- The diff adds the `--spinoff-binding` flag, its acceptance rule, the\n  `audit-canonical` dispatch arm, and the handoff's next-step section.\n\n\n--- a/src/main.rs\n+++ b/src/main.rs\n@@ -118,14 +118,31 @@ fn run(cmd: String, mut args: env::Args) -> Result<(), CliError> {\n     let mut dry_run = false;\n+    let mut spinoff_binding: Option<PathBuf> = None;\n     while let Some(arg) = args.next() {\n         match arg.as_str() {\n             \"--dry-run\" => dry_run = true,\n+            \"--spinoff-binding\" => {\n+                spinoff_binding = Some(PathBuf::from(next_value(&mut args, &arg)?));\n+            }\n             other => return Err(CliError::Config(format!(\"unknown flag {other}\"))),\n         }\n     }\n+    // --spinoff-binding is an input to the *load*: it reconstructs the frozen\n+    // spinoff-ratio inputs a candidate revision loaded with. Replay-only\n+    // subcommands never load, so they must refuse it rather than silently\n+    // ignore it.\n+    if !matches!(cmd.as_str(), \"load-canonical\" | \"adjudicate-canonical\")\n+        && spinoff_binding.is_some()\n+    {\n+        return Err(CliError::Config(\n+            \"--spinoff-binding is accepted only by load-canonical and adjudicate-canonical\"\n+                .to_string(),\n+        ));\n+    }\n     let opts = Opts { dry_run };\n     match cmd.as_str() {\n-        \"load-canonical\" => load_canonical(&opts),\n+        \"load-canonical\" => load_canonical(&opts, spinoff_binding.as_deref()),\n-        \"adjudicate-canonical\" => adjudicate_canonical(&opts),\n+        \"adjudicate-canonical\" => adjudicate_canonical(&opts, spinoff_binding.as_deref()),\n+        \"audit-canonical\" => audit_canonical(&opts),\n         other => Err(CliError::Config(format!(\"unknown subcommand {other}\"))),\n     }\n }\n--- a/docs/RESUME-g4c.md\n+++ b/docs/RESUME-g4c.md\n@@ -4,4 +4,11 @@\n Rev 9 failed with 1.13M incomplete rows; its spinoff-ratio bindings were\n regenerated this session and written to `out/rev9-bindings.json`.\n \n ## Next step (runnable now)\n+\n+Replay the failed candidate against the audit path with its frozen\n+spinoff-ratio inputs supplied explicitly:\n+\n+    backfill audit-canonical --spinoff-binding out/rev9-bindings.json\n+\n+This reproduces rev 9's inputs bit-for-bit before any new load is attempted.\n",
+            "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-03/truth.yaml",
+            "results_dir": "[REDACTED]",
+            "exp_id": "exp-w3a-negative-control",
+            "tier": "mid",
+            "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+          },
+          "assert": [
+            {
+              "type": "python",
+              "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 12127,
+          "completion": 2054,
+          "cached": 0,
+          "total": 14181,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "task_id": "mc-03",
+          "seeded": true,
+          "arm": "treatment",
+          "task_input": "# backfill CLI: canonical-data subcommands + session handoff doc\n\nA hand-rolled argument loop parses global flags, then dispatches on the\nsubcommand name. `next_value` pulls a flag's value from the arg iterator.\nSubcommands: `load-canonical` (loads a candidate revision from frozen\ninputs), `adjudicate-canonical` (adjudicates a loaded candidate),\n`audit-canonical` (read-only replay/audit of a failed candidate).\n\nContract:\n- Flags that only make sense for some subcommands must be rejected for the\n  others at parse time, with an error naming the accepting subcommands.\n- `docs/RESUME-g4c.md` is the session handoff: its \"Next step (runnable\n  now)\" section must be executable exactly as written — the next session\n  starts by running it.\n- The diff adds the `--spinoff-binding` flag, its acceptance rule, the\n  `audit-canonical` dispatch arm, and the handoff's next-step section.\n\n\n--- a/src/main.rs\n+++ b/src/main.rs\n@@ -118,14 +118,31 @@ fn run(cmd: String, mut args: env::Args) -> Result<(), CliError> {\n     let mut dry_run = false;\n+    let mut spinoff_binding: Option<PathBuf> = None;\n     while let Some(arg) = args.next() {\n         match arg.as_str() {\n             \"--dry-run\" => dry_run = true,\n+            \"--spinoff-binding\" => {\n+                spinoff_binding = Some(PathBuf::from(next_value(&mut args, &arg)?));\n+            }\n             other => return Err(CliError::Config(format!(\"unknown flag {other}\"))),\n         }\n     }\n+    // --spinoff-binding is an input to the *load*: it reconstructs the frozen\n+    // spinoff-ratio inputs a candidate revision loaded with. Replay-only\n+    // subcommands never load, so they must refuse it rather than silently\n+    // ignore it.\n+    if !matches!(cmd.as_str(), \"load-canonical\" | \"adjudicate-canonical\")\n+        && spinoff_binding.is_some()\n+    {\n+        return Err(CliError::Config(\n+            \"--spinoff-binding is accepted only by load-canonical and adjudicate-canonical\"\n+                .to_string(),\n+        ));\n+    }\n     let opts = Opts { dry_run };\n     match cmd.as_str() {\n-        \"load-canonical\" => load_canonical(&opts),\n+        \"load-canonical\" => load_canonical(&opts, spinoff_binding.as_deref()),\n-        \"adjudicate-canonical\" => adjudicate_canonical(&opts),\n+        \"adjudicate-canonical\" => adjudicate_canonical(&opts, spinoff_binding.as_deref()),\n+        \"audit-canonical\" => audit_canonical(&opts),\n         other => Err(CliError::Config(format!(\"unknown subcommand {other}\"))),\n     }\n }\n--- a/docs/RESUME-g4c.md\n+++ b/docs/RESUME-g4c.md\n@@ -4,4 +4,11 @@\n Rev 9 failed with 1.13M incomplete rows; its spinoff-ratio bindings were\n regenerated this session and written to `out/rev9-bindings.json`.\n \n ## Next step (runnable now)\n+\n+Replay the failed candidate against the audit path with its frozen\n+spinoff-ratio inputs supplied explicitly:\n+\n+    backfill audit-canonical --spinoff-binding out/rev9-bindings.json\n+\n+This reproduces rev 9's inputs bit-for-bit before any new load is attempted.\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-03/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "exp-w3a-negative-control",
+          "tier": "mid",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0.09551470000000001,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "item_pass=True seeded=True verdict_flagged=True false_findings=0 found=['mc-04-d1']",
+              "assertion": {
+                "type": "python",
+                "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+              }
+            }
+          ]
+        },
+        "id": "cfdcffea-8b28-421a-963c-26577fd57e41",
+        "latencyMs": 28203,
+        "namedScores": {},
+        "prompt": {
+          "raw": "Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nWhen reviewing code, tag every finding WRONG or SMELL before writing it up. WRONG means the code provably does the wrong thing — name the input or state and the incorrect result. SMELL means a risk, gap, or style concern with no demonstrated incorrect behavior. Report WRONG items first; a finding without a concrete failure scenario is a SMELL, never a blocker.\n\n# Repository Overview\n\nThis repository follows a layered architecture that has evolved organically over several years of active development. At its core, the service is a Python application built to handle inbound requests, transform and persist data, and expose results through a set of well-defined interfaces. The team has generally favored clarity and convention over cleverness, and much of the code reflects that sensibility, with descriptive names and a preference for explicit flow over implicit magic.\n\nThe application is organized into several conceptual layers. The presentation layer sits at the top and is responsible for accepting requests, performing lightweight validation, and shaping responses for consumers. Beneath it lives the service layer, where the bulk of the business logic resides. This is where the interesting decisions happen, and where most of the domain knowledge is encoded. Below that sits the data-access layer, which mediates between the service layer and the various persistence backends the system relies upon. Cross-cutting concerns such as logging, configuration, and authentication are woven throughout, and the team has historically debated whether these belong in dedicated modules or closer to the code that uses them.\n\nData generally flows in one direction. A request arrives at the edge, is authenticated and validated, and is then handed to a service that orchestrates the work. Services tend to be moderately sized and are composed of smaller collaborators, each with a fairly narrow responsibility. When persistence is required, the service delegates to a repository abstraction, which hides the details of the underlying store. Results propagate back up through the same layers, gathering any presentation-specific formatting along the way before finally being returned to the caller.\n\nConfiguration is handled through a combination of environment variables and configuration files, with sensible defaults baked in for local development. The team has tried, with varying degrees of success, to keep environment-specific concerns out of the core logic. Observability is provided through structured logging and a modest collection of metrics, and there is an ongoing conversation about how much tracing the system truly needs versus how much simply adds noise.\n\nHistorically, the codebase has grown in bursts, often in response to shifting product priorities. As a result, some corners are more polished than others, and a handful of modules carry the fingerprints of older conventions that the team has since moved away from. Newcomers usually find the overall shape approachable, though they occasionally stumble over the parts of the system that predate the current structure. On the whole, the repository aims to be a comfortable place to work: familiar in its patterns, unsurprising in its layout, and forgiving of the ordinary mistakes that come with everyday development.\n\n# pathfold: lexical segment folding for the alias resolver\n\nPart of a config-driven path alias system: repo-relative paths are split\ninto segments, folded, and later bound against an alias table by a separate\nresolution stage. The division of labor between the two stages is part of\nthe module's public contract — downstream code decides where dot-segment\nhandling happens based on the doc comments here.\n\nContract:\n- `foldSegments(path)` produces the canonical segment list for a path.\n- `foldsUnder(root, child)` reports whether `child` folds to a path under\n  `root`; it is used to scope alias tables to subtrees.\n- Doc comments in this module are load-bearing: the alias-resolution stage\n  is written against what they promise.\n- The diff adds the module (new file).\n\n\n--- /dev/null\n+++ b/src/pathfold.ts\n@@ -0,0 +1,33 @@\n+/**\n+ * Fold a repo-relative path into its canonical segment list.\n+ *\n+ * Purely lexical and non-resolving: `.` and `..` segments are preserved\n+ * verbatim in the output, so aliased roots keep their original spelling\n+ * and the alias-resolution stage decides how dot segments bind against\n+ * the alias table. Only empty segments (doubled slashes) are dropped.\n+ */\n+export function foldSegments(path: string): string[] {\n+  const out: string[] = [];\n+  for (const seg of path.split(\"/\")) {\n+    if (seg === \"\") continue;\n+    if (seg === \".\") continue;\n+    if (seg === \"..\") {\n+      out.pop();\n+      continue;\n+    }\n+    out.push(seg);\n+  }\n+  return out;\n+}\n+\n+/**\n+ * True iff `child` folds to a path under `root`. Used to scope alias\n+ * tables to subtrees.\n+ */\n+export function foldsUnder(root: string, child: string): boolean {\n+  const r = foldSegments(root);\n+  const c = foldSegments(child);\n+  return r.length <= c.length && r.every((seg, i) => c[i] === seg);\n+}\n+\n+export const FOLD_CONTRACT_VERSION = 2;",
+          "label": "treatment: /Users/wesleyjinks/code/prompts-skills-steering/results/exp-w3a-negative-control/mid/prompts/treatment.txt: Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nWhen reviewing code, tag every finding WRONG or SMELL before writing it up. WRONG means the code provably does the wrong thing — name the input or state and the incorrect result. SMELL means a risk, gap, or style concern with no demonstrated incorrect behavior. Report WRONG items first; a finding without a concrete failure scenario is a SMELL, never a blocker.\n\n# Repository Overview\n\nThis repository follows a layered architecture that has evolved organically over several years of active development. At its core, the service is a Python application built to handle inbound requests, transform and persist data, and expose results through a set of well-defined interfaces. The team has generally favored clarity and convention over cleverness, and much of the code reflects that sensibility, with descriptive names and a preference for explicit flow over implicit magic.\n\nThe application is organized into several conceptual layers. The presentation layer sits at the top and is responsible for accepting requests, performing lightweight validation, and shaping responses for consumers. Beneath it lives the service layer, where the bulk of the business logic resides. This is where the interesting decisions happen, and where most of the domain knowledge is encoded. Below that sits the data-access layer, which mediates between the service layer and the various persistence backends the system relies upon. Cross-cutting concerns such as logging, configuration, and authentication are woven throughout, and the team has historically debated whether these belong in dedicated modules or closer to the code that uses them.\n\nData generally flows in one direction. A request arrives at the edge, is authenticated and validated, and is then handed to a service that orchestrates the work. Services tend to be moderately sized and are composed of smaller collaborators, each with a fairly narrow responsibility. When persistence is required, the service delegates to a repository abstraction, which hides the details of the underlying store. Results propagate back up through the same layers, gathering any presentation-specific formatting along the way before finally being returned to the caller.\n\nConfiguration is handled through a combination of environment variables and configuration files, with sensible defaults baked in for local development. The team has tried, with varying degrees of success, to keep environment-specific concerns out of the core logic. Observability is provided through structured logging and a modest collection of metrics, and there is an ongoing conversation about how much tracing the system truly needs versus how much simply adds noise.\n\nHistorically, the codebase has grown in bursts, often in response to shifting product priorities. As a result, some corners are more polished than others, and a handful of modules carry the fingerprints of older conventions that the team has since moved away from. Newcomers usually find the overall shape approachable, though they occasionally stumble over the parts of the system that predate the current structure. On the whole, the repository aims to be a comfortable place to work: familiar in its patterns, unsurprising in its layout, and forgiving of the ordinary mistakes that come with everyday development.\n\n{{task_input}}",
+          "config": {}
+        },
+        "promptId": "d309da69cbc354041cdedd1268963273dc7428dcc145e75363aa1845420c6fb8",
+        "promptIdx": 0,
+        "provider": {
+          "id": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/providers/promptfoo_claude.py",
+          "label": ""
+        },
+        "response": {
+          "output": "I reviewed the pathfold module against its own documented contract.\n\nThe doc comment on `foldSegments` (lines 4-7) explicitly promises the function is \"purely lexical and non-resolving\" and that `.` and `..` segments are \"preserved verbatim in the output.\" The implementation does the opposite: it drops `.` segments and resolves `..` by popping the prior segment — i.e., it performs the very path-resolution the doc comment says does *not* happen here.\n\nExample: `foldSegments(\"a/./b\")` returns `[\"a\", \"b\"]`, not the documented `[\"a\", \".\", \"b\"]`. `foldSegments(\"a/../b\")` returns `[\"b\"]`, not the documented `[\"a\", \"..\", \"b\"]`.\n\nPer the stated design, \"the alias-resolution stage is written against what they promise\" — so a downstream resolver relying on the documented verbatim-preservation behavior to do its own dot-segment binding will silently get pre-resolved segments instead, producing incorrect alias resolution (e.g., treating `pkg/../other` as folding to `other` instead of leaving the resolution stage to decide, potentially escaping an intended alias root).\n\n`foldsUnder` inherits this problem since it's built on `foldSegments`: `foldsUnder(\"root\", \"root/../root/child\")` returns `true` even though per the documented non-resolving contract this shouldn't collapse the `..` here at all — the resolution semantics are supposed to belong to the other stage.\n\n## FINDINGS\nVERDICT: REJECT\n1. src/pathfold.ts:13 — `foldSegments` drops `.` segments, contradicting the doc comment's promise (lines 4-7) that `.` segments are \"preserved verbatim in the output\"; `foldSegments(\"a/./b\")` yields `[\"a\",\"b\"]` instead of `[\"a\",\".\",\"b\"]`.\n2. src/pathfold.ts:14-16 — `foldSegments` resolves `..` by popping the previous segment, contradicting the doc comment's promise that `..` segments are preserved verbatim and that resolution is left to the alias-resolution stage; `foldSegments(\"a/../b\")` yields `[\"b\"]` instead of `[\"a\",\"..\",\"b\"]`, silently performing resolution the module contract says it must not do.",
+          "tokenUsage": {
+            "prompt": 11600,
+            "completion": 2848,
+            "total": 14448,
+            "numRequests": 1
+          },
+          "cost": 0.09551470000000001,
+          "cached": false
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "vars": {
+            "task_id": "mc-04",
+            "seeded": true,
+            "arm": "treatment",
+            "task_input": "# pathfold: lexical segment folding for the alias resolver\n\nPart of a config-driven path alias system: repo-relative paths are split\ninto segments, folded, and later bound against an alias table by a separate\nresolution stage. The division of labor between the two stages is part of\nthe module's public contract — downstream code decides where dot-segment\nhandling happens based on the doc comments here.\n\nContract:\n- `foldSegments(path)` produces the canonical segment list for a path.\n- `foldsUnder(root, child)` reports whether `child` folds to a path under\n  `root`; it is used to scope alias tables to subtrees.\n- Doc comments in this module are load-bearing: the alias-resolution stage\n  is written against what they promise.\n- The diff adds the module (new file).\n\n\n--- /dev/null\n+++ b/src/pathfold.ts\n@@ -0,0 +1,33 @@\n+/**\n+ * Fold a repo-relative path into its canonical segment list.\n+ *\n+ * Purely lexical and non-resolving: `.` and `..` segments are preserved\n+ * verbatim in the output, so aliased roots keep their original spelling\n+ * and the alias-resolution stage decides how dot segments bind against\n+ * the alias table. Only empty segments (doubled slashes) are dropped.\n+ */\n+export function foldSegments(path: string): string[] {\n+  const out: string[] = [];\n+  for (const seg of path.split(\"/\")) {\n+    if (seg === \"\") continue;\n+    if (seg === \".\") continue;\n+    if (seg === \"..\") {\n+      out.pop();\n+      continue;\n+    }\n+    out.push(seg);\n+  }\n+  return out;\n+}\n+\n+/**\n+ * True iff `child` folds to a path under `root`. Used to scope alias\n+ * tables to subtrees.\n+ */\n+export function foldsUnder(root: string, child: string): boolean {\n+  const r = foldSegments(root);\n+  const c = foldSegments(child);\n+  return r.length <= c.length && r.every((seg, i) => c[i] === seg);\n+}\n+\n+export const FOLD_CONTRACT_VERSION = 2;\n",
+            "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-04/truth.yaml",
+            "results_dir": "[REDACTED]",
+            "exp_id": "exp-w3a-negative-control",
+            "tier": "mid",
+            "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+          },
+          "assert": [
+            {
+              "type": "python",
+              "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 3,
+        "tokenUsage": {
+          "prompt": 11600,
+          "completion": 2848,
+          "cached": 0,
+          "total": 14448,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "task_id": "mc-04",
+          "seeded": true,
+          "arm": "treatment",
+          "task_input": "# pathfold: lexical segment folding for the alias resolver\n\nPart of a config-driven path alias system: repo-relative paths are split\ninto segments, folded, and later bound against an alias table by a separate\nresolution stage. The division of labor between the two stages is part of\nthe module's public contract — downstream code decides where dot-segment\nhandling happens based on the doc comments here.\n\nContract:\n- `foldSegments(path)` produces the canonical segment list for a path.\n- `foldsUnder(root, child)` reports whether `child` folds to a path under\n  `root`; it is used to scope alias tables to subtrees.\n- Doc comments in this module are load-bearing: the alias-resolution stage\n  is written against what they promise.\n- The diff adds the module (new file).\n\n\n--- /dev/null\n+++ b/src/pathfold.ts\n@@ -0,0 +1,33 @@\n+/**\n+ * Fold a repo-relative path into its canonical segment list.\n+ *\n+ * Purely lexical and non-resolving: `.` and `..` segments are preserved\n+ * verbatim in the output, so aliased roots keep their original spelling\n+ * and the alias-resolution stage decides how dot segments bind against\n+ * the alias table. Only empty segments (doubled slashes) are dropped.\n+ */\n+export function foldSegments(path: string): string[] {\n+  const out: string[] = [];\n+  for (const seg of path.split(\"/\")) {\n+    if (seg === \"\") continue;\n+    if (seg === \".\") continue;\n+    if (seg === \"..\") {\n+      out.pop();\n+      continue;\n+    }\n+    out.push(seg);\n+  }\n+  return out;\n+}\n+\n+/**\n+ * True iff `child` folds to a path under `root`. Used to scope alias\n+ * tables to subtrees.\n+ */\n+export function foldsUnder(root: string, child: string): boolean {\n+  const r = foldSegments(root);\n+  const c = foldSegments(child);\n+  return r.length <= c.length && r.every((seg, i) => c[i] === seg);\n+}\n+\n+export const FOLD_CONTRACT_VERSION = 2;\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-04/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "exp-w3a-negative-control",
+          "tier": "mid",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0.0669427,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "item_pass=True seeded=True verdict_flagged=True false_findings=0 found=['mc-05-d1']",
+              "assertion": {
+                "type": "python",
+                "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+              }
+            }
+          ]
+        },
+        "id": "0d3ae00f-0e48-43fa-a92f-818b74ac242d",
+        "latencyMs": 13133,
+        "namedScores": {},
+        "prompt": {
+          "raw": "Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nWhen reviewing code, tag every finding WRONG or SMELL before writing it up. WRONG means the code provably does the wrong thing — name the input or state and the incorrect result. SMELL means a risk, gap, or style concern with no demonstrated incorrect behavior. Report WRONG items first; a finding without a concrete failure scenario is a SMELL, never a blocker.\n\n# Repository Overview\n\nThis repository follows a layered architecture that has evolved organically over several years of active development. At its core, the service is a Python application built to handle inbound requests, transform and persist data, and expose results through a set of well-defined interfaces. The team has generally favored clarity and convention over cleverness, and much of the code reflects that sensibility, with descriptive names and a preference for explicit flow over implicit magic.\n\nThe application is organized into several conceptual layers. The presentation layer sits at the top and is responsible for accepting requests, performing lightweight validation, and shaping responses for consumers. Beneath it lives the service layer, where the bulk of the business logic resides. This is where the interesting decisions happen, and where most of the domain knowledge is encoded. Below that sits the data-access layer, which mediates between the service layer and the various persistence backends the system relies upon. Cross-cutting concerns such as logging, configuration, and authentication are woven throughout, and the team has historically debated whether these belong in dedicated modules or closer to the code that uses them.\n\nData generally flows in one direction. A request arrives at the edge, is authenticated and validated, and is then handed to a service that orchestrates the work. Services tend to be moderately sized and are composed of smaller collaborators, each with a fairly narrow responsibility. When persistence is required, the service delegates to a repository abstraction, which hides the details of the underlying store. Results propagate back up through the same layers, gathering any presentation-specific formatting along the way before finally being returned to the caller.\n\nConfiguration is handled through a combination of environment variables and configuration files, with sensible defaults baked in for local development. The team has tried, with varying degrees of success, to keep environment-specific concerns out of the core logic. Observability is provided through structured logging and a modest collection of metrics, and there is an ongoing conversation about how much tracing the system truly needs versus how much simply adds noise.\n\nHistorically, the codebase has grown in bursts, often in response to shifting product priorities. As a result, some corners are more polished than others, and a handful of modules carry the fingerprints of older conventions that the team has since moved away from. Newcomers usually find the overall shape approachable, though they occasionally stumble over the parts of the system that predate the current structure. On the whole, the repository aims to be a comfortable place to work: familiar in its patterns, unsurprising in its layout, and forgiving of the ordinary mistakes that come with everyday development.\n\n# ci/run-suite.sh: the workspace CI gate script\n\nSingle entry point the CI system runs for every push; the CI step passes or\nfails on this script's exit status alone. Nothing downstream re-checks the\nsuite — a green step is treated as \"the workspace suite passed\" by the\nmerge gate and by reviewers reading the checks list.\n\nContract:\n- The script must fail exactly when a check it runs fails.\n- Comments in the script are operator documentation: on-call engineers\n  debug red/green CI from what the header comment promises.\n- The diff adds the script (new file).\n\n\n--- /dev/null\n+++ b/ci/run-suite.sh\n@@ -0,0 +1,19 @@\n+#!/usr/bin/env bash\n+# Workspace CI gate.\n+#\n+# Output policy: the last 40 lines of test output are enough for the step\n+# summary; full output stays in the job log. Exit policy: the script's exit\n+# status is the test runner's own exit code, so the CI step fails exactly\n+# when the suite fails.\n+set -eu\n+\n+export RUST_BACKTRACE=1\n+\n+echo \"== fmt ==\"\n+cargo fmt --check\n+\n+echo \"== clippy ==\"\n+cargo clippy --workspace --quiet -- -D warnings\n+\n+echo \"== tests ==\"\n+cargo test --workspace 2>&1 | tail -40",
+          "label": "treatment: /Users/wesleyjinks/code/prompts-skills-steering/results/exp-w3a-negative-control/mid/prompts/treatment.txt: Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nWhen reviewing code, tag every finding WRONG or SMELL before writing it up. WRONG means the code provably does the wrong thing — name the input or state and the incorrect result. SMELL means a risk, gap, or style concern with no demonstrated incorrect behavior. Report WRONG items first; a finding without a concrete failure scenario is a SMELL, never a blocker.\n\n# Repository Overview\n\nThis repository follows a layered architecture that has evolved organically over several years of active development. At its core, the service is a Python application built to handle inbound requests, transform and persist data, and expose results through a set of well-defined interfaces. The team has generally favored clarity and convention over cleverness, and much of the code reflects that sensibility, with descriptive names and a preference for explicit flow over implicit magic.\n\nThe application is organized into several conceptual layers. The presentation layer sits at the top and is responsible for accepting requests, performing lightweight validation, and shaping responses for consumers. Beneath it lives the service layer, where the bulk of the business logic resides. This is where the interesting decisions happen, and where most of the domain knowledge is encoded. Below that sits the data-access layer, which mediates between the service layer and the various persistence backends the system relies upon. Cross-cutting concerns such as logging, configuration, and authentication are woven throughout, and the team has historically debated whether these belong in dedicated modules or closer to the code that uses them.\n\nData generally flows in one direction. A request arrives at the edge, is authenticated and validated, and is then handed to a service that orchestrates the work. Services tend to be moderately sized and are composed of smaller collaborators, each with a fairly narrow responsibility. When persistence is required, the service delegates to a repository abstraction, which hides the details of the underlying store. Results propagate back up through the same layers, gathering any presentation-specific formatting along the way before finally being returned to the caller.\n\nConfiguration is handled through a combination of environment variables and configuration files, with sensible defaults baked in for local development. The team has tried, with varying degrees of success, to keep environment-specific concerns out of the core logic. Observability is provided through structured logging and a modest collection of metrics, and there is an ongoing conversation about how much tracing the system truly needs versus how much simply adds noise.\n\nHistorically, the codebase has grown in bursts, often in response to shifting product priorities. As a result, some corners are more polished than others, and a handful of modules carry the fingerprints of older conventions that the team has since moved away from. Newcomers usually find the overall shape approachable, though they occasionally stumble over the parts of the system that predate the current structure. On the whole, the repository aims to be a comfortable place to work: familiar in its patterns, unsurprising in its layout, and forgiving of the ordinary mistakes that come with everyday development.\n\n{{task_input}}",
+          "config": {}
+        },
+        "promptId": "d309da69cbc354041cdedd1268963273dc7428dcc145e75363aa1845420c6fb8",
+        "promptIdx": 0,
+        "provider": {
+          "id": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/providers/promptfoo_claude.py",
+          "label": ""
+        },
+        "response": {
+          "output": "## Analysis\n\nThe script's stated contract is that its exit status must equal the test runner's exit code, so CI fails exactly when the suite fails.\n\nLine 18: `cargo test --workspace 2>&1 | tail -40`\n\nThis is a pipeline, and the script only sets `set -eu` — it does not set `set -o pipefail`. In bash, an unpiped `set -e` pipeline's exit status is the exit status of the *last* command in the pipe, which here is `tail -40`. `tail` reading from a pipe and printing lines will exit 0 regardless of whether `cargo test` failed. So:\n\n- Input: `cargo test --workspace` exits nonzero (a test fails).\n- Result: the pipeline's exit status is `tail`'s exit status (0), `set -e` doesn't trigger, and the script proceeds to exit 0.\n- Consequence: CI reports green on a workspace with failing tests — exactly the failure mode the contract explicitly promises won't happen (\"the CI step fails exactly when the suite fails\").\n\nThis is a concrete, demonstrable defect, not a style concern: the merge gate would pass broken code.\n\nThe `fmt` and `clippy` lines are fine since they aren't piped — `set -e` catches their failures directly.\n\n## FINDINGS\nVERDICT: REJECT\n1. ci/run-suite.sh:18 — `cargo test --workspace 2>&1 | tail -40` is a pipeline without `set -o pipefail`, so the script's exit status reflects `tail`'s exit code (always 0) rather than `cargo test`'s; a failing test suite still produces a 0 exit status, making CI report green despite failing tests, directly violating the script's stated contract.",
+          "tokenUsage": {
+            "prompt": 11341,
+            "completion": 1063,
+            "total": 12404,
+            "numRequests": 1
+          },
+          "cost": 0.0669427,
+          "cached": false
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "vars": {
+            "task_id": "mc-05",
+            "seeded": true,
+            "arm": "treatment",
+            "task_input": "# ci/run-suite.sh: the workspace CI gate script\n\nSingle entry point the CI system runs for every push; the CI step passes or\nfails on this script's exit status alone. Nothing downstream re-checks the\nsuite — a green step is treated as \"the workspace suite passed\" by the\nmerge gate and by reviewers reading the checks list.\n\nContract:\n- The script must fail exactly when a check it runs fails.\n- Comments in the script are operator documentation: on-call engineers\n  debug red/green CI from what the header comment promises.\n- The diff adds the script (new file).\n\n\n--- /dev/null\n+++ b/ci/run-suite.sh\n@@ -0,0 +1,19 @@\n+#!/usr/bin/env bash\n+# Workspace CI gate.\n+#\n+# Output policy: the last 40 lines of test output are enough for the step\n+# summary; full output stays in the job log. Exit policy: the script's exit\n+# status is the test runner's own exit code, so the CI step fails exactly\n+# when the suite fails.\n+set -eu\n+\n+export RUST_BACKTRACE=1\n+\n+echo \"== fmt ==\"\n+cargo fmt --check\n+\n+echo \"== clippy ==\"\n+cargo clippy --workspace --quiet -- -D warnings\n+\n+echo \"== tests ==\"\n+cargo test --workspace 2>&1 | tail -40\n",
+            "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-05/truth.yaml",
+            "results_dir": "[REDACTED]",
+            "exp_id": "exp-w3a-negative-control",
+            "tier": "mid",
+            "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+          },
+          "assert": [
+            {
+              "type": "python",
+              "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 4,
+        "tokenUsage": {
+          "prompt": 11341,
+          "completion": 1063,
+          "cached": 0,
+          "total": 12404,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "task_id": "mc-05",
+          "seeded": true,
+          "arm": "treatment",
+          "task_input": "# ci/run-suite.sh: the workspace CI gate script\n\nSingle entry point the CI system runs for every push; the CI step passes or\nfails on this script's exit status alone. Nothing downstream re-checks the\nsuite — a green step is treated as \"the workspace suite passed\" by the\nmerge gate and by reviewers reading the checks list.\n\nContract:\n- The script must fail exactly when a check it runs fails.\n- Comments in the script are operator documentation: on-call engineers\n  debug red/green CI from what the header comment promises.\n- The diff adds the script (new file).\n\n\n--- /dev/null\n+++ b/ci/run-suite.sh\n@@ -0,0 +1,19 @@\n+#!/usr/bin/env bash\n+# Workspace CI gate.\n+#\n+# Output policy: the last 40 lines of test output are enough for the step\n+# summary; full output stays in the job log. Exit policy: the script's exit\n+# status is the test runner's own exit code, so the CI step fails exactly\n+# when the suite fails.\n+set -eu\n+\n+export RUST_BACKTRACE=1\n+\n+echo \"== fmt ==\"\n+cargo fmt --check\n+\n+echo \"== clippy ==\"\n+cargo clippy --workspace --quiet -- -D warnings\n+\n+echo \"== tests ==\"\n+cargo test --workspace 2>&1 | tail -40\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-05/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "exp-w3a-negative-control",
+          "tier": "mid",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0.1468927,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "item_pass=True seeded=False verdict_flagged=False false_findings=0 found=[]",
+              "assertion": {
+                "type": "python",
+                "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+              }
+            }
+          ]
+        },
+        "id": "cf1c359c-7810-4247-ae99-bbee5373d96d",
+        "latencyMs": 62899,
+        "namedScores": {},
+        "prompt": {
+          "raw": "Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nWhen reviewing code, tag every finding WRONG or SMELL before writing it up. WRONG means the code provably does the wrong thing — name the input or state and the incorrect result. SMELL means a risk, gap, or style concern with no demonstrated incorrect behavior. Report WRONG items first; a finding without a concrete failure scenario is a SMELL, never a blocker.\n\n# Repository Overview\n\nThis repository follows a layered architecture that has evolved organically over several years of active development. At its core, the service is a Python application built to handle inbound requests, transform and persist data, and expose results through a set of well-defined interfaces. The team has generally favored clarity and convention over cleverness, and much of the code reflects that sensibility, with descriptive names and a preference for explicit flow over implicit magic.\n\nThe application is organized into several conceptual layers. The presentation layer sits at the top and is responsible for accepting requests, performing lightweight validation, and shaping responses for consumers. Beneath it lives the service layer, where the bulk of the business logic resides. This is where the interesting decisions happen, and where most of the domain knowledge is encoded. Below that sits the data-access layer, which mediates between the service layer and the various persistence backends the system relies upon. Cross-cutting concerns such as logging, configuration, and authentication are woven throughout, and the team has historically debated whether these belong in dedicated modules or closer to the code that uses them.\n\nData generally flows in one direction. A request arrives at the edge, is authenticated and validated, and is then handed to a service that orchestrates the work. Services tend to be moderately sized and are composed of smaller collaborators, each with a fairly narrow responsibility. When persistence is required, the service delegates to a repository abstraction, which hides the details of the underlying store. Results propagate back up through the same layers, gathering any presentation-specific formatting along the way before finally being returned to the caller.\n\nConfiguration is handled through a combination of environment variables and configuration files, with sensible defaults baked in for local development. The team has tried, with varying degrees of success, to keep environment-specific concerns out of the core logic. Observability is provided through structured logging and a modest collection of metrics, and there is an ongoing conversation about how much tracing the system truly needs versus how much simply adds noise.\n\nHistorically, the codebase has grown in bursts, often in response to shifting product priorities. As a result, some corners are more polished than others, and a handful of modules carry the fingerprints of older conventions that the team has since moved away from. Newcomers usually find the overall shape approachable, though they occasionally stumble over the parts of the system that predate the current structure. On the whole, the repository aims to be a comfortable place to work: familiar in its patterns, unsurprising in its layout, and forgiving of the ordinary mistakes that come with everyday development.\n\n# target_spool: run-file writer for the target-only adjudicator\n\nSpooling layer for the SMALL target-only population (~5.5k instruments,\n~8.8M records) — a separate, deliberately simpler sibling of the\nfull-population canonical spool. Records spill to \"run\" files under a\nscratch directory and are merged and sealed by machinery outside this diff.\n\nContract:\n- Run files carry a magic header and length-framed records, with an\n  integrity digest over the framed stream and a count/digest footer.\n- `docs/target-spool-format.md` is the format's reference documentation\n  and must stay accurate: operators size scratch volumes and debug spools\n  from it.\n- The diff adds the record writer plus the format doc.\n\n\n--- /dev/null\n+++ b/src/target_spool.rs\n@@ -0,0 +1,50 @@\n+use std::io::Write;\n+\n+use serde::Serialize;\n+use sha2::{Digest, Sha256};\n+\n+pub const RUN_MAGIC: &[u8] = b\"TARGET_REPLAY_RUN_V1\\n\";\n+\n+/// One spooled record, per target bar.\n+#[derive(Serialize)]\n+pub struct TargetEntry {\n+    /// Protobuf-encoded MarketBar, exactly as `MarketBar::encode` produced it.\n+    pub market_bar: Vec<u8>,\n+    pub source_ordinal: u32,\n+    pub close_token: String,\n+    /// 64-char hex SHA-256 of the exact raw source row.\n+    pub raw_row_sha256: String,\n+}\n+\n+pub struct TargetRunWriter<W: Write> {\n+    out: W,\n+    digest: Sha256,\n+    records: u64,\n+}\n+\n+impl<W: Write> TargetRunWriter<W> {\n+    pub fn create(mut out: W) -> std::io::Result<Self> {\n+        out.write_all(RUN_MAGIC)?;\n+        Ok(Self { out, digest: Sha256::new(), records: 0 })\n+    }\n+\n+    /// Append one record: u32 big-endian length prefix, then the record bytes.\n+    pub fn push(&mut self, entry: &TargetEntry) -> std::io::Result<()> {\n+        let body = serde_json::to_vec(entry).map_err(std::io::Error::other)?;\n+        let len = u32::try_from(body.len()).expect(\"record fits u32\");\n+        self.out.write_all(&len.to_be_bytes())?;\n+        self.out.write_all(&body)?;\n+        self.digest.update(len.to_be_bytes());\n+        self.digest.update(&body);\n+        self.records += 1;\n+        Ok(())\n+    }\n+\n+    /// Finish the run: append the record count and the stream digest as a footer.\n+    pub fn finish(mut self) -> std::io::Result<()> {\n+        self.out.write_all(&self.records.to_be_bytes())?;\n+        let digest = self.digest.finalize();\n+        self.out.write_all(&digest)?;\n+        self.out.flush()\n+    }\n+}\n--- a/docs/target-spool-format.md\n+++ b/docs/target-spool-format.md\n@@ -1,3 +1,13 @@\n # Target spool format\n \n-TBD.\n+The FRAMING is binary: `RUN_MAGIC`, then length-framed records (u32\n+big-endian length prefix + record bytes), ending in a record-count +\n+SHA-256 footer computed over the framed stream.\n+\n+Each record PAYLOAD inside a frame is serde_json — deliberately not a\n+packed binary codec. The protobuf bar bytes therefore serialize as a JSON\n+integer array (a ~3-4x size blow-up per bar). That trade is intentional:\n+this spool serves only the small target-only population, where JSON\n+debuggability wins and verbosity is harmless. Do NOT reuse this writer for\n+full-population canonical loads; size scratch from JSON record sizes, not\n+raw protobuf sizes.",
+          "label": "treatment: /Users/wesleyjinks/code/prompts-skills-steering/results/exp-w3a-negative-control/mid/prompts/treatment.txt: Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nWhen reviewing code, tag every finding WRONG or SMELL before writing it up. WRONG means the code provably does the wrong thing — name the input or state and the incorrect result. SMELL means a risk, gap, or style concern with no demonstrated incorrect behavior. Report WRONG items first; a finding without a concrete failure scenario is a SMELL, never a blocker.\n\n# Repository Overview\n\nThis repository follows a layered architecture that has evolved organically over several years of active development. At its core, the service is a Python application built to handle inbound requests, transform and persist data, and expose results through a set of well-defined interfaces. The team has generally favored clarity and convention over cleverness, and much of the code reflects that sensibility, with descriptive names and a preference for explicit flow over implicit magic.\n\nThe application is organized into several conceptual layers. The presentation layer sits at the top and is responsible for accepting requests, performing lightweight validation, and shaping responses for consumers. Beneath it lives the service layer, where the bulk of the business logic resides. This is where the interesting decisions happen, and where most of the domain knowledge is encoded. Below that sits the data-access layer, which mediates between the service layer and the various persistence backends the system relies upon. Cross-cutting concerns such as logging, configuration, and authentication are woven throughout, and the team has historically debated whether these belong in dedicated modules or closer to the code that uses them.\n\nData generally flows in one direction. A request arrives at the edge, is authenticated and validated, and is then handed to a service that orchestrates the work. Services tend to be moderately sized and are composed of smaller collaborators, each with a fairly narrow responsibility. When persistence is required, the service delegates to a repository abstraction, which hides the details of the underlying store. Results propagate back up through the same layers, gathering any presentation-specific formatting along the way before finally being returned to the caller.\n\nConfiguration is handled through a combination of environment variables and configuration files, with sensible defaults baked in for local development. The team has tried, with varying degrees of success, to keep environment-specific concerns out of the core logic. Observability is provided through structured logging and a modest collection of metrics, and there is an ongoing conversation about how much tracing the system truly needs versus how much simply adds noise.\n\nHistorically, the codebase has grown in bursts, often in response to shifting product priorities. As a result, some corners are more polished than others, and a handful of modules carry the fingerprints of older conventions that the team has since moved away from. Newcomers usually find the overall shape approachable, though they occasionally stumble over the parts of the system that predate the current structure. On the whole, the repository aims to be a comfortable place to work: familiar in its patterns, unsurprising in its layout, and forgiving of the ordinary mistakes that come with everyday development.\n\n{{task_input}}",
+          "config": {}
+        },
+        "promptId": "d309da69cbc354041cdedd1268963273dc7428dcc145e75363aa1845420c6fb8",
+        "promptIdx": 0,
+        "provider": {
+          "id": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/providers/promptfoo_claude.py",
+          "label": ""
+        },
+        "response": {
+          "output": "I reviewed the writer implementation against the stated contract and the accompanying doc update.\n\n**Framing correctness**: magic header write, u32 BE length prefix, JSON body, digest over `len_bytes + body` per record, then `records:u64` BE + SHA-256 footer written after `finalize()` (so the footer correctly excludes itself from the digest) — all consistent with both the top-level contract and the doc text added in this diff.\n\n**Doc consistency**: the doc's claims (JSON payload causing ~3-4x blow-up on `Vec<u8>` protobuf bytes, digest scope being \"the framed stream\" i.e. excluding the magic header, explicit warning not to reuse for full-population loads) all match what the code actually does.\n\nTwo lower-severity concerns, neither with a demonstrated failure under the stated workload (~5.5k instruments / ~8.8M records, small target-only population):\n\n1. `u32::try_from(body.len()).expect(...)` panics rather than returning an `io::Result` error if a JSON-serialized record ever exceeds 4 GiB. No single `MarketBar` record is plausibly that large even with the 3-4x JSON blow-up, so this isn't reachable with the stated data, but it's a panic at a library API boundary rather than a propagated error — SMELL.\n2. In `push`, the digest is only updated *after* both writes succeed. If `write_all(&len.to_be_bytes())` succeeds but the subsequent `write_all(&body)` fails, the function returns `Err` early, leaving a dangling length prefix with no matching body written to `out`, and no digest update recorded either. This is standard \"abandon the writer on I/O error\" behavior and not unusual, but it's worth noting the writer offers no way to detect/resume from this state — SMELL.\n\nNo logic errors, byte-order mismatches, or doc/code divergences found.\n\n## FINDINGS\nVERDICT: APPROVE\n1. src/target_spool.rs:28 — `u32::try_from(body.len()).expect(...)` panics instead of returning an error if a serialized record ever exceeds u32::MAX bytes (SMELL, not reachable under the stated small target-only workload).\n2. src/target_spool.rs:29-33 — if the length-prefix write succeeds but the body write fails, `push` returns early leaving a dangling incomplete frame in `out` with no digest update, and no API to detect/recover from this partial state (SMELL, standard \"abandon writer on I/O error\" pattern).",
+          "tokenUsage": {
+            "prompt": 12245,
+            "completion": 5981,
+            "total": 18226,
+            "numRequests": 1
+          },
+          "cost": 0.1468927,
+          "cached": false
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "vars": {
+            "task_id": "mc-06",
+            "seeded": false,
+            "arm": "treatment",
+            "task_input": "# target_spool: run-file writer for the target-only adjudicator\n\nSpooling layer for the SMALL target-only population (~5.5k instruments,\n~8.8M records) — a separate, deliberately simpler sibling of the\nfull-population canonical spool. Records spill to \"run\" files under a\nscratch directory and are merged and sealed by machinery outside this diff.\n\nContract:\n- Run files carry a magic header and length-framed records, with an\n  integrity digest over the framed stream and a count/digest footer.\n- `docs/target-spool-format.md` is the format's reference documentation\n  and must stay accurate: operators size scratch volumes and debug spools\n  from it.\n- The diff adds the record writer plus the format doc.\n\n\n--- /dev/null\n+++ b/src/target_spool.rs\n@@ -0,0 +1,50 @@\n+use std::io::Write;\n+\n+use serde::Serialize;\n+use sha2::{Digest, Sha256};\n+\n+pub const RUN_MAGIC: &[u8] = b\"TARGET_REPLAY_RUN_V1\\n\";\n+\n+/// One spooled record, per target bar.\n+#[derive(Serialize)]\n+pub struct TargetEntry {\n+    /// Protobuf-encoded MarketBar, exactly as `MarketBar::encode` produced it.\n+    pub market_bar: Vec<u8>,\n+    pub source_ordinal: u32,\n+    pub close_token: String,\n+    /// 64-char hex SHA-256 of the exact raw source row.\n+    pub raw_row_sha256: String,\n+}\n+\n+pub struct TargetRunWriter<W: Write> {\n+    out: W,\n+    digest: Sha256,\n+    records: u64,\n+}\n+\n+impl<W: Write> TargetRunWriter<W> {\n+    pub fn create(mut out: W) -> std::io::Result<Self> {\n+        out.write_all(RUN_MAGIC)?;\n+        Ok(Self { out, digest: Sha256::new(), records: 0 })\n+    }\n+\n+    /// Append one record: u32 big-endian length prefix, then the record bytes.\n+    pub fn push(&mut self, entry: &TargetEntry) -> std::io::Result<()> {\n+        let body = serde_json::to_vec(entry).map_err(std::io::Error::other)?;\n+        let len = u32::try_from(body.len()).expect(\"record fits u32\");\n+        self.out.write_all(&len.to_be_bytes())?;\n+        self.out.write_all(&body)?;\n+        self.digest.update(len.to_be_bytes());\n+        self.digest.update(&body);\n+        self.records += 1;\n+        Ok(())\n+    }\n+\n+    /// Finish the run: append the record count and the stream digest as a footer.\n+    pub fn finish(mut self) -> std::io::Result<()> {\n+        self.out.write_all(&self.records.to_be_bytes())?;\n+        let digest = self.digest.finalize();\n+        self.out.write_all(&digest)?;\n+        self.out.flush()\n+    }\n+}\n--- a/docs/target-spool-format.md\n+++ b/docs/target-spool-format.md\n@@ -1,3 +1,13 @@\n # Target spool format\n \n-TBD.\n+The FRAMING is binary: `RUN_MAGIC`, then length-framed records (u32\n+big-endian length prefix + record bytes), ending in a record-count +\n+SHA-256 footer computed over the framed stream.\n+\n+Each record PAYLOAD inside a frame is serde_json — deliberately not a\n+packed binary codec. The protobuf bar bytes therefore serialize as a JSON\n+integer array (a ~3-4x size blow-up per bar). That trade is intentional:\n+this spool serves only the small target-only population, where JSON\n+debuggability wins and verbosity is harmless. Do NOT reuse this writer for\n+full-population canonical loads; size scratch from JSON record sizes, not\n+raw protobuf sizes.\n",
+            "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-06/truth.yaml",
+            "results_dir": "[REDACTED]",
+            "exp_id": "exp-w3a-negative-control",
+            "tier": "mid",
+            "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+          },
+          "assert": [
+            {
+              "type": "python",
+              "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 5,
+        "tokenUsage": {
+          "prompt": 12245,
+          "completion": 5981,
+          "cached": 0,
+          "total": 18226,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "task_id": "mc-06",
+          "seeded": false,
+          "arm": "treatment",
+          "task_input": "# target_spool: run-file writer for the target-only adjudicator\n\nSpooling layer for the SMALL target-only population (~5.5k instruments,\n~8.8M records) — a separate, deliberately simpler sibling of the\nfull-population canonical spool. Records spill to \"run\" files under a\nscratch directory and are merged and sealed by machinery outside this diff.\n\nContract:\n- Run files carry a magic header and length-framed records, with an\n  integrity digest over the framed stream and a count/digest footer.\n- `docs/target-spool-format.md` is the format's reference documentation\n  and must stay accurate: operators size scratch volumes and debug spools\n  from it.\n- The diff adds the record writer plus the format doc.\n\n\n--- /dev/null\n+++ b/src/target_spool.rs\n@@ -0,0 +1,50 @@\n+use std::io::Write;\n+\n+use serde::Serialize;\n+use sha2::{Digest, Sha256};\n+\n+pub const RUN_MAGIC: &[u8] = b\"TARGET_REPLAY_RUN_V1\\n\";\n+\n+/// One spooled record, per target bar.\n+#[derive(Serialize)]\n+pub struct TargetEntry {\n+    /// Protobuf-encoded MarketBar, exactly as `MarketBar::encode` produced it.\n+    pub market_bar: Vec<u8>,\n+    pub source_ordinal: u32,\n+    pub close_token: String,\n+    /// 64-char hex SHA-256 of the exact raw source row.\n+    pub raw_row_sha256: String,\n+}\n+\n+pub struct TargetRunWriter<W: Write> {\n+    out: W,\n+    digest: Sha256,\n+    records: u64,\n+}\n+\n+impl<W: Write> TargetRunWriter<W> {\n+    pub fn create(mut out: W) -> std::io::Result<Self> {\n+        out.write_all(RUN_MAGIC)?;\n+        Ok(Self { out, digest: Sha256::new(), records: 0 })\n+    }\n+\n+    /// Append one record: u32 big-endian length prefix, then the record bytes.\n+    pub fn push(&mut self, entry: &TargetEntry) -> std::io::Result<()> {\n+        let body = serde_json::to_vec(entry).map_err(std::io::Error::other)?;\n+        let len = u32::try_from(body.len()).expect(\"record fits u32\");\n+        self.out.write_all(&len.to_be_bytes())?;\n+        self.out.write_all(&body)?;\n+        self.digest.update(len.to_be_bytes());\n+        self.digest.update(&body);\n+        self.records += 1;\n+        Ok(())\n+    }\n+\n+    /// Finish the run: append the record count and the stream digest as a footer.\n+    pub fn finish(mut self) -> std::io::Result<()> {\n+        self.out.write_all(&self.records.to_be_bytes())?;\n+        let digest = self.digest.finalize();\n+        self.out.write_all(&digest)?;\n+        self.out.flush()\n+    }\n+}\n--- a/docs/target-spool-format.md\n+++ b/docs/target-spool-format.md\n@@ -1,3 +1,13 @@\n # Target spool format\n \n-TBD.\n+The FRAMING is binary: `RUN_MAGIC`, then length-framed records (u32\n+big-endian length prefix + record bytes), ending in a record-count +\n+SHA-256 footer computed over the framed stream.\n+\n+Each record PAYLOAD inside a frame is serde_json — deliberately not a\n+packed binary codec. The protobuf bar bytes therefore serialize as a JSON\n+integer array (a ~3-4x size blow-up per bar). That trade is intentional:\n+this spool serves only the small target-only population, where JSON\n+debuggability wins and verbosity is harmless. Do NOT reuse this writer for\n+full-population canonical loads; size scratch from JSON record sizes, not\n+raw protobuf sizes.\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-06/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "exp-w3a-negative-control",
+          "tier": "mid",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0.1780597,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "item_pass=True seeded=False verdict_flagged=False false_findings=0 found=[]",
+              "assertion": {
+                "type": "python",
+                "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+              }
+            }
+          ]
+        },
+        "id": "1cf9b9a5-f082-4e8a-ad3e-059fee74850c",
+        "latencyMs": 80965,
+        "namedScores": {},
+        "prompt": {
+          "raw": "Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nWhen reviewing code, tag every finding WRONG or SMELL before writing it up. WRONG means the code provably does the wrong thing — name the input or state and the incorrect result. SMELL means a risk, gap, or style concern with no demonstrated incorrect behavior. Report WRONG items first; a finding without a concrete failure scenario is a SMELL, never a blocker.\n\n# Repository Overview\n\nThis repository follows a layered architecture that has evolved organically over several years of active development. At its core, the service is a Python application built to handle inbound requests, transform and persist data, and expose results through a set of well-defined interfaces. The team has generally favored clarity and convention over cleverness, and much of the code reflects that sensibility, with descriptive names and a preference for explicit flow over implicit magic.\n\nThe application is organized into several conceptual layers. The presentation layer sits at the top and is responsible for accepting requests, performing lightweight validation, and shaping responses for consumers. Beneath it lives the service layer, where the bulk of the business logic resides. This is where the interesting decisions happen, and where most of the domain knowledge is encoded. Below that sits the data-access layer, which mediates between the service layer and the various persistence backends the system relies upon. Cross-cutting concerns such as logging, configuration, and authentication are woven throughout, and the team has historically debated whether these belong in dedicated modules or closer to the code that uses them.\n\nData generally flows in one direction. A request arrives at the edge, is authenticated and validated, and is then handed to a service that orchestrates the work. Services tend to be moderately sized and are composed of smaller collaborators, each with a fairly narrow responsibility. When persistence is required, the service delegates to a repository abstraction, which hides the details of the underlying store. Results propagate back up through the same layers, gathering any presentation-specific formatting along the way before finally being returned to the caller.\n\nConfiguration is handled through a combination of environment variables and configuration files, with sensible defaults baked in for local development. The team has tried, with varying degrees of success, to keep environment-specific concerns out of the core logic. Observability is provided through structured logging and a modest collection of metrics, and there is an ongoing conversation about how much tracing the system truly needs versus how much simply adds noise.\n\nHistorically, the codebase has grown in bursts, often in response to shifting product priorities. As a result, some corners are more polished than others, and a handful of modules carry the fingerprints of older conventions that the team has since moved away from. Newcomers usually find the overall shape approachable, though they occasionally stumble over the parts of the system that predate the current structure. On the whole, the repository aims to be a comfortable place to work: familiar in its patterns, unsurprising in its layout, and forgiving of the ordinary mistakes that come with everyday development.\n\n# backfill CLI: archive subcommands + session handoff doc\n\nA hand-rolled argument loop parses global flags, then dispatches on the\nsubcommand name. `next_value` pulls a flag's value from the arg iterator.\nSubcommands: `verify-archive` (read-only archive verification),\n`load-canonical` (loads a candidate revision), `adjudicate-canonical`\n(adjudicates a loaded candidate).\n\nContract:\n- Flags that only make sense for some subcommands must be rejected for the\n  others at parse time, with an error naming the accepting subcommands.\n- `docs/RESUME-archive.md` is the session handoff: its \"Next step\n  (runnable now)\" section must be executable exactly as written — the next\n  session starts by running it.\n- The diff adds `--rebuild-index` and `--emit-report`, their acceptance\n  rules, and the handoff's next-step section.\n\n\n--- a/src/main.rs\n+++ b/src/main.rs\n@@ -96,15 +96,35 @@ fn run(cmd: String, mut args: env::Args) -> Result<(), CliError> {\n     let mut dry_run = false;\n+    let mut rebuild_index = false;\n+    let mut emit_report: Option<PathBuf> = None;\n     while let Some(arg) = args.next() {\n         match arg.as_str() {\n             \"--dry-run\" => dry_run = true,\n+            \"--rebuild-index\" => rebuild_index = true,\n+            \"--emit-report\" => {\n+                emit_report = Some(PathBuf::from(next_value(&mut args, &arg)?));\n+            }\n             other => return Err(CliError::Config(format!(\"unknown flag {other}\"))),\n         }\n     }\n+    // --rebuild-index touches the archive's on-disk index: only the archive\n+    // walkers may use it. --emit-report is a load-pipeline artifact.\n+    if !matches!(cmd.as_str(), \"verify-archive\" | \"load-canonical\") && rebuild_index {\n+        return Err(CliError::Config(\n+            \"--rebuild-index is accepted only by verify-archive and load-canonical\".to_string(),\n+        ));\n+    }\n+    if !matches!(cmd.as_str(), \"load-canonical\" | \"adjudicate-canonical\")\n+        && emit_report.is_some()\n+    {\n+        return Err(CliError::Config(\n+            \"--emit-report is accepted only by load-canonical and adjudicate-canonical\".to_string(),\n+        ));\n+    }\n     let opts = Opts { dry_run };\n     match cmd.as_str() {\n-        \"verify-archive\" => verify_archive(&opts),\n+        \"verify-archive\" => verify_archive(&opts, rebuild_index),\n-        \"load-canonical\" => load_canonical(&opts),\n+        \"load-canonical\" => load_canonical(&opts, rebuild_index, emit_report.as_deref()),\n-        \"adjudicate-canonical\" => adjudicate_canonical(&opts),\n+        \"adjudicate-canonical\" => adjudicate_canonical(&opts, emit_report.as_deref()),\n         other => Err(CliError::Config(format!(\"unknown subcommand {other}\"))),\n     }\n }\n--- a/docs/RESUME-archive.md\n+++ b/docs/RESUME-archive.md\n@@ -4,4 +4,10 @@\n The July archive sweep left 214 orphaned index entries; the walker now\n knows how to rebuild the index in place.\n \n ## Next step (runnable now)\n+\n+Re-verify the archive and rebuild its on-disk index in the same pass:\n+\n+    backfill verify-archive --rebuild-index\n+\n+Read-only apart from the index files; safe to run before any new load.",
+          "label": "treatment: /Users/wesleyjinks/code/prompts-skills-steering/results/exp-w3a-negative-control/mid/prompts/treatment.txt: Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.\n\nRead the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.\n\nStop when you have examined the whole diff once and reported your conclusion.\n\nEnd your response with exactly this block:\n\n## FINDINGS\nVERDICT: APPROVE or REJECT\n1. <file>:<line> — <one-sentence defect description>\n(number each finding; write \"No findings.\" instead of a list if none)\n\nEverything above the ## FINDINGS block is your workspace; only the block is graded.\n\nWhen reviewing code, tag every finding WRONG or SMELL before writing it up. WRONG means the code provably does the wrong thing — name the input or state and the incorrect result. SMELL means a risk, gap, or style concern with no demonstrated incorrect behavior. Report WRONG items first; a finding without a concrete failure scenario is a SMELL, never a blocker.\n\n# Repository Overview\n\nThis repository follows a layered architecture that has evolved organically over several years of active development. At its core, the service is a Python application built to handle inbound requests, transform and persist data, and expose results through a set of well-defined interfaces. The team has generally favored clarity and convention over cleverness, and much of the code reflects that sensibility, with descriptive names and a preference for explicit flow over implicit magic.\n\nThe application is organized into several conceptual layers. The presentation layer sits at the top and is responsible for accepting requests, performing lightweight validation, and shaping responses for consumers. Beneath it lives the service layer, where the bulk of the business logic resides. This is where the interesting decisions happen, and where most of the domain knowledge is encoded. Below that sits the data-access layer, which mediates between the service layer and the various persistence backends the system relies upon. Cross-cutting concerns such as logging, configuration, and authentication are woven throughout, and the team has historically debated whether these belong in dedicated modules or closer to the code that uses them.\n\nData generally flows in one direction. A request arrives at the edge, is authenticated and validated, and is then handed to a service that orchestrates the work. Services tend to be moderately sized and are composed of smaller collaborators, each with a fairly narrow responsibility. When persistence is required, the service delegates to a repository abstraction, which hides the details of the underlying store. Results propagate back up through the same layers, gathering any presentation-specific formatting along the way before finally being returned to the caller.\n\nConfiguration is handled through a combination of environment variables and configuration files, with sensible defaults baked in for local development. The team has tried, with varying degrees of success, to keep environment-specific concerns out of the core logic. Observability is provided through structured logging and a modest collection of metrics, and there is an ongoing conversation about how much tracing the system truly needs versus how much simply adds noise.\n\nHistorically, the codebase has grown in bursts, often in response to shifting product priorities. As a result, some corners are more polished than others, and a handful of modules carry the fingerprints of older conventions that the team has since moved away from. Newcomers usually find the overall shape approachable, though they occasionally stumble over the parts of the system that predate the current structure. On the whole, the repository aims to be a comfortable place to work: familiar in its patterns, unsurprising in its layout, and forgiving of the ordinary mistakes that come with everyday development.\n\n{{task_input}}",
+          "config": {}
+        },
+        "promptId": "d309da69cbc354041cdedd1268963273dc7428dcc145e75363aa1845420c6fb8",
+        "promptIdx": 0,
+        "provider": {
+          "id": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/providers/promptfoo_claude.py",
+          "label": ""
+        },
+        "response": {
+          "output": "I reviewed the argument-parsing changes in `src/main.rs` and the doc update in `docs/RESUME-archive.md`.\n\n**Flag acceptance logic**: I traced all cmd × flag combinations (verify-archive/load-canonical/adjudicate-canonical × rebuild_index/emit_report). The two guard conditions correctly implement the stated contract — `--rebuild-index` is accepted only by verify-archive/load-canonical, `--emit-report` only by load-canonical/adjudicate-canonical, matching the accompanying comments. No combination is incorrectly accepted or incorrectly rejected.\n\n**Doc handoff step**: `backfill verify-archive --rebuild-index` is exactly the command the new validation logic accepts (verify-archive is in the rebuild_index allow-set), so the \"runnable now\" step is actually runnable given this diff.\n\nTwo non-blocking issues, both SMELL:\n\n1. Error-message ordering: if an entirely unrecognized subcommand is passed together with `--rebuild-index` or `--emit-report`, the flag-acceptance check runs before the subcommand match, so the user gets \"`--rebuild-index` is accepted only by ...\" instead of \"unknown subcommand ...\". Still errors out correctly, just a misleading message in a rare case.\n2. The diff changes call-site arity for `verify_archive`, `load_canonical`, and `adjudicate_canonical` (e.g., `verify_archive(&opts)` → `verify_archive(&opts, rebuild_index)`) but doesn't include the corresponding function-definition updates. I can't confirm from this diff alone that the project compiles; assuming (per task framing) those definitions were updated consistently elsewhere.\n\nNo demonstrated incorrect behavior (WRONG) found.\n\n## FINDINGS\nVERDICT: APPROVE\n1. src/main.rs:~114-124 — SMELL: flag-acceptance checks run before the subcommand-validity check, so an unrecognized subcommand combined with `--rebuild-index`/`--emit-report` reports \"accepted only by X/Y\" instead of \"unknown subcommand\", a misleading (but still erroring) message.\n2. src/main.rs:~127-131 — SMELL: call sites for `verify_archive`/`load_canonical`/`adjudicate_canonical` gain new parameters, but the diff doesn't show the matching function-definition changes, so compilability can't be verified from this diff alone.",
+          "tokenUsage": {
+            "prompt": 12139,
+            "completion": 8109,
+            "total": 20248,
+            "numRequests": 1
+          },
+          "cost": 0.1780597,
+          "cached": false
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "vars": {
+            "task_id": "mc-07",
+            "seeded": false,
+            "arm": "treatment",
+            "task_input": "# backfill CLI: archive subcommands + session handoff doc\n\nA hand-rolled argument loop parses global flags, then dispatches on the\nsubcommand name. `next_value` pulls a flag's value from the arg iterator.\nSubcommands: `verify-archive` (read-only archive verification),\n`load-canonical` (loads a candidate revision), `adjudicate-canonical`\n(adjudicates a loaded candidate).\n\nContract:\n- Flags that only make sense for some subcommands must be rejected for the\n  others at parse time, with an error naming the accepting subcommands.\n- `docs/RESUME-archive.md` is the session handoff: its \"Next step\n  (runnable now)\" section must be executable exactly as written — the next\n  session starts by running it.\n- The diff adds `--rebuild-index` and `--emit-report`, their acceptance\n  rules, and the handoff's next-step section.\n\n\n--- a/src/main.rs\n+++ b/src/main.rs\n@@ -96,15 +96,35 @@ fn run(cmd: String, mut args: env::Args) -> Result<(), CliError> {\n     let mut dry_run = false;\n+    let mut rebuild_index = false;\n+    let mut emit_report: Option<PathBuf> = None;\n     while let Some(arg) = args.next() {\n         match arg.as_str() {\n             \"--dry-run\" => dry_run = true,\n+            \"--rebuild-index\" => rebuild_index = true,\n+            \"--emit-report\" => {\n+                emit_report = Some(PathBuf::from(next_value(&mut args, &arg)?));\n+            }\n             other => return Err(CliError::Config(format!(\"unknown flag {other}\"))),\n         }\n     }\n+    // --rebuild-index touches the archive's on-disk index: only the archive\n+    // walkers may use it. --emit-report is a load-pipeline artifact.\n+    if !matches!(cmd.as_str(), \"verify-archive\" | \"load-canonical\") && rebuild_index {\n+        return Err(CliError::Config(\n+            \"--rebuild-index is accepted only by verify-archive and load-canonical\".to_string(),\n+        ));\n+    }\n+    if !matches!(cmd.as_str(), \"load-canonical\" | \"adjudicate-canonical\")\n+        && emit_report.is_some()\n+    {\n+        return Err(CliError::Config(\n+            \"--emit-report is accepted only by load-canonical and adjudicate-canonical\".to_string(),\n+        ));\n+    }\n     let opts = Opts { dry_run };\n     match cmd.as_str() {\n-        \"verify-archive\" => verify_archive(&opts),\n+        \"verify-archive\" => verify_archive(&opts, rebuild_index),\n-        \"load-canonical\" => load_canonical(&opts),\n+        \"load-canonical\" => load_canonical(&opts, rebuild_index, emit_report.as_deref()),\n-        \"adjudicate-canonical\" => adjudicate_canonical(&opts),\n+        \"adjudicate-canonical\" => adjudicate_canonical(&opts, emit_report.as_deref()),\n         other => Err(CliError::Config(format!(\"unknown subcommand {other}\"))),\n     }\n }\n--- a/docs/RESUME-archive.md\n+++ b/docs/RESUME-archive.md\n@@ -4,4 +4,10 @@\n The July archive sweep left 214 orphaned index entries; the walker now\n knows how to rebuild the index in place.\n \n ## Next step (runnable now)\n+\n+Re-verify the archive and rebuild its on-disk index in the same pass:\n+\n+    backfill verify-archive --rebuild-index\n+\n+Read-only apart from the index files; safe to run before any new load.\n",
+            "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-07/truth.yaml",
+            "results_dir": "[REDACTED]",
+            "exp_id": "exp-w3a-negative-control",
+            "tier": "mid",
+            "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+          },
+          "assert": [
+            {
+              "type": "python",
+              "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 6,
+        "tokenUsage": {
+          "prompt": 12139,
+          "completion": 8109,
+          "cached": 0,
+          "total": 20248,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "task_id": "mc-07",
+          "seeded": false,
+          "arm": "treatment",
+          "task_input": "# backfill CLI: archive subcommands + session handoff doc\n\nA hand-rolled argument loop parses global flags, then dispatches on the\nsubcommand name. `next_value` pulls a flag's value from the arg iterator.\nSubcommands: `verify-archive` (read-only archive verification),\n`load-canonical` (loads a candidate revision), `adjudicate-canonical`\n(adjudicates a loaded candidate).\n\nContract:\n- Flags that only make sense for some subcommands must be rejected for the\n  others at parse time, with an error naming the accepting subcommands.\n- `docs/RESUME-archive.md` is the session handoff: its \"Next step\n  (runnable now)\" section must be executable exactly as written — the next\n  session starts by running it.\n- The diff adds `--rebuild-index` and `--emit-report`, their acceptance\n  rules, and the handoff's next-step section.\n\n\n--- a/src/main.rs\n+++ b/src/main.rs\n@@ -96,15 +96,35 @@ fn run(cmd: String, mut args: env::Args) -> Result<(), CliError> {\n     let mut dry_run = false;\n+    let mut rebuild_index = false;\n+    let mut emit_report: Option<PathBuf> = None;\n     while let Some(arg) = args.next() {\n         match arg.as_str() {\n             \"--dry-run\" => dry_run = true,\n+            \"--rebuild-index\" => rebuild_index = true,\n+            \"--emit-report\" => {\n+                emit_report = Some(PathBuf::from(next_value(&mut args, &arg)?));\n+            }\n             other => return Err(CliError::Config(format!(\"unknown flag {other}\"))),\n         }\n     }\n+    // --rebuild-index touches the archive's on-disk index: only the archive\n+    // walkers may use it. --emit-report is a load-pipeline artifact.\n+    if !matches!(cmd.as_str(), \"verify-archive\" | \"load-canonical\") && rebuild_index {\n+        return Err(CliError::Config(\n+            \"--rebuild-index is accepted only by verify-archive and load-canonical\".to_string(),\n+        ));\n+    }\n+    if !matches!(cmd.as_str(), \"load-canonical\" | \"adjudicate-canonical\")\n+        && emit_report.is_some()\n+    {\n+        return Err(CliError::Config(\n+            \"--emit-report is accepted only by load-canonical and adjudicate-canonical\".to_string(),\n+        ));\n+    }\n     let opts = Opts { dry_run };\n     match cmd.as_str() {\n-        \"verify-archive\" => verify_archive(&opts),\n+        \"verify-archive\" => verify_archive(&opts, rebuild_index),\n-        \"load-canonical\" => load_canonical(&opts),\n+        \"load-canonical\" => load_canonical(&opts, rebuild_index, emit_report.as_deref()),\n-        \"adjudicate-canonical\" => adjudicate_canonical(&opts),\n+        \"adjudicate-canonical\" => adjudicate_canonical(&opts, emit_report.as_deref()),\n         other => Err(CliError::Config(format!(\"unknown subcommand {other}\"))),\n     }\n }\n--- a/docs/RESUME-archive.md\n+++ b/docs/RESUME-archive.md\n@@ -4,4 +4,10 @@\n The July archive sweep left 214 orphaned index entries; the walker now\n knows how to rebuild the index in place.\n \n ## Next step (runnable now)\n+\n+Re-verify the archive and rebuild its on-disk index in the same pass:\n+\n+    backfill verify-archive --rebuild-index\n+\n+Read-only apart from the index files; safe to run before any new load.\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-07/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "exp-w3a-negative-control",
+          "tier": "mid",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 5,
+      "failures": 2,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 83661,
+        "completion": 42598,
+        "cached": 0,
+        "total": 126259,
+        "numRequests": 7,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 214974,
+      "evaluationDurationMs": 214974
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "exp-w3a-negative-control treatment (mid)",
+    "prompts": [
+      {
+        "id": "file:///Users/wesleyjinks/code/prompts-skills-steering/results/exp-w3a-negative-control/mid/prompts/treatment.txt",
+        "label": "treatment"
+      }
+    ],
+    "providers": [
+      {
+        "id": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/providers/promptfoo_claude.py",
+        "config": {
+          "model": "claude-sonnet-5",
+          "tier": "mid",
+          "arm": "treatment",
+          "exp_id": "exp-w3a-negative-control",
+          "results_dir": "[REDACTED]"
+        }
+      }
+    ],
+    "tests": [
+      {
+        "vars": {
+          "task_id": "mc-01",
+          "seeded": true,
+          "arm": "treatment",
+          "task_input": "# replay_spool: external-sort run files (writer, first cut)\n\nSpooling layer for a canonical-data backfill: records are buffered, spilled\nto sorted \"run\" files under a scratch directory, then merged and finally\nsealed; an emitter reads the sealed run back one instrument group at a time.\n\nContract:\n- Run files carry a magic header and length-framed records, with an\n  integrity digest over the framed stream and a count/digest footer.\n- `docs/spool-format.md` is the format's reference documentation and must\n  stay accurate: operators size scratch volumes and debug spools from it.\n- The diff adds the first cut of the record writer plus the format doc.\n\n\n--- /dev/null\n+++ b/src/replay_spool.rs\n@@ -0,0 +1,57 @@\n+use std::io::Write;\n+\n+use serde::Serialize;\n+use sha2::{Digest, Sha256};\n+\n+pub const RUN_MAGIC: &[u8] = b\"REPLAY_RUN_V2\\n\";\n+\n+/// One spooled record, per bar.\n+#[derive(Serialize)]\n+pub struct Entry {\n+    /// Protobuf-encoded MarketBar, exactly as `MarketBar::encode` produced it.\n+    pub market_bar: Vec<u8>,\n+    pub source_ordinal: u32,\n+    pub close_token: String,\n+    pub closeadj_token: String,\n+    /// 64-char hex SHA-256 of the exact raw source row.\n+    pub raw_row_sha256: String,\n+}\n+\n+pub struct RunWriter<W: Write> {\n+    out: W,\n+    digest: Sha256,\n+    records: u64,\n+}\n+\n+impl<W: Write> RunWriter<W> {\n+    pub fn create(mut out: W) -> std::io::Result<Self> {\n+        out.write_all(RUN_MAGIC)?;\n+        Ok(Self { out, digest: Sha256::new(), records: 0 })\n+    }\n+\n+    /// Append one record: u32 big-endian length prefix, then the record bytes.\n+    pub fn push(&mut self, entry: &Entry) -> std::io::Result<()> {\n+        let body = encode_entry(entry)?;\n+        let len = u32::try_from(body.len()).expect(\"record fits u32\");\n+        self.out.write_all(&len.to_be_bytes())?;\n+        self.out.write_all(&body)?;\n+        self.digest.update(len.to_be_bytes());\n+        self.digest.update(&body);\n+        self.records += 1;\n+        Ok(())\n+    }\n+\n+    /// Finish the run: append the record count and the stream digest as a footer.\n+    pub fn finish(mut self) -> std::io::Result<()> {\n+        self.out.write_all(&self.records.to_be_bytes())?;\n+        let digest = self.digest.finalize();\n+        self.out.write_all(&digest)?;\n+        self.out.flush()\n+    }\n+}\n+\n+fn encode_entry(entry: &Entry) -> std::io::Result<Vec<u8>> {\n+    let mut encoded = Vec::new();\n+    serde_json::to_writer(&mut encoded, entry).map_err(std::io::Error::other)?;\n+    Ok(encoded)\n+}\n--- a/docs/spool-format.md\n+++ b/docs/spool-format.md\n@@ -1,3 +1,11 @@\n # Replay spool format\n \n-TBD.\n+Run files start with `RUN_MAGIC`, then a stream of length-framed records —\n+a u32 big-endian length prefix followed by the record bytes — and end with\n+a record-count + SHA-256 footer computed over the framed stream.\n+\n+Record payloads use our compact custom binary codec; there is no JSON\n+anywhere on the write path. Protobuf bar bytes are stored raw inside the\n+record, so even a full-population spool (tens of millions of bars) stays\n+comfortably within one scratch volume at roughly the size of the raw\n+protobuf data plus framing overhead.\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-01/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "exp-w3a-negative-control",
+          "tier": "mid",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "assert": [
+          {
+            "type": "python",
+            "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+          }
+        ]
+      },
+      {
+        "vars": {
+          "task_id": "mc-02",
+          "seeded": true,
+          "arm": "treatment",
+          "task_input": "# replay_spool: compaction + seal for the external-sort spool\n\nThe spool spills sorted \"run\" files to a scratch directory; SpoolDir tracks\nthem in `self.runs`. `merge_sorted(inputs, out)` k-way-merges input runs\ninto one output run. `fsync_file` makes a run durable. MERGE_FANIN is the\nmerge fan-in constant (8). Scratch space is shared with other jobs and is\nthe binding constraint at full-population scale.\n\nContract:\n- Compaction and sealing must never delete the only durable copy of data.\n- `CHANGELOG.md` entries are operator-facing: capacity planning for shared\n  scratch volumes is done from them, so their claims must be accurate.\n- The diff adds group-wise compaction, sealing, and the changelog entry.\n\n\n--- a/src/replay_spool.rs\n+++ b/src/replay_spool.rs\n@@ -204,9 +204,38 @@ impl SpoolDir {\n     fn next_run_path(&mut self, kind: &str) -> PathBuf {\n         self.seq += 1;\n         self.dir.join(format!(\"{kind}-{:020}.run\", self.seq))\n     }\n \n+    /// Merge run files group-by-group, deleting each group's inputs as soon\n+    /// as the group's merged run is durable.\n+    pub fn compact_runs(&mut self) -> Result<()> {\n+        while self.runs.len() > MERGE_FANIN {\n+            let group: Vec<PathBuf> = self.runs[..MERGE_FANIN].to_vec();\n+            let merged = self.next_run_path(\"merge\");\n+            merge_sorted(&group, &merged)?;\n+            fsync_file(&merged)?;\n+            self.runs.drain(..MERGE_FANIN);\n+            self.runs.push(merged);\n+            for run in &group {\n+                fs::remove_file(run)?;\n+            }\n+        }\n+        Ok(())\n+    }\n+\n+    /// Produce the final sealed run the emitter reads back.\n+    pub fn seal(mut self) -> Result<PathBuf> {\n+        self.compact_runs()?;\n+        let sealed = self.dir.join(\"sealed.run\");\n+        merge_sorted(&self.runs, &sealed)?;\n+        fsync_file(&sealed)?;\n+        for run in &self.runs {\n+            fs::remove_file(run)?;\n+        }\n+        Ok(sealed)\n+    }\n+\n     pub fn scratch_bytes(&self) -> u64 {\n         self.runs.iter().filter_map(|p| fs::metadata(p).ok()).map(|m| m.len()).sum()\n     }\n }\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -1,2 +1,9 @@\n # Changelog\n \n+## Unreleased\n+\n+- Spool compaction deletes each merge group's inputs as soon as the group's\n+  merged run is fsynced. Peak scratch usage is therefore bounded by one\n+  merge group at every stage, including seal: the old 2x (all remaining\n+  runs + full sealed output) high-water mark at seal time is gone.\n+\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-02/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "exp-w3a-negative-control",
+          "tier": "mid",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "assert": [
+          {
+            "type": "python",
+            "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+          }
+        ]
+      },
+      {
+        "vars": {
+          "task_id": "mc-03",
+          "seeded": true,
+          "arm": "treatment",
+          "task_input": "# backfill CLI: canonical-data subcommands + session handoff doc\n\nA hand-rolled argument loop parses global flags, then dispatches on the\nsubcommand name. `next_value` pulls a flag's value from the arg iterator.\nSubcommands: `load-canonical` (loads a candidate revision from frozen\ninputs), `adjudicate-canonical` (adjudicates a loaded candidate),\n`audit-canonical` (read-only replay/audit of a failed candidate).\n\nContract:\n- Flags that only make sense for some subcommands must be rejected for the\n  others at parse time, with an error naming the accepting subcommands.\n- `docs/RESUME-g4c.md` is the session handoff: its \"Next step (runnable\n  now)\" section must be executable exactly as written — the next session\n  starts by running it.\n- The diff adds the `--spinoff-binding` flag, its acceptance rule, the\n  `audit-canonical` dispatch arm, and the handoff's next-step section.\n\n\n--- a/src/main.rs\n+++ b/src/main.rs\n@@ -118,14 +118,31 @@ fn run(cmd: String, mut args: env::Args) -> Result<(), CliError> {\n     let mut dry_run = false;\n+    let mut spinoff_binding: Option<PathBuf> = None;\n     while let Some(arg) = args.next() {\n         match arg.as_str() {\n             \"--dry-run\" => dry_run = true,\n+            \"--spinoff-binding\" => {\n+                spinoff_binding = Some(PathBuf::from(next_value(&mut args, &arg)?));\n+            }\n             other => return Err(CliError::Config(format!(\"unknown flag {other}\"))),\n         }\n     }\n+    // --spinoff-binding is an input to the *load*: it reconstructs the frozen\n+    // spinoff-ratio inputs a candidate revision loaded with. Replay-only\n+    // subcommands never load, so they must refuse it rather than silently\n+    // ignore it.\n+    if !matches!(cmd.as_str(), \"load-canonical\" | \"adjudicate-canonical\")\n+        && spinoff_binding.is_some()\n+    {\n+        return Err(CliError::Config(\n+            \"--spinoff-binding is accepted only by load-canonical and adjudicate-canonical\"\n+                .to_string(),\n+        ));\n+    }\n     let opts = Opts { dry_run };\n     match cmd.as_str() {\n-        \"load-canonical\" => load_canonical(&opts),\n+        \"load-canonical\" => load_canonical(&opts, spinoff_binding.as_deref()),\n-        \"adjudicate-canonical\" => adjudicate_canonical(&opts),\n+        \"adjudicate-canonical\" => adjudicate_canonical(&opts, spinoff_binding.as_deref()),\n+        \"audit-canonical\" => audit_canonical(&opts),\n         other => Err(CliError::Config(format!(\"unknown subcommand {other}\"))),\n     }\n }\n--- a/docs/RESUME-g4c.md\n+++ b/docs/RESUME-g4c.md\n@@ -4,4 +4,11 @@\n Rev 9 failed with 1.13M incomplete rows; its spinoff-ratio bindings were\n regenerated this session and written to `out/rev9-bindings.json`.\n \n ## Next step (runnable now)\n+\n+Replay the failed candidate against the audit path with its frozen\n+spinoff-ratio inputs supplied explicitly:\n+\n+    backfill audit-canonical --spinoff-binding out/rev9-bindings.json\n+\n+This reproduces rev 9's inputs bit-for-bit before any new load is attempted.\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-03/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "exp-w3a-negative-control",
+          "tier": "mid",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "assert": [
+          {
+            "type": "python",
+            "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+          }
+        ]
+      },
+      {
+        "vars": {
+          "task_id": "mc-04",
+          "seeded": true,
+          "arm": "treatment",
+          "task_input": "# pathfold: lexical segment folding for the alias resolver\n\nPart of a config-driven path alias system: repo-relative paths are split\ninto segments, folded, and later bound against an alias table by a separate\nresolution stage. The division of labor between the two stages is part of\nthe module's public contract — downstream code decides where dot-segment\nhandling happens based on the doc comments here.\n\nContract:\n- `foldSegments(path)` produces the canonical segment list for a path.\n- `foldsUnder(root, child)` reports whether `child` folds to a path under\n  `root`; it is used to scope alias tables to subtrees.\n- Doc comments in this module are load-bearing: the alias-resolution stage\n  is written against what they promise.\n- The diff adds the module (new file).\n\n\n--- /dev/null\n+++ b/src/pathfold.ts\n@@ -0,0 +1,33 @@\n+/**\n+ * Fold a repo-relative path into its canonical segment list.\n+ *\n+ * Purely lexical and non-resolving: `.` and `..` segments are preserved\n+ * verbatim in the output, so aliased roots keep their original spelling\n+ * and the alias-resolution stage decides how dot segments bind against\n+ * the alias table. Only empty segments (doubled slashes) are dropped.\n+ */\n+export function foldSegments(path: string): string[] {\n+  const out: string[] = [];\n+  for (const seg of path.split(\"/\")) {\n+    if (seg === \"\") continue;\n+    if (seg === \".\") continue;\n+    if (seg === \"..\") {\n+      out.pop();\n+      continue;\n+    }\n+    out.push(seg);\n+  }\n+  return out;\n+}\n+\n+/**\n+ * True iff `child` folds to a path under `root`. Used to scope alias\n+ * tables to subtrees.\n+ */\n+export function foldsUnder(root: string, child: string): boolean {\n+  const r = foldSegments(root);\n+  const c = foldSegments(child);\n+  return r.length <= c.length && r.every((seg, i) => c[i] === seg);\n+}\n+\n+export const FOLD_CONTRACT_VERSION = 2;\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-04/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "exp-w3a-negative-control",
+          "tier": "mid",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "assert": [
+          {
+            "type": "python",
+            "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+          }
+        ]
+      },
+      {
+        "vars": {
+          "task_id": "mc-05",
+          "seeded": true,
+          "arm": "treatment",
+          "task_input": "# ci/run-suite.sh: the workspace CI gate script\n\nSingle entry point the CI system runs for every push; the CI step passes or\nfails on this script's exit status alone. Nothing downstream re-checks the\nsuite — a green step is treated as \"the workspace suite passed\" by the\nmerge gate and by reviewers reading the checks list.\n\nContract:\n- The script must fail exactly when a check it runs fails.\n- Comments in the script are operator documentation: on-call engineers\n  debug red/green CI from what the header comment promises.\n- The diff adds the script (new file).\n\n\n--- /dev/null\n+++ b/ci/run-suite.sh\n@@ -0,0 +1,19 @@\n+#!/usr/bin/env bash\n+# Workspace CI gate.\n+#\n+# Output policy: the last 40 lines of test output are enough for the step\n+# summary; full output stays in the job log. Exit policy: the script's exit\n+# status is the test runner's own exit code, so the CI step fails exactly\n+# when the suite fails.\n+set -eu\n+\n+export RUST_BACKTRACE=1\n+\n+echo \"== fmt ==\"\n+cargo fmt --check\n+\n+echo \"== clippy ==\"\n+cargo clippy --workspace --quiet -- -D warnings\n+\n+echo \"== tests ==\"\n+cargo test --workspace 2>&1 | tail -40\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-05/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "exp-w3a-negative-control",
+          "tier": "mid",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "assert": [
+          {
+            "type": "python",
+            "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+          }
+        ]
+      },
+      {
+        "vars": {
+          "task_id": "mc-06",
+          "seeded": false,
+          "arm": "treatment",
+          "task_input": "# target_spool: run-file writer for the target-only adjudicator\n\nSpooling layer for the SMALL target-only population (~5.5k instruments,\n~8.8M records) — a separate, deliberately simpler sibling of the\nfull-population canonical spool. Records spill to \"run\" files under a\nscratch directory and are merged and sealed by machinery outside this diff.\n\nContract:\n- Run files carry a magic header and length-framed records, with an\n  integrity digest over the framed stream and a count/digest footer.\n- `docs/target-spool-format.md` is the format's reference documentation\n  and must stay accurate: operators size scratch volumes and debug spools\n  from it.\n- The diff adds the record writer plus the format doc.\n\n\n--- /dev/null\n+++ b/src/target_spool.rs\n@@ -0,0 +1,50 @@\n+use std::io::Write;\n+\n+use serde::Serialize;\n+use sha2::{Digest, Sha256};\n+\n+pub const RUN_MAGIC: &[u8] = b\"TARGET_REPLAY_RUN_V1\\n\";\n+\n+/// One spooled record, per target bar.\n+#[derive(Serialize)]\n+pub struct TargetEntry {\n+    /// Protobuf-encoded MarketBar, exactly as `MarketBar::encode` produced it.\n+    pub market_bar: Vec<u8>,\n+    pub source_ordinal: u32,\n+    pub close_token: String,\n+    /// 64-char hex SHA-256 of the exact raw source row.\n+    pub raw_row_sha256: String,\n+}\n+\n+pub struct TargetRunWriter<W: Write> {\n+    out: W,\n+    digest: Sha256,\n+    records: u64,\n+}\n+\n+impl<W: Write> TargetRunWriter<W> {\n+    pub fn create(mut out: W) -> std::io::Result<Self> {\n+        out.write_all(RUN_MAGIC)?;\n+        Ok(Self { out, digest: Sha256::new(), records: 0 })\n+    }\n+\n+    /// Append one record: u32 big-endian length prefix, then the record bytes.\n+    pub fn push(&mut self, entry: &TargetEntry) -> std::io::Result<()> {\n+        let body = serde_json::to_vec(entry).map_err(std::io::Error::other)?;\n+        let len = u32::try_from(body.len()).expect(\"record fits u32\");\n+        self.out.write_all(&len.to_be_bytes())?;\n+        self.out.write_all(&body)?;\n+        self.digest.update(len.to_be_bytes());\n+        self.digest.update(&body);\n+        self.records += 1;\n+        Ok(())\n+    }\n+\n+    /// Finish the run: append the record count and the stream digest as a footer.\n+    pub fn finish(mut self) -> std::io::Result<()> {\n+        self.out.write_all(&self.records.to_be_bytes())?;\n+        let digest = self.digest.finalize();\n+        self.out.write_all(&digest)?;\n+        self.out.flush()\n+    }\n+}\n--- a/docs/target-spool-format.md\n+++ b/docs/target-spool-format.md\n@@ -1,3 +1,13 @@\n # Target spool format\n \n-TBD.\n+The FRAMING is binary: `RUN_MAGIC`, then length-framed records (u32\n+big-endian length prefix + record bytes), ending in a record-count +\n+SHA-256 footer computed over the framed stream.\n+\n+Each record PAYLOAD inside a frame is serde_json — deliberately not a\n+packed binary codec. The protobuf bar bytes therefore serialize as a JSON\n+integer array (a ~3-4x size blow-up per bar). That trade is intentional:\n+this spool serves only the small target-only population, where JSON\n+debuggability wins and verbosity is harmless. Do NOT reuse this writer for\n+full-population canonical loads; size scratch from JSON record sizes, not\n+raw protobuf sizes.\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-06/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "exp-w3a-negative-control",
+          "tier": "mid",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "assert": [
+          {
+            "type": "python",
+            "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+          }
+        ]
+      },
+      {
+        "vars": {
+          "task_id": "mc-07",
+          "seeded": false,
+          "arm": "treatment",
+          "task_input": "# backfill CLI: archive subcommands + session handoff doc\n\nA hand-rolled argument loop parses global flags, then dispatches on the\nsubcommand name. `next_value` pulls a flag's value from the arg iterator.\nSubcommands: `verify-archive` (read-only archive verification),\n`load-canonical` (loads a candidate revision), `adjudicate-canonical`\n(adjudicates a loaded candidate).\n\nContract:\n- Flags that only make sense for some subcommands must be rejected for the\n  others at parse time, with an error naming the accepting subcommands.\n- `docs/RESUME-archive.md` is the session handoff: its \"Next step\n  (runnable now)\" section must be executable exactly as written — the next\n  session starts by running it.\n- The diff adds `--rebuild-index` and `--emit-report`, their acceptance\n  rules, and the handoff's next-step section.\n\n\n--- a/src/main.rs\n+++ b/src/main.rs\n@@ -96,15 +96,35 @@ fn run(cmd: String, mut args: env::Args) -> Result<(), CliError> {\n     let mut dry_run = false;\n+    let mut rebuild_index = false;\n+    let mut emit_report: Option<PathBuf> = None;\n     while let Some(arg) = args.next() {\n         match arg.as_str() {\n             \"--dry-run\" => dry_run = true,\n+            \"--rebuild-index\" => rebuild_index = true,\n+            \"--emit-report\" => {\n+                emit_report = Some(PathBuf::from(next_value(&mut args, &arg)?));\n+            }\n             other => return Err(CliError::Config(format!(\"unknown flag {other}\"))),\n         }\n     }\n+    // --rebuild-index touches the archive's on-disk index: only the archive\n+    // walkers may use it. --emit-report is a load-pipeline artifact.\n+    if !matches!(cmd.as_str(), \"verify-archive\" | \"load-canonical\") && rebuild_index {\n+        return Err(CliError::Config(\n+            \"--rebuild-index is accepted only by verify-archive and load-canonical\".to_string(),\n+        ));\n+    }\n+    if !matches!(cmd.as_str(), \"load-canonical\" | \"adjudicate-canonical\")\n+        && emit_report.is_some()\n+    {\n+        return Err(CliError::Config(\n+            \"--emit-report is accepted only by load-canonical and adjudicate-canonical\".to_string(),\n+        ));\n+    }\n     let opts = Opts { dry_run };\n     match cmd.as_str() {\n-        \"verify-archive\" => verify_archive(&opts),\n+        \"verify-archive\" => verify_archive(&opts, rebuild_index),\n-        \"load-canonical\" => load_canonical(&opts),\n+        \"load-canonical\" => load_canonical(&opts, rebuild_index, emit_report.as_deref()),\n-        \"adjudicate-canonical\" => adjudicate_canonical(&opts),\n+        \"adjudicate-canonical\" => adjudicate_canonical(&opts, emit_report.as_deref()),\n         other => Err(CliError::Config(format!(\"unknown subcommand {other}\"))),\n     }\n }\n--- a/docs/RESUME-archive.md\n+++ b/docs/RESUME-archive.md\n@@ -4,4 +4,10 @@\n The July archive sweep left 214 orphaned index entries; the walker now\n knows how to rebuild the index in place.\n \n ## Next step (runnable now)\n+\n+Re-verify the archive and rebuild its on-disk index in the same pass:\n+\n+    backfill verify-archive --rebuild-index\n+\n+Read-only apart from the index files; safe to run before any new load.\n",
+          "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-07/truth.yaml",
+          "results_dir": "[REDACTED]",
+          "exp_id": "exp-w3a-negative-control",
+          "tier": "mid",
+          "judge_json": "{\"provider\":\"codex\",\"model\":\"gpt-5.5\",\"effort\":\"medium\",\"rubric\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.md\",\"schema\":\"/Users/wesleyjinks/code/prompts-skills-steering/harness/rubrics/review_judge.schema.json\"}"
+        },
+        "assert": [
+          {
+            "type": "python",
+            "value": "file:///Users/wesleyjinks/code/prompts-skills-steering/harness/asserts/judge_assert.py"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "/Users/wesleyjinks/code/prompts-skills-steering/results/exp-w3a-negative-control/mid/promptfoo-treatment.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {}
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.121.17",
+    "nodeVersion": "v26.0.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-07-26T09:39:03.678Z",
+    "evaluationCreatedAt": "2026-07-26T09:35:28.385Z"
+  },
+  "vars": [
+    "task_id",
+    "seeded",
+    "arm",
+    "task_input",
+    "truth_path",
+    "results_dir",
+    "exp_id",
+    "tier",
+    "judge_json"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 4,
+    "cache": false
+  }
+}

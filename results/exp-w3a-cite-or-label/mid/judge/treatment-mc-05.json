@@ -1,0 +1,31 @@
+{
+  "exp_id": "exp-w3a-cite-or-label",
+  "arm": "treatment",
+  "task_id": "mc-05",
+  "tier": "mid",
+  "seeded": true,
+  "adherence_labels": {
+    "checklist": false,
+    "disconfirm": false,
+    "verify": false
+  },
+  "truth_path": "/Users/wesleyjinks/code/prompts-skills-steering/tasksets/mechanism-claims-v0/items/mc-05/truth.yaml",
+  "truth_defect_ids": [
+    "mc-05-d1"
+  ],
+  "normalized_block": "## FINDINGS\nVERDICT: REJECT\n1. ci/run-suite.sh:19 — `cargo test --workspace 2>&1 | tail -40` is piped without `set -o pipefail` (only `set -eu` is set at ci/run-suite.sh:8), so the pipeline's exit status is `tail`'s (always 0), meaning a failing test suite still makes the script exit 0 and CI report green.\n2. ci/run-suite.sh:6-7 — the header comment claims \"the script's exit status is the test runner's own exit code, so the CI step fails exactly when the suite fails,\" which is false given the bug in finding 1, misleading on-call engineers who trust this comment as documented in the task's stated contract.\n",
+  "parse_ok": true,
+  "defects": [
+    {
+      "defect_id": "mc-05-d1",
+      "found": true
+    }
+  ],
+  "false_findings": 1,
+  "neutral_matched": 0,
+  "verdict_flagged": true,
+  "item_pass": false,
+  "judge_error": false,
+  "judge_tokens": 577,
+  "judge_cost_usd": null
+}
