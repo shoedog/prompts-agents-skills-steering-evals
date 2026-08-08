@@ -134,6 +134,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from build_index import CLAUDE_ROOT, CODEX_ROOT, find_claude_main_files, stream_json_lines  # noqa: E402
+from corpus_filters import (dedupe_rows, is_excluded_claude_project,  # noqa: E402
+                            logical_session)
 
 OUT_DIR = HERE.parent / "out"
 HOME = Path.home()
@@ -268,21 +270,37 @@ class Rows:
         self.rows: list[dict] = []
         self.counts: Counter = Counter()
         self.key_sessions: dict[str, set] = {}
+        self.n_suppressed = 0
 
-    def add(self, corpus, detector, bucket, path, line_no, ts, model, cwd, sidechain, snip):
+    def add(self, corpus, detector, bucket, path, line_no, ts, model, cwd, sidechain, snip,
+            uuid=None, session_id=None):
         session = Path(path).stem
         self.rows.append({
             "corpus": corpus, "detector": detector, "bucket": bucket,
             "path": str(path).replace(str(HOME), "~"), "session": session,
             "line_no": line_no, "ts": ts, "model": model, "cwd": cwd,
             "sidechain": sidechain, "snippet": snip,
+            "uuid": uuid, "session_id": session_id,
         })
         key = f"{corpus}.{detector}.{bucket}"
         self.counts[key] += 1
         self.key_sessions.setdefault(key, set()).add(session)
 
+    def dedupe(self):
+        """Drop rows for copied-lineage records (post-compaction duplicates),
+        then rebuild counts/key_sessions from the surviving rows."""
+        self.rows, suppressed = dedupe_rows(self.rows)
+        self.n_suppressed += suppressed
+        self.counts = Counter()
+        self.key_sessions = {}
+        for r in self.rows:
+            key = f"{r['corpus']}.{r['detector']}.{r['bucket']}"
+            self.counts[key] += 1
+            self.key_sessions.setdefault(key, set()).add(r["session"])
 
-def scan_prose(rows: Rows, corpus, text, path, line_no, ts, model, cwd, sidechain):
+
+def scan_prose(rows: Rows, corpus, text, path, line_no, ts, model, cwd, sidechain,
+               uuid=None, session_id=None):
     """Apply every prose detector to one assistant message text: at most one
     row per detector per message, strongest bucket wins (failure-side parity)."""
     if not text:
@@ -294,12 +312,14 @@ def scan_prose(rows: Rows, corpus, text, path, line_no, ts, model, cwd, sidechai
                 m = refut_match(text)
             if m:
                 rows.add(corpus, detector, bucket, path, line_no, ts, model,
-                         cwd, sidechain, snippet_around(text, m))
+                         cwd, sidechain, snippet_around(text, m),
+                         uuid=uuid, session_id=session_id)
                 break
     m = falsify_match(text)
     if m:
         rows.add(corpus, "expect_falsify_probe", "prose", path, line_no, ts,
-                 model, cwd, sidechain, snippet_around(text, m))
+                 model, cwd, sidechain, snippet_around(text, m),
+                 uuid=uuid, session_id=session_id)
 
 
 def authored_texts(block: dict):
@@ -325,13 +345,14 @@ def authored_texts(block: dict):
 
 def scan_claude(rows: Rows, since_mtime: float | None, limit=None):
     fails = [0]
-    checkpoint_edits: Counter = Counter()          # session stem -> n edits
-    checkpoint_meta: dict[str, dict] = {}          # session stem -> row context
+    checkpoint_edits: dict[str, set] = {}          # logical session -> edit ids
+    checkpoint_meta: dict[str, dict] = {}          # logical session -> row context
     files = list(find_claude_main_files(CLAUDE_ROOT))
     if limit:
         files = files[:limit]
     files = [p for p in files
-             if since_mtime is None or p.stat().st_mtime >= since_mtime]
+             if (since_mtime is None or p.stat().st_mtime >= since_mtime)
+             and not is_excluded_claude_project(p)]
 
     n_scanned = 0
     for path in files:
@@ -346,6 +367,8 @@ def scan_claude(rows: Rows, since_mtime: float | None, limit=None):
             msg = obj.get("message") or {}
             ts = obj.get("timestamp")
             sidechain = bool(obj.get("isSidechain"))
+            rec_uuid = obj.get("uuid") if isinstance(obj.get("uuid"), str) else None
+            logical = logical_session(obj, path)
             m_model = msg.get("model")
             if m_model == "<synthetic>":
                 continue
@@ -353,22 +376,25 @@ def scan_claude(rows: Rows, since_mtime: float | None, limit=None):
                 model = m_model
 
             scan_prose(rows, "claude", content_text(msg), path, line_no, ts,
-                       model, cwd, sidechain)
+                       model, cwd, sidechain,
+                       uuid=rec_uuid, session_id=obj.get("session_id"))
 
             content = msg.get("content")
             if not isinstance(content, list):
                 continue
-            for block in content:
+            for i_block, block in enumerate(content):
                 if not (isinstance(block, dict) and block.get("type") == "tool_use"):
                     continue
                 if block.get("name") not in EDIT_TOOLS:
                     continue
-                # checkpoint_cadence: session-level edit counter
+                # checkpoint_cadence: session-level edit id set, keyed by the
+                # LOGICAL session and deduped by record uuid so a compaction
+                # fork's copied edits neither re-qualify nor inflate the count
                 fp = (block.get("input") or {}).get("file_path")
                 if isinstance(fp, str) and HANDOFF_PATH.search(fp):
-                    stem = path.stem
-                    checkpoint_edits[stem] += 1
-                    meta = checkpoint_meta.setdefault(stem, {
+                    edit_id = (rec_uuid or f"{path.stem}:{line_no}", i_block)
+                    checkpoint_edits.setdefault(logical, set()).add(edit_id)
+                    meta = checkpoint_meta.setdefault(logical, {
                         "path": path, "first_line": line_no, "cwd": cwd,
                         "paths": set(),
                     })
@@ -382,19 +408,22 @@ def scan_claude(rows: Rows, since_mtime: float | None, limit=None):
                     if m:
                         rows.add("claude", "cap_honored", "authored_doc", path,
                                  line_no, ts, model, cwd, sidechain,
-                                 snippet_around(text, m))
+                                 snippet_around(text, m),
+                                 uuid=rec_uuid, session_id=obj.get("session_id"))
 
-    for stem, n in checkpoint_edits.items():
+    for logical, edit_ids in checkpoint_edits.items():
+        n = len(edit_ids)
         if n < 3:
             continue
-        meta = checkpoint_meta[stem]
+        meta = checkpoint_meta[logical]
         paths = sorted(meta["paths"])
         shown = ", ".join(paths[:2]) + (f" (+{len(paths)-2} more)" if len(paths) > 2 else "")
         rows.add("claude", "checkpoint_cadence", "session", meta["path"],
                  meta["first_line"], meta.get("last_ts"), meta.get("model"),
                  meta["cwd"], False,
                  f"{n} Edit/Write tool_use calls on HANDOFF/CHECKPOINT paths: {shown}"[:220])
-    qualifying = {s: n for s, n in checkpoint_edits.items() if n >= 3}
+    rows.dedupe()
+    qualifying = {s: len(ids) for s, ids in checkpoint_edits.items() if len(ids) >= 3}
     return n_scanned, fails[0], qualifying, checkpoint_meta
 
 
@@ -489,7 +518,9 @@ def main():
         f"{' --since ' + args.since if args.since else ''}. "
         f"Scanned {c_files} claude main sessions ({c_bad} bad lines), "
         f"{x_files} codex rollouts ({x_bad} bad lines). "
-        f"{len(rows.rows)} incident rows -> `mining/out/success_signatures.jsonl`.",
+        f"{len(rows.rows)} incident rows -> `mining/out/success_signatures.jsonl`; "
+        f"{rows.n_suppressed} copied-lineage duplicate rows suppressed; eval-run "
+        f"sandbox transcripts (results/ project dirs) excluded from the corpus.",
         "",
         "Dual of `failure_baseline.md`: these are markers of practices that WORKED",
         "(controls run before blame, refutations accepted, caps honored, provenance",
@@ -608,7 +639,9 @@ def main():
         ("codex", "refutation_accepted", ("prose",), 10),
         ("codex", "cap_honored", ("prose",), 10),
         ("codex", "provenance_disclosed", ("prose",), 10),
-        ("codex", "expect_falsify_probe", ("prose",), 10),
+        # codex.expect_falsify_probe DEMOTED from the feed 2026-08-08 (triage
+        # panel): 16k+ rows of saturated steering adoption carry no nomination
+        # signal; it remains in the baseline as an adoption metric.
     ]:
         rs = [r for r in rows.rows
               if r["corpus"] == corpus and r["detector"] == det

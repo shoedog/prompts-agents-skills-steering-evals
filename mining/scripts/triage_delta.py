@@ -75,9 +75,14 @@ def main():
             f.write(json.dumps(r) + "\n")
     store_rows.extend(new)
 
-    # Per-class store stats (all-time surfaced evidence).
+    # Per-class store stats (all-time surfaced evidence). Rows marked
+    # `excluded` by triage_store_scrub.py (lineage dupes, sandbox-corpus
+    # contamination) keep their keys for resurfacing suppression but must
+    # not count toward tallies or session spread.
     stats = {}
     for r in store_rows:
+        if r.get("excluded"):
+            continue
         k = (r["source"], r["class"])
         s = stats.setdefault(k, {"n": 0, "sessions": set(), "first": r["first_seen"]})
         s["n"] += 1

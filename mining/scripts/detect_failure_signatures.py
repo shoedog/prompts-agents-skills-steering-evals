@@ -97,6 +97,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from build_index import CLAUDE_ROOT, CODEX_ROOT, find_claude_main_files, stream_json_lines  # noqa: E402
+from corpus_filters import (dedupe_rows, is_excluded_claude_project,  # noqa: E402
+                            is_nonhuman_user_turn, logical_session, strip_quoted)
 
 OUT_DIR = HERE.parent / "out"
 HOME = Path.home()
@@ -177,15 +179,26 @@ class Rows:
     def __init__(self):
         self.rows: list[dict] = []
         self.counts: Counter = Counter()
+        self.n_suppressed = 0
 
-    def add(self, corpus, detector, bucket, path, line_no, ts, model, cwd, sidechain, snip):
+    def add(self, corpus, detector, bucket, path, line_no, ts, model, cwd, sidechain, snip,
+            uuid=None, session_id=None):
         self.rows.append({
             "corpus": corpus, "detector": detector, "bucket": bucket,
             "path": str(path).replace(str(HOME), "~"), "session": Path(path).stem,
             "line_no": line_no, "ts": ts, "model": model, "cwd": cwd,
             "sidechain": sidechain, "snippet": snip,
+            "uuid": uuid, "session_id": session_id,
         })
         self.counts[f"{corpus}.{detector}.{bucket}"] += 1
+
+    def dedupe(self):
+        """Drop rows for copied-lineage records (post-compaction duplicates),
+        then rebuild counts from the surviving rows."""
+        self.rows, suppressed = dedupe_rows(self.rows)
+        self.n_suppressed += suppressed
+        self.counts = Counter(f"{r['corpus']}.{r['detector']}.{r['bucket']}"
+                              for r in self.rows)
 
 
 # ---------------------------------------------------------------- claude
@@ -202,12 +215,13 @@ def first_content_uuid(path) -> str | None:
 
 def scan_claude(rows: Rows, since_mtime: float | None, limit=None):
     fails = [0]
-    admissions_per_session: Counter = Counter()
+    admissions_per_session: dict[str, set] = {}   # logical session -> admission uuids
     files = list(find_claude_main_files(CLAUDE_ROOT))
     if limit:
         files = files[:limit]
     files = [p for p in files
-             if since_mtime is None or p.stat().st_mtime >= since_mtime]
+             if (since_mtime is None or p.stat().st_mtime >= since_mtime)
+             and not is_excluded_claude_project(p)]
 
     # pre-pass: each file's first content-line uuid; membership of that uuid
     # inside ANOTHER file marks the owner as a copied-lineage fork of it.
@@ -242,13 +256,16 @@ def scan_claude(rows: Rows, since_mtime: float | None, limit=None):
             msg = obj.get("message") or {}
             ts = obj.get("timestamp")
             sidechain = bool(obj.get("isSidechain"))
+            rec_uuid = uid if isinstance(uid, str) else None
+            logical = logical_session(obj, path)
 
             if ltype == "assistant":
                 m_model = msg.get("model")
                 if m_model == "<synthetic>":
                     text = content_text(msg)
                     rows.add("claude", "synthetic_error", "synthetic_error", path, line_no,
-                             ts, m_model, cwd, sidechain, " ".join(text.split())[:220])
+                             ts, m_model, cwd, sidechain, " ".join(text.split())[:220],
+                             uuid=rec_uuid, session_id=obj.get("session_id"))
                     continue
                 if m_model:
                     model = m_model
@@ -257,32 +274,41 @@ def scan_claude(rows: Rows, since_mtime: float | None, limit=None):
                     m = ADMISSION_STRONG.search(text)
                     if m:
                         rows.add("claude", "admission", "strong", path, line_no, ts, model,
-                                 cwd, sidechain, snippet_around(text, m))
-                        if not sidechain:
-                            admissions_per_session[path.stem] += 1
+                                 cwd, sidechain, snippet_around(text, m),
+                                 uuid=rec_uuid, session_id=obj.get("session_id"))
+                        if not sidechain and rec_uuid:
+                            admissions_per_session.setdefault(logical, set()).add(rec_uuid)
                     else:
                         m = ADMISSION_WEAK.search(text)
                         if m:
                             rows.add("claude", "admission", "weak", path, line_no, ts, model,
-                                     cwd, sidechain, snippet_around(text, m))
+                                     cwd, sidechain, snippet_around(text, m),
+                                     uuid=rec_uuid, session_id=obj.get("session_id"))
                 content = msg.get("content")
                 if isinstance(content, list):
                     for block in content:
                         if isinstance(block, dict) and block.get("type") == "tool_use" \
                                 and block.get("name") == "Bash":
                             cmd = (block.get("input") or {}).get("command") or ""
-                            if isinstance(cmd, str) and PIPE_TRUNC.search(cmd):
-                                if TEST_CMD.search(cmd):
+                            # quoted spans are data (grep patterns, echo text),
+                            # not commands being run -- match verbs outside them
+                            bare = strip_quoted(cmd) if isinstance(cmd, str) else ""
+                            if bare and PIPE_TRUNC.search(bare):
+                                if TEST_CMD.search(bare):
                                     rows.add("claude", "pipe_truncated_test", "test", path,
                                              line_no, ts, model, cwd, sidechain,
-                                             " ".join(cmd.split())[:220])
-                                elif CHECK_CMD.search(cmd):
+                                             " ".join(cmd.split())[:220],
+                                             uuid=rec_uuid, session_id=obj.get("session_id"))
+                                elif CHECK_CMD.search(bare):
                                     rows.add("claude", "pipe_truncated_check", "check", path,
                                              line_no, ts, model, cwd, sidechain,
-                                             " ".join(cmd.split())[:220])
+                                             " ".join(cmd.split())[:220],
+                                             uuid=rec_uuid, session_id=obj.get("session_id"))
             else:  # user
                 if obj.get("isMeta") or sidechain:
                     continue  # sidechain "user" turns are orchestrator/tool plumbing, not the human
+                if is_nonhuman_user_turn(obj):
+                    continue  # SDK dispatch briefs / task-notifications, not the human
                 text = content_text(msg)
                 if not text or any(w in text for w in CLAUDE_WRAPPER):
                     continue
@@ -292,12 +318,15 @@ def scan_claude(rows: Rows, since_mtime: float | None, limit=None):
                 m = CORRECTION_STRONG.search(text)
                 if m:
                     rows.add("claude", "user_correction", "strong", path, line_no, ts, model,
-                             cwd, sidechain, snippet_around(text, m))
+                             cwd, sidechain, snippet_around(text, m),
+                             uuid=rec_uuid, session_id=obj.get("session_id"))
                 else:
                     m = CORRECTION_WEAK.search(text)
                     if m:
                         rows.add("claude", "user_correction", "weak", path, line_no, ts, model,
-                                 cwd, sidechain, snippet_around(text, m))
+                                 cwd, sidechain, snippet_around(text, m),
+                                 uuid=rec_uuid, session_id=obj.get("session_id"))
+    rows.dedupe()
     fork_groups = sorted(fork_pairs)
     return n_scanned, fails[0], admissions_per_session, fork_groups
 
@@ -432,7 +461,7 @@ def main():
         for r in rows.rows:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
-    recurrence = {s: n for s, n in admissions_per_session.items() if n >= 2}
+    recurrence = {s: len(u) for s, u in admissions_per_session.items() if len(u) >= 2}
     loops = {s: n for s, n in patch_fails.items() if n >= 3}
 
     # known-incident validation
@@ -450,7 +479,9 @@ def main():
         f"{' --since ' + args.since if args.since else ''}. "
         f"Scanned {c_files} claude main sessions ({c_bad} bad lines), "
         f"{x_files} codex rollouts ({x_bad} bad lines). "
-        f"{len(rows.rows)} incident rows -> `mining/out/failure_signatures.jsonl`.",
+        f"{len(rows.rows)} incident rows -> `mining/out/failure_signatures.jsonl`; "
+        f"{rows.n_suppressed} copied-lineage duplicate rows suppressed; eval-run "
+        f"sandbox transcripts (results/ project dirs) excluded from the corpus.",
         "",
         "## Counts by detector",
         "",
