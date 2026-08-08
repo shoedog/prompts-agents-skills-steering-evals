@@ -189,3 +189,19 @@ macOS (Darwin 25.5.0), cargo/rustc 1.94.0 (+ rustfmt 1.8.0, clippy 0.1.94),
 git 2.50.1 (Apple Git-155), Apple patch 2.0-12u11, node v26.0.0, tsc 6.0.3,
 python3 for audit.py. Build trees under the session scratchpad; nothing
 committed.
+
+## Owner adjudications
+
+- 2026-08-07 (exp-w3a spotcheck, baseline mc-02): CITATION REQUIRED bar stands
+  AS WRITTEN — a finding naming the correct mechanism but citing only the
+  doc/CHANGELOG hunk scores a false finding, not an uncredited match. The
+  rubric's reject_if says exactly this; the judge applied it correctly.
+- Forward-only amendments directed at the same time (NEXT curation pass, not
+  retroactive): (1) ground truth must carry EXPLICIT citation anchors —
+  file + line range with a stated ± margin — per defect, so citation matching
+  is mechanical (check_citations.py-style), not judge interpretation; today's
+  truth names constructs ("the merge_sorted-over-self.runs call") and leaves
+  line resolution to the judge, which the owner is skeptical of. (2) Items
+  whose acceptable_match needs multiple citations should WEIGHT them, so runs
+  can measure accuracy when several anchors are required. (3) Preference
+  order: implementing-code citations over doc/changelog citations.
