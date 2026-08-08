@@ -28,14 +28,22 @@ Modes:
   brief_lint.py FILE [--role review|implement] [--strict]
   brief_lint.py --hook          Claude Code PreToolUse hook mode: reads the hook
                                 JSON on stdin, lints Task/Agent tool_input prompt
-                                text, ALWAYS exits 0 (warn-only feedback via
-                                permissionDecision "allow" + reason). Never blocks.
+                                text, ALWAYS exits 0. Warn-only feedback via
+                                hookSpecificOutput additionalContext + top-level
+                                systemMessage; NEVER emits permissionDecision —
+                                "allow"+reason is invisible to the model AND
+                                auto-approves the call past the permission
+                                prompt (panel C1/C2 2026-08-08, binary-verified).
   brief_lint.py --codex-hook    Codex CLI PreToolUse hook mode (spawn_agent /
                                 "Agent"): warn-only via hookSpecificOutput
                                 additionalContext + top-level systemMessage.
-                                NEVER emits permissionDecision (cannot deny);
-                                always exits 0. Codex ignores plain stdout for
-                                PreToolUse; only the JSON contract is parsed.
+                                NEVER emits permissionDecision — deny IS
+                                supported by codex >=0.146 (verified 2026-08-08;
+                                earlier "cannot deny" claim was stale), but
+                                warn-only is this validator's chosen policy, and
+                                bare "allow" is codex's input-rewrite path.
+                                Codex ignores plain stdout for PreToolUse; only
+                                the JSON contract is parsed.
   brief_lint.py --kiro-hook     Kiro CLI preToolUse hook mode (delegate tool):
                                 Kiro's preToolUse wire contract is exit-code
                                 based (0 allow; 2 block + stderr to the LLM; any
@@ -130,11 +138,20 @@ def hook_mode() -> int:
         return 0
     findings = lint(text, role="review")
     if findings:
-        print(json.dumps({"hookSpecificOutput": {
-            "hookEventName": "PreToolUse",
-            "permissionDecision": "allow",
-            "permissionDecisionReason": render(findings, "subagent prompt"),
-        }}))
+        # Warn-only: additionalContext (model-visible), NO permissionDecision.
+        # "allow"+reason was doubly wrong: the reason is not model-visible on
+        # the allow path, and emitting "allow" AUTO-APPROVES the tool call,
+        # bypassing the normal permission prompt (panel C1/C2, 2026-08-08,
+        # verified against the shipped 2.1.225 binary).
+        print(json.dumps({
+            "systemMessage": f"brief-lint (warn-only): {len(findings)} finding(s) in the dispatch brief",
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "additionalContext": render(findings, "subagent prompt")
+                + "\n(warn-only brief-lint: the dispatch proceeds regardless; "
+                  "fix the brief if the findings hold.)",
+            },
+        }))
     return 0
 
 
@@ -293,14 +310,20 @@ def self_test() -> int:
             failures += 1
         print(f"  {'ok' if cond else 'FAIL'}: {name}{(' — ' + detail) if (detail and not cond) else ''}")
 
-    # Claude hook mode (synthetic Claude PreToolUse payload).
+    # Claude hook mode (synthetic Claude PreToolUse payload). The warn must
+    # carry NO permissionDecision: "allow"+reason is invisible to the model
+    # AND auto-approves the call, bypassing the normal permission prompt
+    # (panel finding C1/C2, 2026-08-08, verified against the 2.1.225 binary).
     rc, out, err = _run_hook(hook_mode, json.dumps(CLAUDE_PAYLOAD))
     j = json.loads(out) if out.strip() else {}
-    check("claude hook dirty -> rc0, allow+reason with R1/R4",
+    hso_claude = j.get("hookSpecificOutput", {})
+    check("claude hook dirty -> rc0, additionalContext with R1/R4, NO permissionDecision",
           rc == 0 and err == ""
-          and j.get("hookSpecificOutput", {}).get("permissionDecision") == "allow"
-          and "R1" in j.get("hookSpecificOutput", {}).get("permissionDecisionReason", "")
-          and "R4" in j["hookSpecificOutput"]["permissionDecisionReason"],
+          and "permissionDecision" not in out
+          and hso_claude.get("hookEventName") == "PreToolUse"
+          and "R1" in hso_claude.get("additionalContext", "")
+          and "R4" in hso_claude.get("additionalContext", "")
+          and "systemMessage" in j,
           f"rc={rc} out={out!r}")
 
     # Codex hook mode: dirty v2 payload -> JSON warn, no permissionDecision ever.
