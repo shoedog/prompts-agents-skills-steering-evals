@@ -5,6 +5,14 @@ is their durable record). Every edit was ADDITIVE with a `.pre-guard` backup
 alongside the file. Warn-only everywhere per SPEC.md §6; deny flips, if
 ever, land per-project only.
 
+PORTABILITY: every snippet embeds THIS machine's clone path
+(`/Users/wesleyjinks/code/prompts-skills-steering`). On the work machine or
+a colleague's checkout, substitute the local clone path. Kiro additionally
+requires the `enforced` agent to be the active agent
+(`kiro-cli agent set-default --name enforced`), and repo-level
+`.kiro/agents/enforced.json` files shadow the global one — the fragment
+must ride each of them (stockTrading and ssot-agents carry it tracked).
+
 ## claude — `~/.claude/settings.json` (user-global)
 
 Appended to `hooks.PreToolUse` (existing moshi-hooks entry preserved
