@@ -12,10 +12,14 @@ INPUT
   snippet) by the truncated session id to get the transcript `path`, then
   read the transcript around `line_no`. Judge from the transcript, not the
   snippet alone.
-- Existing coverage to check BEFORE proposing anything new:
-  bootstrap/global-CLAUDE.md (deployed steering), validators/ (mounted
-  validator gates), TRACKER.md success/failure program sections
-  (already-queued candidates).
+- Existing coverage to check BEFORE proposing anything new: the
+  coverage-snapshot/ directory alongside the week input (steering, codex
+  tail, validator list, TRACKER program sections — frozen at run start so a
+  concurrent edit cannot color the verdict). ALWAYS compare the coverage
+  artifact's git date against the incident dates: coverage NEWER than the
+  incidents means the gap was real and has since been closed — report
+  "COVERED-SINCE <date>", not ALREADY-COVERED, and recommend an adherence
+  check instead of dismissal.
 
 FOR EACH CLASS output exactly:
 
@@ -30,7 +34,9 @@ FOR EACH CLASS output exactly:
   draft text of at most 120 words, and the single incident that best
   motivates it.
 - priority: HIGH | MED | LOW, from evidence count x session spread x cost of
-  the failure (or value of the success practice).
+  the failure (or value of the success practice). Priority ranks the NEED
+  FOR ACTION, not the quality of the practice: ALREADY-COVERED and BENIGN
+  classes are LOW unless you attach an enforcement-gap candidate.
 
 RULES
 - WRONG/SMELL discipline: a gap claim without a concrete incident citation

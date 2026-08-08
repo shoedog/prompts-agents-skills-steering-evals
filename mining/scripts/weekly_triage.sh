@@ -32,6 +32,16 @@ if [ ! -s "$DIR/week-input.md" ]; then
   exit 0
 fi
 
+# Coverage snapshot — frozen at run start so concurrent carrier edits cannot
+# color a lane's coverage verdicts (the 2026-08-07 apply_patch confound).
+SNAP=$DIR/coverage-snapshot
+mkdir -p "$SNAP"
+cp "$REPO/bootstrap/global-CLAUDE.md" "$REPO/bootstrap/codex-AGENTS-tail.md" "$SNAP/" 2>/dev/null
+ls "$REPO/validators/" > "$SNAP/validators-list.txt" 2>/dev/null
+cp "$REPO/TRACKER.md" "$SNAP/"
+git -C "$REPO" log -1 --format='%h %ad' --date=short -- bootstrap/global-CLAUDE.md > "$SNAP/steering-last-change.txt" 2>/dev/null
+git -C "$REPO" log -1 --format='%h %ad' --date=short -- bootstrap/codex-AGENTS-tail.md >> "$SNAP/steering-last-change.txt" 2>/dev/null
+
 EVAL_PROMPT=$(cat "$REPO/mining/prompts/triage-eval.md")
 
 # 2. Evaluator lanes — independent, so they run in PARALLEL.
@@ -53,7 +63,7 @@ OPUS_PID=$!
   echo "Write your COMPLETE evaluation to ./sol-eval.md (create it). Touch no other file."
 } > "$DIR/sol-request.md"
 (cd "$DIR" && codex exec --sandbox workspace-write \
-  -c model_reasoning_effort='"high"' - < sol-request.md) &
+  -c model_reasoning_effort='"high"' - < sol-request.md > sol-exec.log 2>&1) &
 SOL_PID=$!
 
 wait "$OPUS_PID"

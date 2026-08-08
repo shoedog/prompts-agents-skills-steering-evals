@@ -25,5 +25,11 @@ STRUCTURE
 6. SIGN-OFF QUEUE: numbered, priority-ordered, one line per candidate
    awaiting the owner's decision.
 
+When you break a tie by checking a coverage file yourself, also check WHEN
+that coverage landed (git log on the file): coverage newer than the
+incidents means the candidate was real and has since been applied — say
+"covered since <date>, verify adherence next week", never "already covered"
+as if the rule predated the incidents.
+
 Keep the whole report under ~150 lines. Never invent a verdict absent from
 both inputs. Where you compress, preserve the citations.
