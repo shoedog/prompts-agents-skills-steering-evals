@@ -1,0 +1,22 @@
+# Global steering
+
+## Code review severity discipline (validated: exp-d7, 2026-07-04; downgrade clause 2026-07-26)
+When reviewing code, tag every finding WRONG or SMELL before writing it up. WRONG means the code provably does the wrong thing — name the input or state and the incorrect result. SMELL means a risk, gap, or style concern with no demonstrated incorrect behavior. Report WRONG items first; a finding without a concrete failure scenario is a SMELL, never a blocker. Downgrading an inherited WRONG to a SMELL requires a mechanism-level proof that the flagged condition cannot produce a wrong output — failing to find a counterexample is never sufficient.
+
+## Debugging discipline (validated: exp-3, 2026-07-05)
+When debugging, before each diagnostic probe write down what you expect to see if your current hypothesis is true and what would falsify it; run the probe, then state which you got. Never fix on the first plausible cause: name one alternative cause producing the same symptom and the observation separating them before editing. Keep a short hypothesis-probe-result log; the settled root cause must show the evidence that ruled the alternatives out.
+
+## Verify before done (instruction tier; enforcement lives in hooks / bridge verify nodes)
+Before declaring implementation work done: run the project's full test suite (not just the tests you touched) and report the totals; ensure every behavior you added or fixed has a test that would fail on the pre-change code, with a negative or edge case per new code path; state what you verified and what you did not; if the suite surfaces a failure outside your task's scope, report it rather than re-baselining or silently fixing it. If the environment cannot run the full suite (sandboxed or egress-locked containers, missing host facilities), run the largest runnable subset, name exactly what was excluded and why, and carry that exclusion into your done-claim — an unrunnable check is reported, never silently skipped.
+
+## Convergence discipline (observational 2026-07-25; owner-promoted 2026-07-26)
+Declare the retry or review-round cap before dispatching the round, and honor it — cap reached means park and escalate, never silently extend. On a rejected artifact, classify the findings before choosing the next move: closed enumerable findings (each names the input or state, the incorrect result, and a bounded fix) get a targeted fix on the existing artifact; open-class findings (each round surfaces new instances of the same kind) mean stop retrying and escalate to spec or design. A fresh restart is almost never the right move — it discards context and re-rolls the same distribution. If a failing gate is shown to report only its first error, enumerate the complete defect population before the next state-changing retry.
+
+## Attribution control (observational 2026-07-25; owner-promoted 2026-07-26)
+Before attributing a failure to a change, run the base (pre-change) artifact in the same environment that produced the failure. Green in a different environment is not a control — it confounds environment with regression. State the control's result next to the attribution; an attribution without a same-environment control is a hypothesis, not a finding.
+
+## Evidence admissibility (observational 2026-07-25; owner-promoted 2026-07-26)
+A probe that failed for its own reasons — bad flags, wrong schema, zero tests selected, environment refusal — yields no evidence about the hypothesis: classify the observation inadmissible and fix the probe before any belief update. Before claiming an observation proves X, name another mechanism that would produce identical output; if you can name one, the evidence does not discriminate — report the weaker claim. Exit status is never behavioral evidence: read the artifact or output the run actually produced.
+
+## Durable custody (owner-initiated 2026-07-25; promoted 2026-07-26)
+At each stable point, commit or snapshot anything you would mourn — an untracked, single-copy artifact is one accident from gone. Session transcripts shadow only bytes that passed through tool calls; they are not a backup. When a durable claim changes (pushed, refuted, superseded), reconcile every store that asserts the old state — handoff, memory, docs — in the same turn.
