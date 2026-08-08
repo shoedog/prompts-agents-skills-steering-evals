@@ -54,21 +54,32 @@ EVAL_PROMPT=$(cat "$REPO/mining/prompts/triage-eval.md")
       --allowedTools "Read,Grep,Glob" > opus-eval.md) &
 OPUS_PID=$!
 
-# 2b. Sol lane — codex, workspace-write scoped to $DIR; sol writes its own
-# file (the -o final-message clobber gotcha; see codex-cli-invocation memory).
+# 2b. Sol lane — codex via codex_dispatch.py (null-final hook, sign-off item
+# 1): preflight auth, classify empty finals (auth/credit = infrastructure,
+# alert + no respawn; unexplained empty = one fresh-session retry), crash
+# records in mining/out/dispatch_crashes.jsonl. Sol writes its own file (the
+# -o final-message clobber gotcha; see codex-cli-invocation memory).
 {
   echo "$EVAL_PROMPT"
   echo
   echo "Repo root: $REPO. Week input: ./week-input.md."
   echo "Write your COMPLETE evaluation to ./sol-eval.md (create it). Touch no other file."
 } > "$DIR/sol-request.md"
-(cd "$DIR" && codex exec --sandbox workspace-write \
-  -c model_reasoning_effort='"high"' - < sol-request.md > sol-exec.log 2>&1) &
+(cd "$DIR" && /usr/bin/python3 "$REPO/mining/scripts/codex_dispatch.py" \
+  --retry-once --label sol-weekly --log "$DIR/sol-exec.log" \
+  -- --sandbox workspace-write -c model_reasoning_effort='"high"' - \
+  < sol-request.md > sol-dispatch.log 2>&1) &
 SOL_PID=$!
 
 wait "$OPUS_PID"
-wait "$SOL_PID"
+wait "$SOL_PID"; SOL_RC=$?
 [ -s "$DIR/opus-eval.md" ] && echo "opus lane ok ($(wc -l < "$DIR/opus-eval.md") lines)" || echo "opus lane EMPTY"
+case "$SOL_RC" in
+  0)  : ;;
+  97) echo "sol lane INFRASTRUCTURE FAILURE (auth/credit — see sol-dispatch.log and mining/out/dispatch_crashes.jsonl)" ;;
+  98) echo "sol lane FAILED ROUND (empty final after retry — see sol-dispatch.log)" ;;
+  *)  echo "sol lane exited $SOL_RC (see sol-dispatch.log)" ;;
+esac
 [ -s "$DIR/sol-eval.md" ] && echo "sol lane ok ($(wc -l < "$DIR/sol-eval.md") lines)" || echo "sol lane EMPTY/degraded"
 
 # 3. Sonnet fold — readable report for the owner.
