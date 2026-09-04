@@ -18,7 +18,6 @@ from __future__ import annotations
 import argparse
 import glob
 import os
-import shutil
 import subprocess
 import sys
 
@@ -26,6 +25,10 @@ from harness import config as config_mod
 from harness import metrics as metrics_mod
 from harness import report as report_mod
 from harness.gen_promptfoo import gen_promptfoo
+from harness.resultsdir import arm_ids_on_disk as _arm_ids_on_disk
+from harness.resultsdir import check_arm_integrity as _check_arm_integrity
+from harness.resultsdir import check_stale_results_dir as _check_stale_results_dir
+from harness.resultsdir import stale_result_files as _stale_result_files
 
 
 def _promptfoo_env() -> dict:
@@ -86,113 +89,6 @@ def _count_arm_calls(results_dir, arm) -> int:
 def _count_arm_judges(results_dir, arm) -> int:
     """Number of per-item judge records the assert wrote for one arm."""
     return _count_arm_files(results_dir, "judge", arm)
-
-
-def _arm_ids_on_disk(results_dir, subdir, arm) -> set:
-    """Task ids actually on disk for one arm under `subdir`, parsed back out of
-    the `<arm>-<task_id>.json` filenames promptfoo/the assert write per item."""
-    prefix = f"{arm}-"
-    ids = set()
-    for p in glob.glob(os.path.join(str(results_dir), subdir, f"{prefix}*.json")):
-        name = os.path.basename(p)
-        ids.add(name[len(prefix):-len(".json")])
-    return ids
-
-
-def _check_arm_integrity(results_dir, arm, expected_ids) -> bool:
-    """True iff the arm produced EXACTLY the expected set of per-item task ids
-    (from the taskset manifest) in BOTH calls/ and judge/ — not merely a count
-    that is at-least `len(expected_ids)`.
-
-    A pure count check cannot catch contamination: a leftover file from a
-    stale/prior run plus a missing file for a current-run task id nets out to
-    the SAME count as a clean run, so a count-only check would read a mixed
-    (stale + fresh) results dir as clean. Diffing the actual id set against
-    the manifest's expected ids catches both directions — ids the run never
-    produced (a shortfall, e.g. promptfoo dying mid-run or an assert crash)
-    and ids that shouldn't be there at all (contamination). judge/ is checked
-    independently of calls/ for the same reason as before: calls/ can be
-    complete while the assert crashes before writing its judge/ record for an
-    item (an assert-crash shortfall). Warn loudly and let the caller mark the
-    whole run integrity-failed."""
-    expected = set(expected_ids)
-    ok = True
-    for subdir, label in (("calls", "call"), ("judge", "judge")):
-        got = _arm_ids_on_disk(results_dir, subdir, arm)
-        missing = expected - got
-        unexpected = got - expected
-        if missing or unexpected:
-            parts = []
-            if missing:
-                parts.append(f"missing ids: {sorted(missing)}")
-            if unexpected:
-                parts.append(f"unexpected ids: {sorted(unexpected)}")
-            print(
-                f"[run] INTEGRITY FAILURE: arm '{arm}' produced {len(got)}/{len(expected)} "
-                f"per-item {label} records and its task-id set does not match the "
-                f"taskset manifest ({'; '.join(parts)}) — possible stale/contaminated "
-                f"results dir or an incomplete run. The run is NOT clean.",
-                file=sys.stderr, flush=True,
-            )
-            ok = False
-    return ok
-
-
-def _stale_result_files(results_dir) -> list:
-    """Per-item calls/ and judge/ json files already sitting in `results_dir`
-    before this run starts — leftovers from a previous run over this exact
-    tier results dir."""
-    out = []
-    for subdir in ("calls", "judge"):
-        out.extend(
-            sorted(glob.glob(os.path.join(str(results_dir), subdir, "*.json")))
-        )
-    return out
-
-
-def _check_stale_results_dir(results_dir, force: bool) -> bool:
-    """Guard a tier results dir against silently mixing an old run's per-item
-    records with a new one.
-
-    metrics.py's calls/judge loaders glob ALL json files under calls/ and
-    judge/ with no run-identity check, and `_check_arm_integrity` above only
-    validates THIS run's expected ids are present — neither notices extra
-    files left over from a prior run sharing the same tier dir (e.g. a
-    manifest that later shrank, or a crashed run that was re-run without
-    clearing first). So this guard runs BEFORE anything is generated: if
-    calls/ or judge/ already contain files, it refuses outright unless
-    `force` is set, and never deletes anything on its own initiative.
-
-    Returns True if the caller may proceed (the dir was already clean, or
-    `force` cleared it). Returns False (after printing a REFUSING message) if
-    stale files exist and `force` was not requested.
-    """
-    stale = _stale_result_files(results_dir)
-    if not stale:
-        return True
-    if not force:
-        calls_dir = os.path.join(str(results_dir), "calls")
-        judge_dir = os.path.join(str(results_dir), "judge")
-        print(
-            f"[run] REFUSING to run: {len(stale)} stale per-item result file(s) "
-            f"already exist under {results_dir} (calls/ and/or judge/) from a "
-            f"previous run over this exact tier results dir. Re-running here "
-            f"would silently mix old and new records into the same metrics. "
-            f"Delete {calls_dir} and {judge_dir} yourself and re-run, or pass "
-            f"--force to clear them and proceed.",
-            file=sys.stderr, flush=True,
-        )
-        return False
-    print(
-        f"[run] --force: clearing {len(stale)} stale per-item result file(s) "
-        f"under {results_dir} (calls/, judge/) before this run.",
-        flush=True,
-    )
-    for subdir in ("calls", "judge"):
-        d = os.path.join(str(results_dir), subdir)
-        if os.path.isdir(d):
-            shutil.rmtree(d)
-    return True
 
 
 def run_experiment(config_path, force: bool = False) -> int:
