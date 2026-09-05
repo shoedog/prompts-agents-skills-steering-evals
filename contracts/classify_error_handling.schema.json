@@ -144,7 +144,9 @@
             "resource_leak_on_error",
             "missing_timeout",
             "unbounded_retry",
-            "unclear"
+            "unclear",
+            "invalid_output",
+            "provider_error"
           ]
         },
         "confidence": {

@@ -14,12 +14,22 @@ import yaml
 
 from harness.structured.config import load_config
 from harness.structured.executors import ExecutionResult, ExecutorError
+from harness.structured.metrics import normalize_sample
 from harness.structured.replay import LoadedRun
 from harness.structured.report import summarize
 from harness.structured.results import canonical_json
 from harness.structured.runner import RunResult, run_structured
 from harness.structured.taskset import sha256_file
 from harness.tests.structured_support import build_v2_taskset
+
+
+EVAL3_TRUTH_TABLE = json.loads(
+    (Path(__file__).parent / "fixtures/metrics/eval3-truth-table.json").read_text()
+)
+EVAL3_LABELS = {
+    "fatal": "swallowed_fatal",
+    "retry": "no_retry_on_transient",
+}
 
 
 @dataclass
@@ -31,6 +41,49 @@ class FixedClock:
 
     def monotonic(self) -> float:
         return 0.0
+
+
+class TruthTableExecutor:
+    def __init__(self, case: dict) -> None:
+        self.case = case
+
+    def run(self, request):
+        label = EVAL3_LABELS.get(self.case["final_class"], self.case["final_class"])
+        response = {
+            "class": label,
+            "confidence": self.case["final_confidence"],
+            "rationale": "fixture truth-table response",
+            "evidence_lines": [11],
+        }
+        envelope = {
+            "schema_version": "1",
+            "invocation_id": "123e4567-e89b-42d3-a456-426614174000",
+            "task": request.task,
+            "task_version": request.task_version,
+            "provider": "fake",
+            "model": request.model,
+            "provider_version": "fake-provider 1.0",
+            "prompt_sha256": "ab" * 32,
+            "escalation_state": self.case["escalation_state"],
+            "first_tier_valid": self.case["first_tier_valid"],
+            "first_tier_sentinel": self.case["first_tier_sentinel"],
+            "final_sentinel": self.case["final_sentinel"],
+            "cache_hit": False,
+            "usage": {
+                "input_tokens": 1,
+                "output_tokens": 1,
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+            },
+            "cost_usd": 0.001,
+            "response": response,
+            "log_path": "logs/fake.jsonl",
+        }
+        return ExecutionResult(
+            envelope=envelope,
+            raw_stdout=json.dumps(envelope, sort_keys=True, separators=(",", ":")) + "\n",
+            returncode=0,
+        )
 
 
 class FixtureExecutor:
@@ -177,6 +230,40 @@ def replay_cache_values(root: Path) -> list[str]:
 
 def metrics_bytes(root: Path) -> bytes:
     return (root / "metrics.json").read_bytes()
+
+
+@pytest.mark.parametrize("case", EVAL3_TRUTH_TABLE, ids=lambda case: case["id"])
+def test_eval3_truth_table_through_structured_runner(tmp_path, case):
+    truth = EVAL3_LABELS.get(
+        case["call"]["expected"]["label"], case["call"]["expected"]["label"]
+    )
+    build_v2_taskset(tmp_path, items=[{"id": "eh-py-0001", "label": truth}])
+    cfg = load_config(_write_config(tmp_path), root=tmp_path)
+
+    result = run_structured(
+        cfg,
+        executor_factory=lambda _version: TruthTableExecutor(case),
+        clock=FixedClock("2026-09-04T18:40:11Z"),
+        force=False,
+        no_cache=True,
+        only=frozenset(),
+    )
+    call = LoadedRun.load(result.run_dir).calls[0]
+    scored = normalize_sample(
+        {**call, "expected": {"label": truth}},
+        final_document_valid=call["final_document_valid"],
+    )
+    expected_prediction = EVAL3_LABELS.get(
+        case["expected"]["prediction"], case["expected"]["prediction"]
+    )
+
+    assert call["final_document_valid"] is case["final_document_valid"]
+    assert call["sentinel_kind"] == case["sentinel_kind"]
+    assert scored.schema_valid_for_eval is case["expected"]["schema_valid_for_eval"]
+    assert scored.repaired is case["expected"]["repaired"]
+    assert scored.prediction == expected_prediction
+    assert scored.brier_confidence == case["expected"]["brier_confidence"]
+    assert scored.brier_correct is case["expected"]["brier_correct"]
 
 
 @pytest.fixture

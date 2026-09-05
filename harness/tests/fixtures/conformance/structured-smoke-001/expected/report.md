@@ -2,8 +2,8 @@
 
 - experiment: st-smoke
 - kind: structured_task
-- run id: 20260904T184011Z-5c89ce52
-- config sha256: `5c89ce522dd2d5cdc2c549192fbaf976fb9a75ac04827fa7e16f658b243fe230`
+- run id: 20260904T184011Z-7658236e
+- config sha256: `7658236e848e5a232fcc828bb16f6ce96e0ca5ec8cc521b1a05ac388e286dd86`
 - taskset / split: taskset / dev
 - item count: 1
 - bootstrap: method=percentile, resamples: 20, seed: 20260904, alpha=0.05

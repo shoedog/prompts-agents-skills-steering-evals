@@ -262,11 +262,11 @@ def _duration_ms(clock: Clock, started: float) -> int:
 
 
 def _sentinel_kind(envelope: Mapping[str, Any]) -> str:
-    if envelope.get("final_sentinel") is True:
-        return "transport"
     response = envelope.get("response")
     label = response.get("class") if isinstance(response, Mapping) else None
-    return "schema" if label in {"unclear", "invalid_output"} else "none"
+    if envelope.get("final_sentinel") is True:
+        return "transport" if label == "provider_error" else "schema"
+    return "none"
 
 
 def _error_envelope(work: _Work, error: BaseException) -> dict[str, Any]:
