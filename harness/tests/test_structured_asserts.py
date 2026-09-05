@@ -259,7 +259,12 @@ def test_consistency_requires_multiple_samples(cfg, item):
 
 def test_cost_latency_checks_each_call_cost_and_p95_latency(cfg, item):
     samples = [
-        {"cost_usd": 0.01, "duration_ms": duration}
+        {
+            "item_id": "item-a",
+            "version": "v1",
+            "cost_usd": 0.01,
+            "duration_ms": duration,
+        }
         for duration in [10, 20, 30, 40, 50]
     ]
     passing = cost_latency_assert(
@@ -293,7 +298,7 @@ def test_run_population_requires_descriptor_instead_of_using_fast_item_samples(c
 
 
 def test_run_population_rejects_per_item_descriptor_and_includes_slow_call(cfg, item):
-    fast = [{"cost_usd": 0.001, "duration_ms": 10}]
+    fast = [{"item_id": "item-a", "version": "v1", "cost_usd": 0.001, "duration_ms": 10}]
     wrong_population = Population(kind="per_item", item_count=1, sample_count=1)
     mismatch = cost_latency_assert(
         output=_valid_output(),
@@ -307,7 +312,10 @@ def test_run_population_rejects_per_item_descriptor_and_includes_slow_call(cfg, 
     assert mismatch.passed is False
     assert mismatch.detail == "population mismatch: declared 'run', got 'per_item'"
 
-    run_samples = [*fast, {"cost_usd": 0.001, "duration_ms": 1_000}]
+    run_samples = [
+        *fast,
+        {"item_id": "item-b", "version": "v1", "cost_usd": 0.001, "duration_ms": 1_000},
+    ]
     run_population = Population(kind="run", item_count=2, sample_count=2)
     result = cost_latency_assert(
         output=_valid_output(),
@@ -323,8 +331,13 @@ def test_run_population_rejects_per_item_descriptor_and_includes_slow_call(cfg, 
 
 
 def test_run_asserts_selects_declared_run_population(cfg, item):
-    per_item_samples = [{"cost_usd": 0.001, "duration_ms": 10}]
-    run_samples = [*per_item_samples, {"cost_usd": 0.001, "duration_ms": 1_000}]
+    per_item_samples = [
+        {"item_id": "item-a", "version": "v1", "cost_usd": 0.001, "duration_ms": 10}
+    ]
+    run_samples = [
+        *per_item_samples,
+        {"item_id": "item-b", "version": "v1", "cost_usd": 0.001, "duration_ms": 1_000},
+    ]
     results = run_asserts(
         output=_valid_output(),
         raw=json.dumps(_valid_output()),
@@ -346,6 +359,71 @@ def test_run_asserts_selects_declared_run_population(cfg, item):
     )
     assert results[0].passed is False
     assert "p95 duration_ms 1000 exceeds 100" in results[0].detail
+
+
+def test_run_population_rejects_two_samples_from_one_item(cfg, item):
+    samples = [
+        {"item_id": "item-a", "version": "v1", "cost_usd": 0.001, "duration_ms": 10},
+        {"item_id": "item-a", "version": "v1", "cost_usd": 0.001, "duration_ms": 20},
+    ]
+    result = cost_latency_assert(
+        output=_valid_output(),
+        raw="",
+        expected=item.expected,
+        item=item.raw,
+        cfg={**cfg, "population": "run", "max_p95_ms": 100},
+        samples=samples,
+        population=Population("run", item_count=2, sample_count=2),
+    )
+    assert result.passed is False
+    assert result.detail == "run population item_count 2 does not match 1 distinct item ids"
+
+
+def test_run_population_computes_with_two_distinct_items(cfg, item):
+    samples = [
+        {"item_id": "item-a", "version": "v1", "cost_usd": 0.001, "duration_ms": 10},
+        {"item_id": "item-b", "version": "v1", "cost_usd": 0.001, "duration_ms": 20},
+    ]
+    result = cost_latency_assert(
+        output=_valid_output(),
+        raw="",
+        expected=item.expected,
+        item=item.raw,
+        cfg={**cfg, "population": "run", "max_p95_ms": 100},
+        samples=samples,
+        population=Population("run", item_count=2, sample_count=2),
+    )
+    assert result.passed is True
+
+
+@pytest.mark.parametrize(
+    "samples, detail",
+    [
+        (
+            [{"item_id": "item-a", "cost_usd": 0.001, "duration_ms": 10}],
+            "require nonempty item_id and version",
+        ),
+        (
+            [
+                {"item_id": "item-a", "version": "v1", "cost_usd": 0.001, "duration_ms": 10},
+                {"item_id": "item-a", "version": "v2", "cost_usd": 0.001, "duration_ms": 20},
+            ],
+            "must contain exactly 1 version",
+        ),
+    ],
+)
+def test_population_rejects_missing_identity_and_mixed_versions(cfg, item, samples, detail):
+    result = cost_latency_assert(
+        output=_valid_output(),
+        raw="",
+        expected=item.expected,
+        item=item.raw,
+        cfg={**cfg, "population": "per_item", "max_p95_ms": 100},
+        samples=samples,
+        population=Population("per_item", item_count=1, sample_count=len(samples)),
+    )
+    assert result.passed is False
+    assert detail in result.detail
 
 
 def test_cost_latency_requires_declared_population(cfg, item):
