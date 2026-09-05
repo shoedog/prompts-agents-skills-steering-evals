@@ -160,3 +160,28 @@ def test_human_kappa_is_unavailable_when_secondary_classes_are_not_retained(
         "n_items": 0,
         "basis": "unavailable: taskset labels retain agreement flags, not secondary classes",
     }
+
+
+def test_promotion_validity_uses_candidate_complete_scored_population(
+    frozen_structured_run,
+):
+    for call in frozen_structured_run.calls:
+        if call["version"] == "baseline" and call["item_id"] == "eh-py-0002":
+            call["stage_error"] = "classify"
+        if call["version"] == "candidate" and call["item_id"] == "eh-py-0002":
+            call["final_document_valid"] = False
+
+    summary = summarize(frozen_structured_run)
+    verdict = summary["promotions"]["candidate"]
+
+    assert summary["versions"]["candidate"]["classification"][
+        "schema_valid_for_eval"
+    ]["rate"] == 0.5
+    assert verdict["promotable"] is False
+    assert "schema_validity=0.5" in verdict["reason"]
+    assert verdict["evidence"]["candidate_complete_scored_population"] == {
+        "item_ids": ["eh-py-0001", "eh-py-0002"],
+        "n_items": 2,
+        "n_samples": 2,
+        "schema_validity": 0.5,
+    }

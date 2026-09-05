@@ -14,6 +14,15 @@
     "candidate": {
       "evidence": {
         "alpha": 0.05,
+        "candidate_complete_scored_population": {
+          "item_ids": [
+            "eh-py-0001",
+            "eh-py-0002"
+          ],
+          "n_items": 2,
+          "n_samples": 2,
+          "schema_validity": 1.0
+        },
         "method": "percentile",
         "metrics": {
           "brier": {
@@ -153,6 +162,15 @@
     "candidate-alt": {
       "evidence": {
         "alpha": 0.05,
+        "candidate_complete_scored_population": {
+          "item_ids": [
+            "eh-py-0001",
+            "eh-py-0002"
+          ],
+          "n_items": 2,
+          "n_samples": 2,
+          "schema_validity": 1.0
+        },
         "method": "percentile",
         "metrics": {
           "brier": {

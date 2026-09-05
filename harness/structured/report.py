@@ -409,6 +409,17 @@ def _comparison(
             }
     baseline = bundles[baseline_name]
     candidate = bundles[candidate_name]
+    candidate_excluded = _stage_error_item_ids(grouped[candidate_name])
+    candidate_complete_ids = sorted(set(run.items) - candidate_excluded)
+    candidate_complete_rows = [
+        _normalized_call(call, run.items[item_id])
+        for item_id in candidate_complete_ids
+        for call in grouped[candidate_name][item_id]
+    ]
+    candidate_complete_validity = (
+        sum(row.schema_valid_for_eval for row in candidate_complete_rows)
+        / len(candidate_complete_rows)
+    )
     resamples = run.config["stats"]["bootstrap_resamples"]
     seed = run.config["stats"]["seed"]
     metric_stats: list[tuple[str, Callable[[Sequence[dict[str, Any]]], float]]] = [
@@ -476,10 +487,16 @@ def _comparison(
         "method": "percentile",
         "alpha": 0.05,
         "stage_error_excluded_item_ids": sorted(set(run.items) - set(paired_ids)),
+        "candidate_complete_scored_population": {
+            "item_ids": candidate_complete_ids,
+            "n_items": len(candidate_complete_ids),
+            "n_samples": len(candidate_complete_rows),
+            "schema_validity": candidate_complete_validity,
+        },
     }
     verdict = promotion_verdict(
         macro_f1_ci=metrics["macro_f1"],
-        schema_validity=metrics["schema_validity"]["candidate"],
+        schema_validity=candidate_complete_validity,
         recall_cis=recall_cis,
         evidence=evidence,
     )
