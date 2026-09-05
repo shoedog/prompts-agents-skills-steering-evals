@@ -69,13 +69,13 @@ Caveat: these percentile CIs include 0, so the paired evidence does not separate
 - baseline schema_valid_for_eval: 1.000000 (2/2)
 - baseline repaired: 0.000000 (0/2)
 - baseline Brier: 0.325000; maximum-penalty rows: 0/2
-- baseline κ model-vs-human: 0.000000; κ human-vs-human: 1.000000 (n=2)
+- baseline κ model-vs-human: 0.000000; κ human-vs-human: n/a (n=0; unavailable: taskset labels retain agreement flags, not secondary classes)
 - candidate stage-error exclusions: []
 - candidate first-tier validity: 1.000000 (2/2)
 - candidate schema_valid_for_eval: 1.000000 (2/2)
 - candidate repaired: 0.000000 (0/2)
 - candidate Brier: 0.012500; maximum-penalty rows: 0/2
-- candidate κ model-vs-human: 1.000000; κ human-vs-human: 1.000000 (n=2)
+- candidate κ model-vs-human: 1.000000; κ human-vs-human: n/a (n=0; unavailable: taskset labels retain agreement flags, not secondary classes)
 
 sentinel and `__invalid__` rows receive maximum Brier penalty and are never excluded.
 

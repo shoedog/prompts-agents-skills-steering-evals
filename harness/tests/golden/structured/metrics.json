@@ -321,9 +321,9 @@
         "p95_ms": 195.0
       },
       "human_vs_human": {
-        "basis": "secondary labels explicitly marked agrees=true",
-        "n_items": 2,
-        "value": 1.0
+        "basis": "unavailable: taskset labels retain agreement flags, not secondary classes",
+        "n_items": 0,
+        "value": null
       },
       "identity": {
         "model": "fixture-model",
@@ -497,9 +497,9 @@
         "p95_ms": 177.0
       },
       "human_vs_human": {
-        "basis": "secondary labels explicitly marked agrees=true",
-        "n_items": 2,
-        "value": 1.0
+        "basis": "unavailable: taskset labels retain agreement flags, not secondary classes",
+        "n_items": 0,
+        "value": null
       },
       "identity": {
         "model": "fixture-model",

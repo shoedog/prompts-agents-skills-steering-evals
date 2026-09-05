@@ -185,21 +185,14 @@ def _version_identity(config: Mapping[str, Any], name: str) -> dict[str, Any]:
     }
 
 
-def _human_kappa(items: Mapping[str, Mapping[str, Any]], classes: Sequence[str]) -> dict[str, Any]:
-    primary: list[str] = []
-    secondary: list[str] = []
-    for item_id in sorted(items):
-        item = items[item_id]
-        labels = item.get("labels")
-        second = labels.get("secondary") if isinstance(labels, Mapping) else None
-        if isinstance(second, Mapping) and second.get("agrees") is True:
-            truth = item["expected"]["label"]
-            primary.append(truth)
-            secondary.append(truth)
+def _human_kappa(
+    _items: Mapping[str, Mapping[str, Any]], _classes: Sequence[str]
+) -> dict[str, Any]:
+    """Report the current taskset's explicit inability to reconstruct this κ."""
     return {
-        "value": cohen_kappa(primary, secondary, classes) if primary else None,
-        "n_items": len(primary),
-        "basis": "secondary labels explicitly marked agrees=true",
+        "value": None,
+        "n_items": 0,
+        "basis": "unavailable: taskset labels retain agreement flags, not secondary classes",
     }
 
 
@@ -694,7 +687,8 @@ def _report_markdown(summary: Mapping[str, Any]) -> str:
                 f"{calibration['maximum_penalty']}/{calibration['n']}",
                 f"- {version} κ model-vs-human: {_fmt(values['kappa_vs_human'])}; "
                 f"κ human-vs-human: {_fmt(values['human_vs_human']['value'])} "
-                f"(n={values['human_vs_human']['n_items']})",
+                f"(n={values['human_vs_human']['n_items']}; "
+                f"{values['human_vs_human']['basis']})",
             ]
         )
     lines.extend(

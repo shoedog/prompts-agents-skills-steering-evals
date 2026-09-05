@@ -275,3 +275,17 @@ def test_machine_reduction_omits_only_bulky_rows(frozen_structured_run):
     assert "calls" in full and "scored_rows" in full and "worst_rows" in full
     assert set(full) - set(machine) == {"calls", "scored_rows", "worst_rows"}
     assert machine["promotions"]["candidate"]["evidence"]["population"]["sha256"]
+
+
+def test_human_kappa_is_unavailable_when_secondary_classes_are_not_retained(
+    frozen_structured_run,
+):
+    frozen_structured_run.items["eh-py-0002"]["labels"]["secondary"]["agrees"] = False
+
+    values = summarize(frozen_structured_run)["versions"]["baseline"]["human_vs_human"]
+
+    assert values == {
+        "value": None,
+        "n_items": 0,
+        "basis": "unavailable: taskset labels retain agreement flags, not secondary classes",
+    }
