@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -21,7 +22,7 @@ from harness.structured.analyzer import (
 from harness.structured.asserts.analyzer_match import match_findings
 from harness.structured.config import ConfigError
 from harness.structured.replay import replay
-from harness.structured.taskset import InputRef, TaskItem
+from harness.structured.taskset import InputRef, TaskItem, load_taskset
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -340,6 +341,48 @@ def _copy_analyzer_smoke_root(tmp_path: Path) -> Path:
         root / "experiments/structured/an-smoke.yaml",
     )
     return root
+
+
+def test_runner_facade_loader_is_patch_point_for_analyzer(tmp_path, monkeypatch):
+    from harness.structured import runner as runner_module
+
+    root = _copy_analyzer_smoke_root(tmp_path)
+    config = load_analyzer_config(
+        root / "experiments/structured/an-smoke.yaml", root=root
+    )
+    disk_taskset = load_taskset(config.taskset, split="dev", max_items=1)
+    disk_item = disk_taskset.items[0]
+    patched_id = "px-py-absence-0002"
+    patched_item = replace(
+        disk_item,
+        id=patched_id,
+        raw={**disk_item.raw, "id": patched_id},
+    )
+    patched_summary = {**disk_taskset.manifest["items"][0], "id": patched_id}
+    patched_taskset = replace(
+        disk_taskset,
+        items=(patched_item,),
+        manifest={**disk_taskset.manifest, "items": [patched_summary]},
+    )
+    monkeypatch.setattr(
+        runner_module, "load_taskset", lambda *args, **kwargs: patched_taskset
+    )
+    binary = _fake_prism(
+        tmp_path,
+        help_text="Usage: prism --resolution --min-confidence",
+        document=_recorded("absence-nominal.sarif.json"),
+    )
+    monkeypatch.setenv("PRISM_BIN", str(binary))
+
+    result = runner_module.run_analyzer(
+        config,
+        clock=_FixedClock("2026-09-05T12:00:00Z"),
+        force=False,
+        only=frozenset({patched_id}),
+    )
+
+    call = json.loads(next((result.run_dir / "calls").glob("*.json")).read_text())
+    assert call["item_id"] == patched_id
 
 
 def test_analyzer_cli_writes_complete_results_tree_with_fake_prism(tmp_path, monkeypatch):

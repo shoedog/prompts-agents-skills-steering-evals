@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+from collections.abc import Callable
 from dataclasses import asdict
 from pathlib import PurePosixPath
 from typing import Any
@@ -38,11 +39,12 @@ def run_analyzer(
     clock: Clock,
     force: bool,
     only: frozenset[str],
+    taskset_loader: Callable[..., Any] = load_taskset,
 ) -> RunResult:
     """Run an analyzer config through the authenticated structured results layout."""
     from harness.structured.analyzer import AnalyzerExecutorError, probe_flags, run_analyzer_item
 
-    taskset = load_taskset(
+    taskset = taskset_loader(
         cfg.taskset, split=cfg.split, max_items=cfg.token_budget["max_items"]
     )
     by_id = {item.id: item for item in taskset.items}
