@@ -60,7 +60,6 @@ def normalize_sample(
         raise ValueError("final_document_valid must be boolean")
     envelope = _required_mapping(call.get("llm_envelope", call), "llm_envelope")
     expected = _required_mapping(call.get("expected"), "expected")
-    response = _required_mapping(envelope.get("response"), "llm_envelope.response")
 
     item_id = _required_string(call.get("item_id"), "item_id")
     truth = _required_string(expected.get("label"), "expected.label")
@@ -84,13 +83,14 @@ def normalize_sample(
         raise ValueError("llm_envelope.final_sentinel must be boolean")
 
     schema_valid_for_eval = final_document_valid and sentinel_kind != "transport"
-    repaired = not first_tier_valid
+    repaired = first_tier_valid is False
     forced_penalty = not schema_valid_for_eval or sentinel_kind != "none"
     if not schema_valid_for_eval:
         prediction = INVALID_PREDICTION
         brier_confidence = 0.0
         brier_correct = False
     else:
+        response = _required_mapping(envelope.get("response"), "llm_envelope.response")
         prediction = _required_string(response.get("class"), "llm_envelope.response.class")
         if forced_penalty:
             brier_confidence = 0.0
@@ -131,7 +131,12 @@ def _rate(count: int, total: int, *, interval: bool) -> dict[str, Any]:
 def classification_metrics(
     rows: Sequence[ScoredSample], classes: Sequence[str]
 ) -> dict[str, Any]:
-    """Compute declared-class confusion and P/R/F1 without dropping invalid rows."""
+    """Compute metrics, using known first-tier rows for both first-tier rates.
+
+    The first-tier-valid and repaired rates are ``None`` when no row has a
+    boolean ``first_tier_valid`` value. Invalid final rows remain in the other
+    classification and validity populations.
+    """
     declared = tuple(classes)
     if len(set(declared)) != len(declared):
         raise ValueError("classes must not contain duplicates")
@@ -195,8 +200,10 @@ def classification_metrics(
 
     total = len(rows)
     first_valid = sum(row.first_tier_valid is True for row in rows)
+    first_known = sum(isinstance(row.first_tier_valid, bool) for row in rows)
+    first_unknown = sum(row.first_tier_valid is None for row in rows)
     schema_valid = sum(row.schema_valid_for_eval for row in rows)
-    repaired = sum(row.repaired for row in rows)
+    repaired = sum(row.first_tier_valid is False for row in rows)
     return {
         "n": total,
         "confusion": confusion,
@@ -206,12 +213,21 @@ def classification_metrics(
             if declared
             else 0.0
         ),
-        "first_tier_valid": _rate(first_valid, total, interval=True),
+        "first_tier_valid_n": first_valid,
+        "first_tier_known_n": first_known,
+        "first_tier_unknown_n": first_unknown,
+        "repaired_n": repaired,
+        "first_tier_valid": {
+            "k": first_valid,
+            "n": first_known,
+            "rate": first_valid / first_known if first_known else None,
+            "wilson_ci": wilson_ci(first_valid, first_known) if first_known else None,
+        },
         "schema_valid_for_eval": _rate(schema_valid, total, interval=True),
         "repaired": {
             "count": repaired,
-            "n": total,
-            "rate": repaired / total if total else 0.0,
+            "n": first_known,
+            "rate": repaired / first_known if first_known else None,
         },
     }
 
@@ -245,7 +261,22 @@ def _call_number(call: Mapping[str, Any], field: str) -> float:
 
 
 def cost_latency(calls: Sequence[dict]) -> dict[str, int | float | None]:
-    """Reduce the complete supplied call population; callers own its scope."""
+    """Reduce unique invocations from the complete caller-owned population.
+
+    Cost comes from each call or its LLM envelope. Latency remains the
+    caller-measured top-level ``duration_ms`` call-record field; it is never
+    read from the envelope. A retry is counted when it has a new invocation ID.
+    """
+    invocation_ids: set[str] = set()
+    for call in calls:
+        envelope = _required_mapping(call.get("llm_envelope"), "llm_envelope")
+        invocation_id = envelope.get("invocation_id")
+        if not isinstance(invocation_id, str):
+            raise ValueError("llm_envelope.invocation_id must be a string")
+        if invocation_id in invocation_ids:
+            raise ValueError(f"duplicate invocation_id in supplied population: {invocation_id!r}")
+        invocation_ids.add(invocation_id)
+
     costs = [_call_number(call, "cost_usd") for call in calls]
     durations = sorted(_call_number(call, "duration_ms") for call in calls)
     return {

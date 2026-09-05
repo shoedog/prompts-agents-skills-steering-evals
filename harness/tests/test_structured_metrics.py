@@ -10,6 +10,7 @@ import pytest
 from harness.metrics import wilson_ci
 from harness.structured.metrics import (
     ScoredSample,
+    brier,
     classification_metrics,
     cost_latency,
     normalize_sample,
@@ -30,7 +31,7 @@ def scored(
     prediction: str | None,
     confidence: float | None,
     schema_valid: bool,
-    first_tier_valid: bool = True,
+    first_tier_valid: bool | None = True,
     first_tier_sentinel: bool = False,
     final_sentinel: bool = False,
     escalation_state: str = "first_valid",
@@ -46,7 +47,7 @@ def scored(
         escalation_state=escalation_state,
         sentinel_kind=sentinel_kind,
         schema_valid_for_eval=schema_valid,
-        repaired=not first_tier_valid,
+        repaired=first_tier_valid is False,
         prediction=prediction,
         brier_confidence=0.0 if forced_penalty else confidence,
         brier_correct=False if forced_penalty else prediction == truth,
@@ -97,6 +98,37 @@ def test_eval3_truth_table(case):
         "brier_correct": actual.brier_correct,
     } == case["expected"]
 
+    if "expected_classification" in case:
+        metrics = classification_metrics([actual], classes=(actual.truth,))
+        assert {
+            key: metrics[key] for key in case["expected_classification"]
+        } == case["expected_classification"]
+
+
+def test_invalid_final_without_response_stays_in_all_metric_populations():
+    call = {
+        "item_id": "invalid-final",
+        "expected": {"label": "fatal"},
+        "sentinel_kind": "schema",
+        "llm_envelope": {
+            "first_tier_valid": False,
+            "first_tier_sentinel": True,
+            "final_sentinel": True,
+            "escalation_state": "first_sentinel",
+        },
+    }
+
+    row = normalize_sample(call, final_document_valid=False)
+    metrics = classification_metrics([row], classes=("fatal",))
+    calibration = brier([row])
+
+    assert row.prediction == "__invalid__"
+    assert metrics["n"] == 1
+    assert metrics["schema_valid_for_eval"]["n"] == 1
+    assert metrics["confusion"]["fatal"]["__invalid__"] == 1
+    assert calibration["n"] == 1
+    assert calibration["score"] == 1.0
+
 
 def test_declared_class_metrics_and_validity_accounting_are_hand_checkable():
     rows = [
@@ -123,6 +155,10 @@ def test_declared_class_metrics_and_validity_accounting_are_hand_checkable():
     result = classification_metrics(rows, classes=("fatal", "retry", "never_predicted"))
 
     assert result["n"] == 4
+    assert result["first_tier_valid_n"] == 2
+    assert result["first_tier_known_n"] == 4
+    assert result["first_tier_unknown_n"] == 0
+    assert result["repaired_n"] == 2
     assert result["per_class"]["fatal"] == pytest.approx(
         {"tp": 1, "fp": 0, "fn": 1, "precision": 1.0, "recall": 0.5, "f1": 2 / 3}
     )
@@ -161,10 +197,10 @@ def test_classification_rejects_truth_outside_manifest_classes():
 
 def test_cost_latency_sums_full_call_population_and_linearly_interpolates():
     calls = [
-        {"llm_envelope": {"cost_usd": 0.01}, "duration_ms": 30},
-        {"cost_usd": 0.02, "duration_ms": 0},
-        {"cost_usd": 0.03, "duration_ms": 20},
-        {"cost_usd": 0.04, "duration_ms": 10},
+        {"llm_envelope": {"invocation_id": "inv-1", "cost_usd": 0.01}, "duration_ms": 30},
+        {"llm_envelope": {"invocation_id": "inv-2"}, "cost_usd": 0.02, "duration_ms": 0},
+        {"llm_envelope": {"invocation_id": "inv-3"}, "cost_usd": 0.03, "duration_ms": 20},
+        {"llm_envelope": {"invocation_id": "inv-4"}, "cost_usd": 0.04, "duration_ms": 10},
     ]
     result = cost_latency(calls)
     assert result == {
@@ -179,9 +215,45 @@ def test_cost_latency_empty_population_is_explicit():
     assert cost_latency([]) == {"calls": 0, "cost_usd": 0.0, "p50_ms": None, "p95_ms": None}
 
 
+def test_cost_latency_rejects_duplicate_invocation_id():
+    calls = [
+        {"llm_envelope": {"invocation_id": "inv-retry", "cost_usd": 0.01}, "duration_ms": 10},
+        {"llm_envelope": {"invocation_id": "inv-retry", "cost_usd": 0.02}, "duration_ms": 20},
+    ]
+    with pytest.raises(ValueError, match="duplicate invocation_id.*inv-retry"):
+        cost_latency(calls)
+
+
+def test_cost_latency_counts_retry_with_new_invocation_id():
+    calls = [
+        {"llm_envelope": {"invocation_id": "inv-first", "cost_usd": 0.01}, "duration_ms": 10},
+        {"llm_envelope": {"invocation_id": "inv-retry", "cost_usd": 0.02}, "duration_ms": 20},
+    ]
+    assert cost_latency(calls) == {
+        "calls": 2,
+        "cost_usd": pytest.approx(0.03),
+        "p50_ms": pytest.approx(15.0),
+        "p95_ms": pytest.approx(19.5),
+    }
+
+
+@pytest.mark.parametrize("invocation_id", [None, 7])
+def test_cost_latency_requires_string_invocation_id(invocation_id):
+    call = {
+        "llm_envelope": {"invocation_id": invocation_id, "cost_usd": 0.01},
+        "duration_ms": 10,
+    }
+    with pytest.raises(ValueError, match="llm_envelope.invocation_id.*string"):
+        cost_latency([call])
+
+
 @pytest.mark.parametrize("field", ["cost_usd", "duration_ms"])
 def test_cost_latency_rejects_missing_or_non_numeric_values(field):
-    call = {"cost_usd": 0.1, "duration_ms": 10}
+    call = {
+        "llm_envelope": {"invocation_id": "inv-1"},
+        "cost_usd": 0.1,
+        "duration_ms": 10,
+    }
     call[field] = None
     with pytest.raises(ValueError, match=field):
         cost_latency([call])

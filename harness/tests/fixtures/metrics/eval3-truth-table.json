@@ -13,6 +13,20 @@
     "expected": {"schema_valid_for_eval": true, "repaired": false, "prediction": "fatal", "brier_confidence": 0.9, "brier_correct": true}
   },
   {
+    "id": "first-tier-unknown",
+    "first_tier_valid": null,
+    "first_tier_sentinel": false,
+    "final_sentinel": false,
+    "escalation_state": "first_valid",
+    "final_document_valid": true,
+    "final_class": "fatal",
+    "final_confidence": 0.8,
+    "sentinel_kind": "none",
+    "call": {"item_id": "first-tier-unknown", "expected": {"label": "fatal"}, "sentinel_kind": "none", "llm_envelope": {"first_tier_valid": null, "first_tier_sentinel": false, "final_sentinel": false, "escalation_state": "first_valid", "response": {"class": "fatal", "confidence": 0.8}}},
+    "expected": {"schema_valid_for_eval": true, "repaired": false, "prediction": "fatal", "brier_confidence": 0.8, "brier_correct": true},
+    "expected_classification": {"first_tier_valid_n": 0, "first_tier_known_n": 0, "first_tier_unknown_n": 1, "repaired_n": 0, "first_tier_valid": {"k": 0, "n": 0, "rate": null, "wilson_ci": null}, "repaired": {"count": 0, "n": 0, "rate": null}}
+  },
+  {
     "id": "first-valid-repaired",
     "first_tier_valid": false,
     "first_tier_sentinel": false,

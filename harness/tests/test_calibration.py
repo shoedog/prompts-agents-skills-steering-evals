@@ -50,6 +50,24 @@ def test_brier_bins_are_half_open_except_the_last_and_include_every_row():
     assert bins[-1]["accuracy"] == 1.0
 
 
+def test_brier_bins_retain_sorted_deduplicated_item_ids_without_changing_score():
+    rows = [
+        scored("z", truth="a", prediction="a", confidence=0.2, schema_valid=True),
+        scored("a", truth="a", prediction="b", confidence=0.25, schema_valid=True),
+        scored("a", truth="a", prediction="a", confidence=0.8, schema_valid=True),
+    ]
+
+    result = brier(rows)
+
+    assert result["score"] == pytest.approx(
+        ((0.2 - 1.0) ** 2 + (0.25 - 0.0) ** 2 + (0.8 - 1.0) ** 2) / 3
+    )
+    assert result["bins"][2]["n"] == 2
+    assert result["bins"][2]["item_ids"] == ["a", "z"]
+    assert result["bins"][8]["n"] == 1
+    assert result["bins"][8]["item_ids"] == ["a"]
+
+
 def test_brier_empty_population_has_ten_empty_bins():
     result = brier([])
     assert result["score"] == 0.0

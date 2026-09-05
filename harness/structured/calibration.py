@@ -32,7 +32,7 @@ def _brier_inputs(row: ScoredSample) -> tuple[float, float, bool]:
 
 def brier(rows: Sequence[ScoredSample]) -> dict[str, Any]:
     """Score every row and return a ten-bin reliability table."""
-    bin_values: list[list[tuple[float, float]]] = [[] for _ in range(10)]
+    bin_values: list[list[tuple[str, float, float]]] = [[] for _ in range(10)]
     losses: list[float] = []
     maximum_penalty = 0
     for row in rows:
@@ -42,7 +42,7 @@ def brier(rows: Sequence[ScoredSample]) -> dict[str, Any]:
             maximum_penalty += 1
         losses.append(loss)
         index = 9 if confidence == 1.0 else int(confidence * 10)
-        bin_values[index].append((confidence, outcome))
+        bin_values[index].append((row.item_id, confidence, outcome))
 
     bins = []
     for index, values in enumerate(bin_values):
@@ -52,13 +52,14 @@ def brier(rows: Sequence[ScoredSample]) -> dict[str, Any]:
                 "lower": index / 10,
                 "upper": (index + 1) / 10,
                 "n": count,
+                "item_ids": sorted({item_id for item_id, _, _ in values}),
                 "mean_confidence": (
-                    math.fsum(confidence for confidence, _ in values) / count
+                    math.fsum(confidence for _, confidence, _ in values) / count
                     if count
                     else None
                 ),
                 "accuracy": (
-                    math.fsum(outcome for _, outcome in values) / count if count else None
+                    math.fsum(outcome for _, _, outcome in values) / count if count else None
                 ),
             }
         )
