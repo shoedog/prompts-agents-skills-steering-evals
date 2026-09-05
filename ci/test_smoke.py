@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -84,6 +85,64 @@ def test_taskset_v2_lint():
     for taskset in tasksets:
         proc = _run_script("validators/taskset_v2_lint.py", str(taskset))
         assert proc.returncode == 0, f"{taskset.name}: {proc.stdout + proc.stderr}"
+
+
+def _structured_workflow() -> tuple[dict, str]:
+    path = REPO_ROOT / ".github/workflows/structured-eval.yml"
+    source = path.read_text()
+    value = yaml.load(source, Loader=yaml.BaseLoader)
+    assert isinstance(value, dict)
+    return value, source
+
+
+def _workflow_step(job: dict, name: str) -> dict:
+    return next(step for step in job["steps"] if step.get("name") == name)
+
+
+def test_structured_workflow_has_the_exact_cost_and_holdout_matrix():
+    workflow, source = _structured_workflow()
+    assert set(workflow["on"]) == {"push", "pull_request", "schedule", "workflow_dispatch"}
+    jobs = workflow["jobs"]
+    assert {"cheap", "smoke", "live-smoke", "changes", "dev-set", "test-set"} <= set(jobs)
+    assert "if" not in jobs["cheap"]
+    assert "if" not in jobs["smoke"]
+    assert ".venv/bin/python -m pytest -q -m 'not live'" in source
+    assert (
+        ".venv/bin/python -m harness.structured.run experiments/structured/st-smoke.yaml"
+        in source
+    )
+    assert "github.event_name == 'schedule'" in jobs["live-smoke"]["if"]
+    assert "github.event_name == 'workflow_dispatch'" in jobs["live-smoke"]["if"]
+    live = _workflow_step(jobs["live-smoke"], "Run paid legacy smoke")
+    assert live["env"]["RUN_LIVE"] == "1"
+    assert ".venv/bin/python -m pytest -q ci -k test_smoke_run" in live["run"]
+    filters = _workflow_step(jobs["changes"], "Classify structured paths")["with"]["filters"]
+    for path in ("llm-layer/tasks/**", "harness/structured/**", "tasksets/structured/**"):
+        assert path in filters
+    assert "needs.changes.outputs.structured == 'true'" in jobs["dev-set"]["if"]
+    assert "startsWith(github.ref, 'refs/tags/v')" in jobs["test-set"]["if"]
+    assert "github.event_name != 'pull_request'" in jobs["test-set"]["if"]
+    release_source = "\n".join(str(step.get("run", "")) for step in jobs["test-set"]["steps"])
+    assert "--allow-test" in release_source
+    assert "splits.test.consulted" in release_source
+    assert "c['taskset']" in release_source
+    assert "vars.STRUCTURED_TEST_MANIFEST" not in source
+    assert release_source.count("git commit") >= 2
+
+
+def test_dev_set_uses_an_executable_nonpromotion_gate(tmp_path):
+    workflow, _source = _structured_workflow()
+    step = _workflow_step(workflow["jobs"]["dev-set"], "Enforce promotion verdict")
+    command = shlex.split(step["run"])
+    assert command[1] == "-c"
+    gate = command[2]
+    for promotable, expected in ((False, 1), (True, 0)):
+        path = tmp_path / f"{promotable}.json"
+        path.write_text(json.dumps({"promotable": promotable}))
+        proc = subprocess.run(
+            [sys.executable, "-c", gate, str(path)], capture_output=True, text=True
+        )
+        assert proc.returncode == expected, proc.stdout + proc.stderr
 
 
 # --------------------------------------------------------------------------- #

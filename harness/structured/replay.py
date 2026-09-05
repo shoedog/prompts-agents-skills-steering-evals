@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import re
 import stat
+import sys
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any, Literal
@@ -305,3 +307,37 @@ def replay(results_dir: Path) -> ReplayResult:
     }
     json_metrics = json.loads(canonical_json(metrics))
     return ReplayResult(executor_calls=0, metrics=json_metrics)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Authenticate and replay a structured evaluation results tree"
+    )
+    parser.add_argument("results_dir", type=Path)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    try:
+        result = replay(args.results_dir)
+    except (OSError, RuntimeError, TypeError, ValueError, KeyError) as error:
+        print(f"[structured replay] ERROR: {error}", file=sys.stderr)
+        return 1
+    print(json.dumps(result.metrics, sort_keys=True, separators=(",", ":")))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
+
+__all__ = [
+    "LoadedRun",
+    "ReplayInputError",
+    "ReplayResult",
+    "build_parser",
+    "load_result_records",
+    "main",
+    "replay",
+]

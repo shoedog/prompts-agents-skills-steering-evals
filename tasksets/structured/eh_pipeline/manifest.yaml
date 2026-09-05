@@ -1,0 +1,10 @@
+taskset: eh_pipeline
+schema_version: 2
+task: eh_pipeline
+labeling_guide: LABELING.md
+classes: [no_retry_on_transient]
+splits:
+  dev: {items: 1, min_per_class: 0}
+  test: {items: 0, min_per_class: 0, consulted: 0}
+items:
+  - {id: plx-py-0001, split: dev, contamination_risk: low}

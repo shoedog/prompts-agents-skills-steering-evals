@@ -1,0 +1,133 @@
+name: Structured evaluation
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  schedule:
+    - cron: "17 8 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cheap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: python -m venv .venv && .venv/bin/python -m pip install -e .
+      - name: Run non-live suite
+        run: .venv/bin/python -m pytest -q -m 'not live'
+
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: python -m venv .venv && .venv/bin/python -m pip install -e .
+      - name: Run zero-cost structured stub
+        run: .venv/bin/python -m harness.structured.run experiments/structured/st-smoke.yaml
+
+  live-smoke:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: python -m venv .venv && .venv/bin/python -m pip install -e .
+      - name: Run paid legacy smoke
+        env:
+          RUN_LIVE: "1"
+        run: .venv/bin/python -m pytest -q ci -k test_smoke_run
+
+  changes:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      structured: ${{ steps.filter.outputs.structured }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Classify structured paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            structured:
+              - 'llm-layer/tasks/**'
+              - 'harness/structured/**'
+              - 'tasksets/structured/**'
+
+  dev-set:
+    needs: changes
+    if: needs.changes.outputs.structured == 'true'
+    runs-on: ubuntu-latest
+    env:
+      STRUCTURED_DEV_CONFIG: ${{ vars.STRUCTURED_DEV_CONFIG }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: python -m venv .venv && .venv/bin/python -m pip install -e .
+      - name: Require the budgeted dev config
+        run: test -n "$STRUCTURED_DEV_CONFIG"
+      - name: Run full dev split
+        run: .venv/bin/python -m harness.structured.run "$STRUCTURED_DEV_CONFIG" --split dev
+      - name: Locate metrics
+        id: metrics
+        run: echo "path=$(find results -name metrics.json -type f | sort | tail -1)" >> "$GITHUB_OUTPUT"
+      - name: Enforce promotion verdict
+        env:
+          METRICS_PATH: ${{ steps.metrics.outputs.path }}
+        run: .venv/bin/python -c "import json,sys; m=json.load(open(sys.argv[1])); v=[m['promotable']] if 'promotable' in m else [x['promotable'] for x in m.get('promotions',{}).values()]; raise SystemExit(0 if v and all(v) else 1)" "$METRICS_PATH"
+      - name: Post paired delta table
+        run: find results -name report.md -type f -print -exec cat {} \;
+
+  test-set:
+    if: startsWith(github.ref, 'refs/tags/v') && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      STRUCTURED_TEST_CONFIG: ${{ vars.STRUCTURED_TEST_CONFIG }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: python -m venv .venv && .venv/bin/python -m pip install -e .
+      - name: Require release inputs
+        run: test -n "$STRUCTURED_TEST_CONFIG"
+      - name: Run held-out test split
+        run: .venv/bin/python -m harness.structured.run "$STRUCTURED_TEST_CONFIG" --split test --allow-test
+      - name: Commit release results
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add -f results
+          git commit -m "eval: record ${GITHUB_REF_NAME} test-set results"
+      - name: Increment consult counter in its own commit
+        run: |
+          # increments splits.test.consulted
+          STRUCTURED_TEST_MANIFEST=$(.venv/bin/python -c "from pathlib import Path; import sys,yaml; c=yaml.safe_load(Path(sys.argv[1]).read_text()); print(Path(c['taskset']) / 'manifest.yaml')" "$STRUCTURED_TEST_CONFIG")
+          .venv/bin/python -c "from pathlib import Path; import sys,yaml; p=Path(sys.argv[1]); m=yaml.safe_load(p.read_text()); m['splits']['test']['consulted'] += 1; p.write_text(yaml.safe_dump(m, sort_keys=False))" "$STRUCTURED_TEST_MANIFEST"
+          git add "$STRUCTURED_TEST_MANIFEST"
+          git commit -m "eval: increment ${GITHUB_REF_NAME} test-set consultation"
+      - name: Publish the two release commits
+        run: git push origin "HEAD:${{ github.event.repository.default_branch }}"
