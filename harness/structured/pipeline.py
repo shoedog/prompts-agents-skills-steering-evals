@@ -24,11 +24,15 @@ class StageConfig(TypedDict):
     type: Literal["file", "prism", "harness", "llm"]
     pin: Literal["from_item", "never", "if_absent"]
     task: NotRequired[str]
+    algorithm: NotRequired[str]
 
 
 class VersionConfig(TypedDict):
     name: str
     task_version: str
+    stage: NotRequired[str]
+    model: NotRequired[str]
+    seed: NotRequired[int]
 
 
 class StageExecutor(Protocol):
@@ -128,23 +132,41 @@ def _record_stage(
     cache: str,
 ) -> dict[str, Any]:
     shared = declaration.get("shared") is True
-    ref = writer.write_stage(
-        version=version["name"],
-        item_id=item.id,
-        stage=stage["name"],
-        value=output,
-        sample=None if shared else 0,
-        shared=shared,
-    )
-    return {
+    record = {
         "item_id": item.id,
         "version": version["name"],
+        "sample": None if shared else 0,
         "stage": stage["name"],
         "type": stage["type"],
         "cache": cache,
         "status": "ok",
-        "stage_ref": asdict(ref),
+        "output": output,
     }
+    ref = writer.write_stage(
+        version=version["name"],
+        item_id=item.id,
+        stage=stage["name"],
+        value=record,
+        sample=None if shared else 0,
+        shared=shared,
+    )
+    return {**record, "stage_ref": asdict(ref)}
+
+
+def _stage_error(
+    *, item: TaskItem, version: VersionConfig, stage: StageConfig, error: BaseException | str
+) -> PipelineResult:
+    message = str(error)
+    row = {
+        "item_id": item.id,
+        "version": version["name"],
+        "stage": stage["name"],
+        "type": stage["type"],
+        "cache": "miss",
+        "status": "error",
+        "error": message,
+    }
+    return PipelineResult((row,), None, stage["name"])
 
 
 def run_pipeline_item(
@@ -182,7 +204,10 @@ def run_pipeline_item(
             if stage_type == "file":
                 raise TasksetError(f"file stage {name} requires a pinned artifact")
             if stage_type == "harness" and pin_mode == "never":
-                raise TasksetError(_HARNESS_UNAVAILABLE)
+                failed = _stage_error(
+                    item=item, version=version, stage=stage, error=_HARNESS_UNAVAILABLE
+                )
+                return PipelineResult(tuple((*replay, *failed.replay)), None, failed.stage_error)
             executor = executors.get(stage_type)
             if executor is None:
                 if stage_type == "harness" and pin_mode == "if_absent":
@@ -199,17 +224,27 @@ def run_pipeline_item(
                     )
                     return PipelineResult(tuple(replay), None, name)
                 raise TasksetError(f"no executor registered for stage type {stage_type}")
-            output = executor(
-                stage=stage,
-                item=item,
-                version=version,
-                inputs=dict(outputs),
-                writer=writer,
-            )
-            if not isinstance(output, dict):
-                raise TasksetError(f"pipeline stage {name} output must be one JSON object")
+            try:
+                output = executor(
+                    stage=stage,
+                    item=item,
+                    version=version,
+                    inputs=dict(outputs),
+                    writer=writer,
+                )
+                if not isinstance(output, dict):
+                    raise TasksetError(
+                        f"pipeline stage {name} output must be one JSON object"
+                    )
+                _validate_output(stage, output)
+            except (OSError, RuntimeError, TypeError, ValueError, KeyError) as error:
+                failed = _stage_error(
+                    item=item, version=version, stage=stage, error=error
+                )
+                return PipelineResult(tuple((*replay, *failed.replay)), None, failed.stage_error)
             cache = "miss"
-        _validate_output(stage, output)
+        if use_pin:
+            _validate_output(stage, output)
         outputs[name] = output
         replay.append(
             _record_stage(

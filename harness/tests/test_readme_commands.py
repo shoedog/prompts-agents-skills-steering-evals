@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import re
+import json
 import subprocess
 import sys
 from pathlib import Path
+
+from harness.tests.test_structured_report import make_frozen_structured_run
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -53,6 +56,9 @@ def test_readme_carries_required_truth_and_named_evidence():
         "test_snapshot_index_has_exact_digest_pair_and_closed_versioned_requests",
         "test_each_promotion_condition_can_veto",
         "test_test_split_without_allow_test_exits_five_before_writes",
+        "results/trends/<task>.jsonl",
+        "test_render_appends_one_trend_row_per_candidate_and_preserves_prefix",
+        "test_documented_replay_command_reproduces_outputs_byte_for_byte",
         "test_claude_provider_yaml_unchanged_regression",
         "test_scrub_marks_sandbox_and_lineage_rows",
         "test_scrub_is_idempotent",
@@ -60,3 +66,29 @@ def test_readme_carries_required_truth_and_named_evidence():
     )
     for claim in required:
         assert claim in text
+
+
+def test_documented_replay_command_reproduces_outputs_byte_for_byte(tmp_path):
+    run = make_frozen_structured_run(tmp_path)
+    from harness.structured.report import render
+
+    render(run)
+    command = re.search(
+        r"(?m)^\.venv/bin/python -m harness\.structured\.replay RESULTS_DIR$",
+        README.read_text(),
+    )
+    assert command is not None
+    expected = {
+        name: (run.path / name).read_bytes() for name in ("metrics.json", "report.md")
+    }
+    proc = subprocess.run(
+        [sys.executable, "-m", "harness.structured.replay", str(run.path)],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        timeout=30,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert json.loads(proc.stdout) == json.loads(expected["metrics.json"])
+    assert {
+        name: (run.path / name).read_bytes() for name in ("metrics.json", "report.md")
+    } == expected

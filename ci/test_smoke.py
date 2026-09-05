@@ -125,7 +125,7 @@ def test_structured_workflow_has_the_exact_cost_and_holdout_matrix():
     release_source = "\n".join(str(step.get("run", "")) for step in jobs["test-set"]["steps"])
     assert "--allow-test" in release_source
     assert "splits.test.consulted" in release_source
-    assert "c['taskset']" in release_source
+    assert 'ci/increment_consulted.py "$STRUCTURED_TEST_CONFIG"' in release_source
     assert "vars.STRUCTURED_TEST_MANIFEST" not in source
     assert release_source.count("git commit") >= 2
 
@@ -143,6 +143,55 @@ def test_dev_set_uses_an_executable_nonpromotion_gate(tmp_path):
             [sys.executable, "-c", gate, str(path)], capture_output=True, text=True
         )
         assert proc.returncode == expected, proc.stdout + proc.stderr
+
+
+def test_dev_gate_uses_emitted_run_even_when_stale_metrics_sorts_later(tmp_path):
+    workflow, _source = _structured_workflow()
+    job = workflow["jobs"]["dev-set"]
+    locate = _workflow_step(job, "Locate emitted metrics")
+    new_run = tmp_path / "results/pl-smoke/20260905T000000Z-new"
+    stale = tmp_path / "results/zz-stale/99999999T999999Z-old/metrics.json"
+    new_run.mkdir(parents=True)
+    stale.parent.mkdir(parents=True)
+    (new_run / "metrics.json").write_text("{}")
+    stale.write_text("{}")
+    (tmp_path / "structured-run.out").write_text(f"NO PROMOTION CANDIDATE\nRESULTS_DIR={new_run}\n")
+    output = tmp_path / "github-output"
+    proc = subprocess.run(
+        ["bash", "-e", "-o", "pipefail", "-c", locate["run"]],
+        cwd=tmp_path,
+        env={**os.environ, "GITHUB_OUTPUT": str(output)},
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert output.read_text() == f"path={new_run}/metrics.json\n"
+
+
+def test_release_counter_mutates_only_the_selected_configs_manifest(tmp_path):
+    tasksets = tmp_path / "tasksets"
+    configs = tmp_path / "experiments"
+    configs.mkdir()
+    for name, consulted in (("a", 2), ("b", 7)):
+        taskset = tasksets / name
+        taskset.mkdir(parents=True)
+        (taskset / "manifest.yaml").write_text(
+            f"splits:\n  test:\n    consulted: {consulted}\n"
+        )
+        (configs / f"{name}.yaml").write_text(f"taskset: {taskset}\n")
+    before_b = (tasksets / "b/manifest.yaml").read_bytes()
+
+    proc = subprocess.run(
+        [sys.executable, str(REPO_ROOT / "ci/increment_consulted.py"), str(configs / "a.yaml")],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert yaml.safe_load((tasksets / "a/manifest.yaml").read_text())["splits"]["test"][
+        "consulted"
+    ] == 3
+    assert (tasksets / "b/manifest.yaml").read_bytes() == before_b
 
 
 # --------------------------------------------------------------------------- #

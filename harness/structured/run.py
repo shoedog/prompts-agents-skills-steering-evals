@@ -10,7 +10,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any, Sequence
 
-from harness.structured.config import AnalyzerConfig, REPO_ROOT, load_config
+from harness.structured.config import AnalyzerConfig, PipelineConfig, REPO_ROOT, load_config
 from harness.structured.executors import ExecutionRequest, ExecutionResult, LlmLayerExecutor
 from harness.structured.results import canonical_json
 from harness.structured.runner import StaleRunError, SystemClock, run_analyzer, run_structured
@@ -131,6 +131,16 @@ def main(argv: Sequence[str] | None = None) -> int:
                 force=args.force,
                 only=frozenset(args.only),
             )
+        elif isinstance(cfg, PipelineConfig):
+            from harness.structured.pipeline_runner import run_pipeline
+
+            cfg = replace(cfg, split=split, jobs=args.jobs)
+            result = run_pipeline(
+                cfg,
+                clock=_CLOCK,
+                force=args.force,
+                only=frozenset(args.only),
+            )
         else:
             cfg = replace(cfg, split=split, jobs=args.jobs)
             result = run_structured(
@@ -150,6 +160,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(result.promotion.reason)
     else:
         print("NO PROMOTION CANDIDATE")
+    print(f"RESULTS_DIR={result.run_dir}")
     return 0
 
 

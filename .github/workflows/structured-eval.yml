@@ -85,10 +85,16 @@ jobs:
       - name: Require the budgeted dev config
         run: test -n "$STRUCTURED_DEV_CONFIG"
       - name: Run full dev split
-        run: .venv/bin/python -m harness.structured.run "$STRUCTURED_DEV_CONFIG" --split dev
-      - name: Locate metrics
+        run: |
+          set -o pipefail
+          .venv/bin/python -m harness.structured.run "$STRUCTURED_DEV_CONFIG" --split dev | tee structured-run.out
+      - name: Locate emitted metrics
         id: metrics
-        run: echo "path=$(find results -name metrics.json -type f | sort | tail -1)" >> "$GITHUB_OUTPUT"
+        run: |
+          RUN_DIR=$(sed -n 's/^RESULTS_DIR=//p' structured-run.out)
+          test -n "$RUN_DIR"
+          test -f "$RUN_DIR/metrics.json"
+          echo "path=$RUN_DIR/metrics.json" >> "$GITHUB_OUTPUT"
       - name: Enforce promotion verdict
         env:
           METRICS_PATH: ${{ steps.metrics.outputs.path }}
@@ -125,8 +131,7 @@ jobs:
       - name: Increment consult counter in its own commit
         run: |
           # increments splits.test.consulted
-          STRUCTURED_TEST_MANIFEST=$(.venv/bin/python -c "from pathlib import Path; import sys,yaml; c=yaml.safe_load(Path(sys.argv[1]).read_text()); print(Path(c['taskset']) / 'manifest.yaml')" "$STRUCTURED_TEST_CONFIG")
-          .venv/bin/python -c "from pathlib import Path; import sys,yaml; p=Path(sys.argv[1]); m=yaml.safe_load(p.read_text()); m['splits']['test']['consulted'] += 1; p.write_text(yaml.safe_dump(m, sort_keys=False))" "$STRUCTURED_TEST_MANIFEST"
+          STRUCTURED_TEST_MANIFEST=$(.venv/bin/python ci/increment_consulted.py "$STRUCTURED_TEST_CONFIG")
           git add "$STRUCTURED_TEST_MANIFEST"
           git commit -m "eval: increment ${GITHUB_REF_NAME} test-set consultation"
       - name: Publish the two release commits

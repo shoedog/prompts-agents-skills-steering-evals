@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -205,12 +207,13 @@ def test_mutated_pinned_artifact_fails_before_downstream_execution(
     assert recording_executors.calls == []
 
 
-def test_runtime_harness_never_is_the_exact_unimplemented_error(
+def test_runtime_harness_never_records_the_exact_unimplemented_error(
     pipeline_fixture, recording_executors
 ):
     pipeline = pipeline_fixture(pin="never", artifact=False)
-    with pytest.raises(TasksetError, match="^runtime harness stage not implemented$"):
-        run_pipeline_item(**pipeline, executors=recording_executors)
+    result = run_pipeline_item(**pipeline, executors=recording_executors)
+    assert result.stage_error == "observation"
+    assert result.replay[-1]["error"] == "runtime harness stage not implemented"
 
 
 def test_if_absent_without_registered_harness_records_stage_error(pipeline_fixture):
@@ -243,8 +246,9 @@ def test_invalid_stage_output_is_rejected_before_the_next_executor(
         *pipeline["stages"],
         {"name": "classify", "type": "llm", "pin": "never"},
     )
-    with pytest.raises(TasksetError, match="observation schema validation failed"):
-        run_pipeline_item(**pipeline, executors=recording_executors)
+    result = run_pipeline_item(**pipeline, executors=recording_executors)
+    assert result.stage_error == "observation"
+    assert "observation schema validation failed" in result.replay[-1]["error"]
     assert recording_executors.calls == [("harness", "observation")]
 
 
@@ -294,3 +298,82 @@ def test_pipeline_rejects_unknown_stage_policy(
     pipeline_fixture["stages"] = (stage,)
     with pytest.raises(TasksetError, match=message):
         run_pipeline_item(**pipeline_fixture, executors=recording_executors)
+
+
+def test_pl_smoke_cli_runs_end_to_end_with_fake_llm_layer_on_path(
+    tmp_path, monkeypatch, capsys
+):
+    root = tmp_path / "repo"
+    root.mkdir()
+    shutil.copytree(Path("contracts"), root / "contracts")
+    shutil.copytree(
+        Path("tasksets/structured/eh_pipeline"),
+        root / "tasksets/structured/eh_pipeline",
+    )
+    config = root / "experiments/structured/pl-smoke.yaml"
+    config.parent.mkdir(parents=True)
+    shutil.copy2(Path("experiments/structured/pl-smoke.yaml"), config)
+
+    binary = tmp_path / "bin/llm-layer"
+    binary.parent.mkdir()
+    binary.write_text(
+        """#!/usr/bin/env python3
+import json
+import sys
+
+def arg(name):
+    return sys.argv[sys.argv.index(name) + 1]
+
+response = {
+    "class": "no_retry_on_transient",
+    "confidence": 0.9,
+    "rationale": "The retryable timeout propagated without a retry.",
+    "evidence_lines": [11],
+}
+envelope = {
+    "schema_version": "1",
+    "invocation_id": "123e4567-e89b-42d3-a456-426614174000",
+    "task": arg("--task"),
+    "task_version": arg("--task-version"),
+    "provider": "fake",
+    "model": arg("--model"),
+    "provider_version": "fake-1",
+    "prompt_sha256": "a" * 64,
+    "escalation_state": "first_valid",
+    "first_tier_valid": True,
+    "first_tier_sentinel": False,
+    "final_sentinel": False,
+    "cache_hit": False,
+    "usage": {
+        "input_tokens": 1,
+        "output_tokens": 1,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+    },
+    "cost_usd": 0.0,
+    "response": response,
+    "log_path": "fake.jsonl",
+}
+print(json.dumps(envelope, sort_keys=True, separators=(",", ":")))
+"""
+    )
+    binary.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{binary.parent}{os.pathsep}{os.environ['PATH']}")
+
+    from harness.structured.run import main
+
+    assert main([str(config), "--jobs", "1"]) == 0
+    output = capsys.readouterr().out.splitlines()
+    emitted = next(line.removeprefix("RESULTS_DIR=") for line in output if line.startswith("RESULTS_DIR="))
+    run_dir = Path(emitted)
+    assert run_dir.parent == root / "results/pl-smoke"
+    assert {path.name for path in (run_dir / "stages").glob("*.json")} == {
+        "v2026-09-04.1-plx-py-0001-targets.json",
+        "v2026-09-04.1-plx-py-0001-observation.json",
+        "v2026-09-04.1-plx-py-0001-s0-classify.json",
+    }
+    assert json.loads(next((run_dir / "calls").glob("*.json")).read_text())["output"][
+        "class"
+    ] == "no_retry_on_transient"
+    assert (run_dir / "metrics.json").is_file()
+    assert (run_dir / "report.md").is_file()

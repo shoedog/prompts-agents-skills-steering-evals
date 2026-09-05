@@ -52,6 +52,26 @@ class AnalyzerConfig:
     root: Path
 
 
+@dataclass(frozen=True)
+class PipelineConfig:
+    kind: str
+    id: str
+    taskset: Path
+    split: str
+    stages: Sequence[dict[str, Any]]
+    versions: Sequence[dict[str, Any]]
+    baseline_version: str
+    samples_per_item: int
+    seed: int
+    jobs: int
+    asserts: Sequence[dict[str, Any]]
+    stats: dict[str, Any]
+    token_budget: dict[str, Any]
+    root: Path
+    request_schema: dict[str, Any]
+    response_schema: dict[str, Any]
+
+
 def _positive_int(value: Any, name: str) -> int:
     if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
         raise ConfigError(f"{name} must be a positive integer")
@@ -71,7 +91,7 @@ def _path_inside(root: Path, raw: str, name: str) -> Path:
 
 def load_config(
     path: str | Path, *, root: Path = REPO_ROOT
-) -> StructuredConfig | AnalyzerConfig:
+) -> StructuredConfig | AnalyzerConfig | PipelineConfig:
     root = Path(root).resolve()
     config_path = Path(path)
     if not config_path.is_absolute():
@@ -88,6 +108,10 @@ def load_config(
     kind = raw.get("kind")
     if kind == "analyzer":
         return load_analyzer_config(config_path, root=root)
+    if kind == "pipeline":
+        from harness.structured.pipeline_config import load_pipeline_config
+
+        return load_pipeline_config(config_path, root=root)
     if kind != "structured_task":
         raise ConfigError(f"unknown structured kind: {kind!r}")
     experiment_id = raw.get("id")
