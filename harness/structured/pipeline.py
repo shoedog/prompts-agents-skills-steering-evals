@@ -179,6 +179,18 @@ def run_pipeline_item(
     """Run one item in stage order, replacing configured prefixes with pins."""
     if not isinstance(version.get("name"), str) or not version["name"]:
         raise TasksetError("pipeline version needs a nonempty name")
+    for stage in stages:
+        name = stage.get("name")
+        stage_type = stage.get("type")
+        pin_mode = stage.get("pin")
+        if not isinstance(name, str) or not name:
+            raise TasksetError("pipeline stage needs a nonempty name")
+        if stage_type not in _STAGE_TYPES:
+            raise TasksetError(f"unknown pipeline stage type: {stage_type!r}")
+        if pin_mode not in _PIN_MODES:
+            raise TasksetError(f"unknown pipeline pin mode: {pin_mode!r}")
+        if stage_type == "harness" and pin_mode == "never":
+            raise TasksetError(_HARNESS_UNAVAILABLE)
     replay: list[dict[str, Any]] = []
     outputs: dict[str, dict[str, Any]] = {}
     for stage in stages:

@@ -215,6 +215,25 @@ def test_runtime_harness_never_is_the_exact_unimplemented_error(
         run_pipeline_item(**pipeline, executors=recording_executors)
 
 
+def test_later_runtime_harness_never_is_rejected_before_any_executor(
+    pipeline_fixture, recording_executors
+):
+    pipeline_fixture["stages"] = (
+        {
+            "name": "classify",
+            "type": "llm",
+            "pin": "never",
+            "task": "classify_error_handling",
+        },
+        {"name": "observation", "type": "harness", "pin": "never"},
+    )
+
+    with pytest.raises(TasksetError, match="^runtime harness stage not implemented$"):
+        run_pipeline_item(**pipeline_fixture, executors=recording_executors)
+
+    assert recording_executors.calls == []
+
+
 def test_if_absent_without_registered_harness_records_stage_error(pipeline_fixture):
     result = run_pipeline_item(
         **pipeline_fixture(pin="if_absent", artifact=False), executors={}
