@@ -514,6 +514,489 @@
         "task_version": "baseline"
       },
       "kappa_vs_human": 0.0,
+      "risk_bands": {
+        "high": {
+          "calibration": {
+            "bins": [
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.0,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.1
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.1,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.2
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.2,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.3
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.3,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.4
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.4,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.5
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.5,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.6
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.6,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.7
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.7,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.8
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.8,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.9
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.9,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 1.0
+              }
+            ],
+            "maximum_penalty": 0,
+            "n": 0,
+            "score": 0.0
+          },
+          "classification": {
+            "confusion": {
+              "correct": {
+                "__invalid__": 0,
+                "correct": 0,
+                "swallowed_fatal": 0
+              },
+              "swallowed_fatal": {
+                "__invalid__": 0,
+                "correct": 0,
+                "swallowed_fatal": 0
+              }
+            },
+            "first_tier_known_n": 0,
+            "first_tier_unknown_n": 0,
+            "first_tier_valid": {
+              "k": 0,
+              "n": 0,
+              "rate": null,
+              "wilson_ci": null
+            },
+            "first_tier_valid_n": 0,
+            "macro_f1": 0.0,
+            "n": 0,
+            "per_class": {
+              "correct": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "swallowed_fatal": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              }
+            },
+            "repaired": {
+              "count": 0,
+              "n": 0,
+              "rate": null
+            },
+            "repaired_n": 0,
+            "schema_valid_for_eval": {
+              "k": 0,
+              "n": 0,
+              "rate": 0.0,
+              "wilson_ci": [
+                0.0,
+                0.0
+              ]
+            }
+          },
+          "population": {
+            "declared_item_ids": [],
+            "n_declared_items": 0,
+            "n_scored_items": 0,
+            "n_scored_samples": 0
+          },
+          "stage_errors": {
+            "calls": 0,
+            "item_ids": []
+          }
+        },
+        "low": {
+          "calibration": {
+            "bins": [
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.0,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.1
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.1,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.2
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.2,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.3
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.3,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.4
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.4,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.5
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.5,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.6
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.6,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.7
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.7,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.8
+              },
+              {
+                "accuracy": 0.0,
+                "item_ids": [
+                  "eh-py-0001"
+                ],
+                "lower": 0.8,
+                "mean_confidence": 0.8,
+                "n": 1,
+                "upper": 0.9
+              },
+              {
+                "accuracy": 1.0,
+                "item_ids": [
+                  "eh-py-0002"
+                ],
+                "lower": 0.9,
+                "mean_confidence": 0.9,
+                "n": 1,
+                "upper": 1.0
+              }
+            ],
+            "maximum_penalty": 0,
+            "n": 2,
+            "score": 0.32500000000000007
+          },
+          "classification": {
+            "confusion": {
+              "correct": {
+                "__invalid__": 0,
+                "correct": 0,
+                "swallowed_fatal": 1
+              },
+              "swallowed_fatal": {
+                "__invalid__": 0,
+                "correct": 0,
+                "swallowed_fatal": 1
+              }
+            },
+            "first_tier_known_n": 2,
+            "first_tier_unknown_n": 0,
+            "first_tier_valid": {
+              "k": 2,
+              "n": 2,
+              "rate": 1.0,
+              "wilson_ci": [
+                0.34238022750665303,
+                1.0
+              ]
+            },
+            "first_tier_valid_n": 2,
+            "macro_f1": 0.3333333333333333,
+            "n": 2,
+            "per_class": {
+              "correct": {
+                "f1": 0.0,
+                "fn": 1,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "swallowed_fatal": {
+                "f1": 0.6666666666666666,
+                "fn": 0,
+                "fp": 1,
+                "precision": 0.5,
+                "recall": 1.0,
+                "tp": 1
+              }
+            },
+            "repaired": {
+              "count": 0,
+              "n": 2,
+              "rate": 0.0
+            },
+            "repaired_n": 0,
+            "schema_valid_for_eval": {
+              "k": 2,
+              "n": 2,
+              "rate": 1.0,
+              "wilson_ci": [
+                0.34238022750665303,
+                1.0
+              ]
+            }
+          },
+          "population": {
+            "declared_item_ids": [
+              "eh-py-0001",
+              "eh-py-0002"
+            ],
+            "n_declared_items": 2,
+            "n_scored_items": 2,
+            "n_scored_samples": 2
+          },
+          "stage_errors": {
+            "calls": 0,
+            "item_ids": []
+          }
+        },
+        "medium": {
+          "calibration": {
+            "bins": [
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.0,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.1
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.1,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.2
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.2,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.3
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.3,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.4
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.4,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.5
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.5,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.6
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.6,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.7
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.7,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.8
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.8,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.9
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.9,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 1.0
+              }
+            ],
+            "maximum_penalty": 0,
+            "n": 0,
+            "score": 0.0
+          },
+          "classification": {
+            "confusion": {
+              "correct": {
+                "__invalid__": 0,
+                "correct": 0,
+                "swallowed_fatal": 0
+              },
+              "swallowed_fatal": {
+                "__invalid__": 0,
+                "correct": 0,
+                "swallowed_fatal": 0
+              }
+            },
+            "first_tier_known_n": 0,
+            "first_tier_unknown_n": 0,
+            "first_tier_valid": {
+              "k": 0,
+              "n": 0,
+              "rate": null,
+              "wilson_ci": null
+            },
+            "first_tier_valid_n": 0,
+            "macro_f1": 0.0,
+            "n": 0,
+            "per_class": {
+              "correct": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "swallowed_fatal": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              }
+            },
+            "repaired": {
+              "count": 0,
+              "n": 0,
+              "rate": null
+            },
+            "repaired_n": 0,
+            "schema_valid_for_eval": {
+              "k": 0,
+              "n": 0,
+              "rate": 0.0,
+              "wilson_ci": [
+                0.0,
+                0.0
+              ]
+            }
+          },
+          "population": {
+            "declared_item_ids": [],
+            "n_declared_items": 0,
+            "n_scored_items": 0,
+            "n_scored_samples": 0
+          },
+          "stage_errors": {
+            "calls": 0,
+            "item_ids": []
+          }
+        }
+      },
       "stage_errors": {
         "calls": 0,
         "item_ids": []
@@ -696,6 +1179,489 @@
         "task_version": "candidate"
       },
       "kappa_vs_human": 1.0,
+      "risk_bands": {
+        "high": {
+          "calibration": {
+            "bins": [
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.0,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.1
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.1,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.2
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.2,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.3
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.3,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.4
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.4,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.5
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.5,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.6
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.6,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.7
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.7,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.8
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.8,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.9
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.9,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 1.0
+              }
+            ],
+            "maximum_penalty": 0,
+            "n": 0,
+            "score": 0.0
+          },
+          "classification": {
+            "confusion": {
+              "correct": {
+                "__invalid__": 0,
+                "correct": 0,
+                "swallowed_fatal": 0
+              },
+              "swallowed_fatal": {
+                "__invalid__": 0,
+                "correct": 0,
+                "swallowed_fatal": 0
+              }
+            },
+            "first_tier_known_n": 0,
+            "first_tier_unknown_n": 0,
+            "first_tier_valid": {
+              "k": 0,
+              "n": 0,
+              "rate": null,
+              "wilson_ci": null
+            },
+            "first_tier_valid_n": 0,
+            "macro_f1": 0.0,
+            "n": 0,
+            "per_class": {
+              "correct": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "swallowed_fatal": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              }
+            },
+            "repaired": {
+              "count": 0,
+              "n": 0,
+              "rate": null
+            },
+            "repaired_n": 0,
+            "schema_valid_for_eval": {
+              "k": 0,
+              "n": 0,
+              "rate": 0.0,
+              "wilson_ci": [
+                0.0,
+                0.0
+              ]
+            }
+          },
+          "population": {
+            "declared_item_ids": [],
+            "n_declared_items": 0,
+            "n_scored_items": 0,
+            "n_scored_samples": 0
+          },
+          "stage_errors": {
+            "calls": 0,
+            "item_ids": []
+          }
+        },
+        "low": {
+          "calibration": {
+            "bins": [
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.0,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.1
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.1,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.2
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.2,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.3
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.3,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.4
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.4,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.5
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.5,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.6
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.6,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.7
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.7,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.8
+              },
+              {
+                "accuracy": 1.0,
+                "item_ids": [
+                  "eh-py-0002"
+                ],
+                "lower": 0.8,
+                "mean_confidence": 0.85,
+                "n": 1,
+                "upper": 0.9
+              },
+              {
+                "accuracy": 1.0,
+                "item_ids": [
+                  "eh-py-0001"
+                ],
+                "lower": 0.9,
+                "mean_confidence": 0.95,
+                "n": 1,
+                "upper": 1.0
+              }
+            ],
+            "maximum_penalty": 0,
+            "n": 2,
+            "score": 0.012500000000000006
+          },
+          "classification": {
+            "confusion": {
+              "correct": {
+                "__invalid__": 0,
+                "correct": 1,
+                "swallowed_fatal": 0
+              },
+              "swallowed_fatal": {
+                "__invalid__": 0,
+                "correct": 0,
+                "swallowed_fatal": 1
+              }
+            },
+            "first_tier_known_n": 2,
+            "first_tier_unknown_n": 0,
+            "first_tier_valid": {
+              "k": 2,
+              "n": 2,
+              "rate": 1.0,
+              "wilson_ci": [
+                0.34238022750665303,
+                1.0
+              ]
+            },
+            "first_tier_valid_n": 2,
+            "macro_f1": 1.0,
+            "n": 2,
+            "per_class": {
+              "correct": {
+                "f1": 1.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 1.0,
+                "recall": 1.0,
+                "tp": 1
+              },
+              "swallowed_fatal": {
+                "f1": 1.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 1.0,
+                "recall": 1.0,
+                "tp": 1
+              }
+            },
+            "repaired": {
+              "count": 0,
+              "n": 2,
+              "rate": 0.0
+            },
+            "repaired_n": 0,
+            "schema_valid_for_eval": {
+              "k": 2,
+              "n": 2,
+              "rate": 1.0,
+              "wilson_ci": [
+                0.34238022750665303,
+                1.0
+              ]
+            }
+          },
+          "population": {
+            "declared_item_ids": [
+              "eh-py-0001",
+              "eh-py-0002"
+            ],
+            "n_declared_items": 2,
+            "n_scored_items": 2,
+            "n_scored_samples": 2
+          },
+          "stage_errors": {
+            "calls": 0,
+            "item_ids": []
+          }
+        },
+        "medium": {
+          "calibration": {
+            "bins": [
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.0,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.1
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.1,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.2
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.2,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.3
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.3,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.4
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.4,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.5
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.5,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.6
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.6,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.7
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.7,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.8
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.8,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.9
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.9,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 1.0
+              }
+            ],
+            "maximum_penalty": 0,
+            "n": 0,
+            "score": 0.0
+          },
+          "classification": {
+            "confusion": {
+              "correct": {
+                "__invalid__": 0,
+                "correct": 0,
+                "swallowed_fatal": 0
+              },
+              "swallowed_fatal": {
+                "__invalid__": 0,
+                "correct": 0,
+                "swallowed_fatal": 0
+              }
+            },
+            "first_tier_known_n": 0,
+            "first_tier_unknown_n": 0,
+            "first_tier_valid": {
+              "k": 0,
+              "n": 0,
+              "rate": null,
+              "wilson_ci": null
+            },
+            "first_tier_valid_n": 0,
+            "macro_f1": 0.0,
+            "n": 0,
+            "per_class": {
+              "correct": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "swallowed_fatal": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              }
+            },
+            "repaired": {
+              "count": 0,
+              "n": 0,
+              "rate": null
+            },
+            "repaired_n": 0,
+            "schema_valid_for_eval": {
+              "k": 0,
+              "n": 0,
+              "rate": 0.0,
+              "wilson_ci": [
+                0.0,
+                0.0
+              ]
+            }
+          },
+          "population": {
+            "declared_item_ids": [],
+            "n_declared_items": 0,
+            "n_scored_items": 0,
+            "n_scored_samples": 0
+          },
+          "stage_errors": {
+            "calls": 0,
+            "item_ids": []
+          }
+        }
+      },
       "stage_errors": {
         "calls": 0,
         "item_ids": []
@@ -878,6 +1844,489 @@
         "task_version": "candidate-alt"
       },
       "kappa_vs_human": 1.0,
+      "risk_bands": {
+        "high": {
+          "calibration": {
+            "bins": [
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.0,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.1
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.1,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.2
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.2,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.3
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.3,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.4
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.4,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.5
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.5,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.6
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.6,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.7
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.7,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.8
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.8,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.9
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.9,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 1.0
+              }
+            ],
+            "maximum_penalty": 0,
+            "n": 0,
+            "score": 0.0
+          },
+          "classification": {
+            "confusion": {
+              "correct": {
+                "__invalid__": 0,
+                "correct": 0,
+                "swallowed_fatal": 0
+              },
+              "swallowed_fatal": {
+                "__invalid__": 0,
+                "correct": 0,
+                "swallowed_fatal": 0
+              }
+            },
+            "first_tier_known_n": 0,
+            "first_tier_unknown_n": 0,
+            "first_tier_valid": {
+              "k": 0,
+              "n": 0,
+              "rate": null,
+              "wilson_ci": null
+            },
+            "first_tier_valid_n": 0,
+            "macro_f1": 0.0,
+            "n": 0,
+            "per_class": {
+              "correct": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "swallowed_fatal": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              }
+            },
+            "repaired": {
+              "count": 0,
+              "n": 0,
+              "rate": null
+            },
+            "repaired_n": 0,
+            "schema_valid_for_eval": {
+              "k": 0,
+              "n": 0,
+              "rate": 0.0,
+              "wilson_ci": [
+                0.0,
+                0.0
+              ]
+            }
+          },
+          "population": {
+            "declared_item_ids": [],
+            "n_declared_items": 0,
+            "n_scored_items": 0,
+            "n_scored_samples": 0
+          },
+          "stage_errors": {
+            "calls": 0,
+            "item_ids": []
+          }
+        },
+        "low": {
+          "calibration": {
+            "bins": [
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.0,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.1
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.1,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.2
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.2,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.3
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.3,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.4
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.4,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.5
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.5,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.6
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.6,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.7
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.7,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.8
+              },
+              {
+                "accuracy": 1.0,
+                "item_ids": [
+                  "eh-py-0002"
+                ],
+                "lower": 0.8,
+                "mean_confidence": 0.85,
+                "n": 1,
+                "upper": 0.9
+              },
+              {
+                "accuracy": 1.0,
+                "item_ids": [
+                  "eh-py-0001"
+                ],
+                "lower": 0.9,
+                "mean_confidence": 0.95,
+                "n": 1,
+                "upper": 1.0
+              }
+            ],
+            "maximum_penalty": 0,
+            "n": 2,
+            "score": 0.012500000000000006
+          },
+          "classification": {
+            "confusion": {
+              "correct": {
+                "__invalid__": 0,
+                "correct": 1,
+                "swallowed_fatal": 0
+              },
+              "swallowed_fatal": {
+                "__invalid__": 0,
+                "correct": 0,
+                "swallowed_fatal": 1
+              }
+            },
+            "first_tier_known_n": 2,
+            "first_tier_unknown_n": 0,
+            "first_tier_valid": {
+              "k": 2,
+              "n": 2,
+              "rate": 1.0,
+              "wilson_ci": [
+                0.34238022750665303,
+                1.0
+              ]
+            },
+            "first_tier_valid_n": 2,
+            "macro_f1": 1.0,
+            "n": 2,
+            "per_class": {
+              "correct": {
+                "f1": 1.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 1.0,
+                "recall": 1.0,
+                "tp": 1
+              },
+              "swallowed_fatal": {
+                "f1": 1.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 1.0,
+                "recall": 1.0,
+                "tp": 1
+              }
+            },
+            "repaired": {
+              "count": 0,
+              "n": 2,
+              "rate": 0.0
+            },
+            "repaired_n": 0,
+            "schema_valid_for_eval": {
+              "k": 2,
+              "n": 2,
+              "rate": 1.0,
+              "wilson_ci": [
+                0.34238022750665303,
+                1.0
+              ]
+            }
+          },
+          "population": {
+            "declared_item_ids": [
+              "eh-py-0001",
+              "eh-py-0002"
+            ],
+            "n_declared_items": 2,
+            "n_scored_items": 2,
+            "n_scored_samples": 2
+          },
+          "stage_errors": {
+            "calls": 0,
+            "item_ids": []
+          }
+        },
+        "medium": {
+          "calibration": {
+            "bins": [
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.0,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.1
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.1,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.2
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.2,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.3
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.3,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.4
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.4,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.5
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.5,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.6
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.6,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.7
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.7,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.8
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.8,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.9
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.9,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 1.0
+              }
+            ],
+            "maximum_penalty": 0,
+            "n": 0,
+            "score": 0.0
+          },
+          "classification": {
+            "confusion": {
+              "correct": {
+                "__invalid__": 0,
+                "correct": 0,
+                "swallowed_fatal": 0
+              },
+              "swallowed_fatal": {
+                "__invalid__": 0,
+                "correct": 0,
+                "swallowed_fatal": 0
+              }
+            },
+            "first_tier_known_n": 0,
+            "first_tier_unknown_n": 0,
+            "first_tier_valid": {
+              "k": 0,
+              "n": 0,
+              "rate": null,
+              "wilson_ci": null
+            },
+            "first_tier_valid_n": 0,
+            "macro_f1": 0.0,
+            "n": 0,
+            "per_class": {
+              "correct": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "swallowed_fatal": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              }
+            },
+            "repaired": {
+              "count": 0,
+              "n": 0,
+              "rate": null
+            },
+            "repaired_n": 0,
+            "schema_valid_for_eval": {
+              "k": 0,
+              "n": 0,
+              "rate": 0.0,
+              "wilson_ci": [
+                0.0,
+                0.0
+              ]
+            }
+          },
+          "population": {
+            "declared_item_ids": [],
+            "n_declared_items": 0,
+            "n_scored_items": 0,
+            "n_scored_samples": 0
+          },
+          "stage_errors": {
+            "calls": 0,
+            "item_ids": []
+          }
+        }
+      },
       "stage_errors": {
         "calls": 0,
         "item_ids": []

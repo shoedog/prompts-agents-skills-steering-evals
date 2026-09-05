@@ -163,6 +163,59 @@ def test_report_labels_run_and_version_p95_population_sizes(frozen_structured_ru
     assert "195.000000 (n=2)" in report
 
 
+def test_report_breaks_metrics_out_by_contamination_risk(frozen_structured_run):
+    frozen_structured_run.manifest["items"][1]["contamination_risk"] = "high"
+    for call in frozen_structured_run.calls:
+        if call["version"] == "candidate" and call["item_id"] == "eh-py-0002":
+            call["stage_error"] = "classify"
+
+    summary = render(frozen_structured_run)
+    candidate = summary["versions"]["candidate"]["risk_bands"]
+    report = (frozen_structured_run.path / "report.md").read_text()
+
+    assert candidate["low"]["population"] == {
+        "declared_item_ids": ["eh-py-0001"],
+        "n_declared_items": 1,
+        "n_scored_items": 1,
+        "n_scored_samples": 1,
+    }
+    assert candidate["high"]["population"] == {
+        "declared_item_ids": ["eh-py-0002"],
+        "n_declared_items": 1,
+        "n_scored_items": 0,
+        "n_scored_samples": 0,
+    }
+    assert candidate["high"]["stage_errors"] == {
+        "calls": 1,
+        "item_ids": ["eh-py-0002"],
+    }
+    assert "## Contamination risk bands" in report
+    assert "| candidate | low | 1 | 1 | 1 |" in report
+    assert "| candidate | high | 1 | 0 | 0 |" in report
+
+
+@pytest.mark.parametrize(
+    ("case", "message"),
+    [
+        ("missing", "manifest has no item summary"),
+        ("invalid", "invalid contamination_risk"),
+        ("mismatch", "contamination_risk disagrees with manifest"),
+    ],
+)
+def test_risk_breakdown_rejects_invalid_or_mismatched_custody(
+    frozen_structured_run, case, message
+):
+    if case == "missing":
+        frozen_structured_run.manifest["items"].pop(0)
+    elif case == "invalid":
+        frozen_structured_run.manifest["items"][0]["contamination_risk"] = "unknown"
+    else:
+        frozen_structured_run.items["eh-py-0001"]["contamination_risk"] = "high"
+
+    with pytest.raises(ValueError, match=message):
+        summarize(frozen_structured_run)
+
+
 def test_machine_reduction_omits_only_bulky_rows(frozen_structured_run):
     full = summarize(frozen_structured_run)
     render(frozen_structured_run)

@@ -39,6 +39,7 @@ if TYPE_CHECKING:
 _BULKY_KEYS = {"calls", "scored_rows", "worst_rows"}
 _RUN_ID = re.compile(r"^[0-9]{8}T[0-9]{6}Z(?:-.+)?$")
 _TREND_COMPONENT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+_RISK_BANDS = ("low", "medium", "high")
 
 
 def _version_names(config: Mapping[str, Any]) -> tuple[str, ...]:
@@ -304,6 +305,61 @@ def _call_population(run: Any, versions: Sequence[str]) -> dict[str, dict[str, l
     return grouped
 
 
+def _risk_band_summaries(
+    run: Any,
+    grouped: Mapping[str, list[dict]],
+    classes: Sequence[str],
+) -> dict[str, Any]:
+    declared: dict[str, list[str]] = {band: [] for band in _RISK_BANDS}
+    manifest_items = {
+        item.get("id"): item for item in run.manifest.get("items", ())
+    }
+    for item_id in sorted(run.items):
+        manifest_item = manifest_items.get(item_id)
+        if not isinstance(manifest_item, Mapping):
+            raise ValueError(f"manifest has no item summary for {item_id!r}")
+        band = manifest_item.get("contamination_risk")
+        if band not in declared:
+            raise ValueError(f"item {item_id!r} has invalid contamination_risk {band!r}")
+        item_band = run.items[item_id].get("contamination_risk")
+        if item_band is not None and item_band != band:
+            raise ValueError(
+                f"item {item_id!r} contamination_risk disagrees with manifest"
+            )
+        declared[band].append(item_id)
+
+    summaries = {}
+    for band in _RISK_BANDS:
+        item_ids = declared[band]
+        band_grouped = {item_id: grouped[item_id] for item_id in item_ids}
+        excluded = _stage_error_item_ids(band_grouped)
+        scored_item_ids = [item_id for item_id in item_ids if item_id not in excluded]
+        scored = [
+            _normalized_call(call, run.items[item_id])
+            for item_id in scored_item_ids
+            for call in grouped[item_id]
+        ]
+        summaries[band] = {
+            "population": {
+                "declared_item_ids": item_ids,
+                "n_declared_items": len(item_ids),
+                "n_scored_items": len(scored_item_ids),
+                "n_scored_samples": len(scored),
+            },
+            "classification": classification_metrics(scored, classes),
+            "calibration": brier(scored),
+            "stage_errors": {
+                "calls": sum(
+                    bool(call.get("stage_error"))
+                    for item_id in item_ids
+                    for call in grouped[item_id]
+                ),
+                "item_ids": sorted(excluded),
+            },
+        }
+    return summaries
+
+
 def _version_summary(
     run: Any,
     version: str,
@@ -335,6 +391,7 @@ def _version_summary(
                 [row.truth for row in scored], predictions, classes
             ),
             "human_vs_human": human_kappa,
+            "risk_bands": _risk_band_summaries(run, grouped, classes),
             "cost": costs,
             "cache_hit_rate": (
                 sum(bool(call["llm_envelope"].get("cache_hit")) for call in calls) / len(calls)
@@ -677,6 +734,27 @@ def _report_markdown(summary: Mapping[str, Any]) -> str:
     lines.extend(["", "## Confusion matrices", ""])
     for version, values in summary["versions"].items():
         lines.extend([f"### {version}", "", *_confusion_table(values["classification"]["confusion"]), ""])
+
+    lines.extend(
+        [
+            "## Contamination risk bands",
+            "",
+            "| Version | Risk band | Declared items | Scored items | Scored samples | Macro F1 | Schema-valid rate | Brier | Stage-error calls |",
+            "|---|---|---:|---:|---:|---:|---:|---:|---:|",
+        ]
+    )
+    for version, values in summary["versions"].items():
+        for band, band_values in values["risk_bands"].items():
+            population = band_values["population"]
+            classification = band_values["classification"]
+            lines.append(
+                f"| {version} | {band} | {population['n_declared_items']} | "
+                f"{population['n_scored_items']} | {population['n_scored_samples']} | "
+                f"{_fmt(classification['macro_f1'])} | "
+                f"{_fmt(classification['schema_valid_for_eval']['rate'])} | "
+                f"{_fmt(band_values['calibration']['score'])} | "
+                f"{band_values['stage_errors']['calls']} |"
+            )
 
     lines.extend(
         [

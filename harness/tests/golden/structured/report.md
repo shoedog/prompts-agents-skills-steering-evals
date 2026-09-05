@@ -75,6 +75,19 @@ Caveat: these percentile CIs include 0, so the paired evidence does not separate
 | correct | 1 | 0 | 0 |
 | swallowed_fatal | 0 | 1 | 0 |
 
+## Contamination risk bands
+
+| Version | Risk band | Declared items | Scored items | Scored samples | Macro F1 | Schema-valid rate | Brier | Stage-error calls |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| baseline | low | 2 | 2 | 2 | 0.333333 | 1.000000 | 0.325000 | 0 |
+| baseline | medium | 0 | 0 | 0 | 0.000000 | 0.000000 | 0.000000 | 0 |
+| baseline | high | 0 | 0 | 0 | 0.000000 | 0.000000 | 0.000000 | 0 |
+| candidate | low | 2 | 2 | 2 | 1.000000 | 1.000000 | 0.012500 | 0 |
+| candidate | medium | 0 | 0 | 0 | 0.000000 | 0.000000 | 0.000000 | 0 |
+| candidate | high | 0 | 0 | 0 | 0.000000 | 0.000000 | 0.000000 | 0 |
+| candidate-alt | low | 2 | 2 | 2 | 1.000000 | 1.000000 | 0.012500 | 0 |
+| candidate-alt | medium | 0 | 0 | 0 | 0.000000 | 0.000000 | 0.000000 | 0 |
+| candidate-alt | high | 0 | 0 | 0 | 0.000000 | 0.000000 | 0.000000 | 0 |
 ## Worst 10 by loss
 
 | Hard failure | Loss | Version | Item | Sample | Expected | Predicted | Confidence | First failing assert | Replay key |

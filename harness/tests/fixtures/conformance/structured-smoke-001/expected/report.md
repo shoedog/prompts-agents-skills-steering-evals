@@ -28,6 +28,13 @@
 | unbounded_retry | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | unclear | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 
+## Contamination risk bands
+
+| Version | Risk band | Declared items | Scored items | Scored samples | Macro F1 | Schema-valid rate | Brier | Stage-error calls |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| v1 | low | 1 | 1 | 1 | 0.111111 | 1.000000 | 0.040000 | 0 |
+| v1 | medium | 0 | 0 | 0 | 0.000000 | 0.000000 | 0.000000 | 0 |
+| v1 | high | 0 | 0 | 0 | 0.000000 | 0.000000 | 0.000000 | 0 |
 ## Worst 10 by loss
 
 | Hard failure | Loss | Version | Item | Sample | Expected | Predicted | Confidence | First failing assert | Replay key |
