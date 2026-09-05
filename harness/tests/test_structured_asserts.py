@@ -4,6 +4,7 @@ import json
 
 import pytest
 
+from harness.structured.assertion_context import assertion_context
 from harness.structured.asserts import (
     AssertConfigError,
     AssertResult,
@@ -269,19 +270,64 @@ def test_cost_latency_checks_each_call_cost_and_p95_latency(cfg, item):
     ]
     passing = cost_latency_assert(
         output=_valid_output(), raw="", expected=item.expected, item=item.raw,
-        cfg={**cfg, "population": "per_item", "max_usd_per_call": 0.01, "max_p95_ms": 50},
-        samples=samples, population=Population("per_item", 1, 5),
+        cfg={**cfg, "population": "version", "max_usd_per_call": 0.01, "max_p95_ms": 50},
+        samples=samples, population=Population("version", 1, 5),
     )
     samples[2]["cost_usd"] = 0.02
     failing = cost_latency_assert(
         output=_valid_output(), raw="", expected=item.expected, item=item.raw,
-        cfg={**cfg, "population": "per_item", "max_usd_per_call": 0.01, "max_p95_ms": 45},
-        samples=samples, population=Population("per_item", 1, 5),
+        cfg={**cfg, "population": "version", "max_usd_per_call": 0.01, "max_p95_ms": 45},
+        samples=samples, population=Population("version", 1, 5),
     )
     assert passing.passed is True
     assert failing.passed is False
     assert "cost_usd 0.02 exceeds 0.01" in failing.detail
     assert "p95 duration_ms 50 exceeds 45" in failing.detail
+
+
+def test_eval9_run_population_spans_versions_and_version_population_does_not(
+    cfg, item
+):
+    calls = [
+        {
+            "item_id": "item-a",
+            "version": "v1",
+            "cost_usd": 0.001,
+            "duration_ms": 10,
+        },
+        {
+            "item_id": "item-a",
+            "version": "v2",
+            "cost_usd": 0.001,
+            "duration_ms": 1_000,
+        },
+    ]
+    context = assertion_context(calls, version="v1", item_id="item-a")
+    assert context is not None
+    item_samples, populations = context
+    run_result = cost_latency_assert(
+        output=_valid_output(),
+        raw="",
+        expected=item.expected,
+        item=item.raw,
+        cfg={**cfg, "population": "run", "max_p95_ms": 100},
+        samples=populations["run"][0],
+        population=populations["run"][1],
+    )
+    version_result = cost_latency_assert(
+        output=_valid_output(),
+        raw="",
+        expected=item.expected,
+        item=item.raw,
+        cfg={**cfg, "population": "version", "max_p95_ms": 100},
+        samples=populations["version"][0],
+        population=populations["version"][1],
+    )
+
+    assert len(item_samples) == 1
+    assert run_result.passed is False
+    assert "p95 duration_ms 1000 exceeds 100" in run_result.detail
+    assert version_result.passed is True
 
 
 def test_run_population_requires_descriptor_instead_of_using_fast_item_samples(cfg, item):
@@ -297,9 +343,9 @@ def test_run_population_requires_descriptor_instead_of_using_fast_item_samples(c
     assert result.detail == "population descriptor required for declared 'run' population"
 
 
-def test_run_population_rejects_per_item_descriptor_and_includes_slow_call(cfg, item):
+def test_run_population_rejects_version_descriptor_and_includes_slow_call(cfg, item):
     fast = [{"item_id": "item-a", "version": "v1", "cost_usd": 0.001, "duration_ms": 10}]
-    wrong_population = Population(kind="per_item", item_count=1, sample_count=1)
+    wrong_population = Population(kind="version", item_count=1, sample_count=1)
     mismatch = cost_latency_assert(
         output=_valid_output(),
         raw="",
@@ -310,7 +356,7 @@ def test_run_population_rejects_per_item_descriptor_and_includes_slow_call(cfg, 
         population=wrong_population,
     )
     assert mismatch.passed is False
-    assert mismatch.detail == "population mismatch: declared 'run', got 'per_item'"
+    assert mismatch.detail == "population mismatch: declared 'run', got 'version'"
 
     run_samples = [
         *fast,
@@ -418,16 +464,16 @@ def test_population_rejects_missing_identity_and_mixed_versions(cfg, item, sampl
         raw="",
         expected=item.expected,
         item=item.raw,
-        cfg={**cfg, "population": "per_item", "max_p95_ms": 100},
+        cfg={**cfg, "population": "version", "max_p95_ms": 100},
         samples=samples,
-        population=Population("per_item", item_count=1, sample_count=len(samples)),
+        population=Population("version", item_count=1, sample_count=len(samples)),
     )
     assert result.passed is False
     assert detail in result.detail
 
 
 def test_cost_latency_requires_declared_population(cfg, item):
-    with pytest.raises(AssertConfigError, match="population must be 'per_item' or 'run'"):
+    with pytest.raises(AssertConfigError, match="population must be 'run' or 'version'"):
         cost_latency_assert(
             output=_valid_output(),
             raw="",
@@ -435,7 +481,7 @@ def test_cost_latency_requires_declared_population(cfg, item):
             item=item.raw,
             cfg={**cfg, "max_p95_ms": 100},
             samples=[{"cost_usd": 0.001, "duration_ms": 10}],
-            population=Population("per_item", 1, 1),
+            population=Population("version", 1, 1),
         )
 
 

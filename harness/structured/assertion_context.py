@@ -36,6 +36,7 @@ def assertion_context(
     list[dict[str, Any]],
     dict[str, tuple[list[dict[str, Any]], Population]],
 ] | None:
+    all_samples = [assertion_sample(call) for call in calls]
     version_calls = [call for call in calls if call.get("version") == version]
     excluded = {
         str(call.get("item_id")) for call in version_calls if call.get("stage_error")
@@ -46,19 +47,23 @@ def assertion_context(
     item_calls = [call for call in eligible if call.get("item_id") == item_id]
     if not eligible or not item_calls:
         return None
-    run_samples = [assertion_sample(call) for call in eligible]
+    version_samples = [assertion_sample(call) for call in version_calls]
     item_samples = [assertion_sample(call) for call in item_calls]
     return item_samples, {
-        "per_item": (
-            item_samples,
-            Population("per_item", item_count=1, sample_count=len(item_samples)),
-        ),
         "run": (
-            run_samples,
+            all_samples,
             Population(
                 "run",
-                item_count=len({sample["item_id"] for sample in run_samples}),
-                sample_count=len(run_samples),
+                item_count=len({sample["item_id"] for sample in all_samples}),
+                sample_count=len(all_samples),
+            ),
+        ),
+        "version": (
+            version_samples,
+            Population(
+                "version",
+                item_count=len({sample["item_id"] for sample in version_samples}),
+                sample_count=len(version_samples),
             ),
         ),
     }

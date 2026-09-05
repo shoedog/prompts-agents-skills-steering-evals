@@ -14,6 +14,7 @@ from harness.structured.config import (
     _inside,
     _path_inside,
     _positive_int,
+    _validate_cost_latency_populations,
     _validate_experiment_id,
 )
 from harness.structured.schema_ref import SchemaRefError, resolve_schema_ref
@@ -100,6 +101,7 @@ def load_pipeline_config(path: str | Path, *, root: Path = REPO_ROOT) -> Pipelin
     asserts = raw.get("asserts")
     if not isinstance(asserts, list):
         raise ConfigError("asserts must be a list")
+    _validate_cost_latency_populations(asserts)
     stats, budget = raw.get("stats"), raw.get("token_budget")
     if not isinstance(stats, dict) or not isinstance(budget, dict):
         raise ConfigError("stats and token_budget must be objects")

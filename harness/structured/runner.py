@@ -169,10 +169,10 @@ def _validate_asserts(cfg: StructuredConfig) -> None:
             raise ValueError(f"asserts[{number}] must have a string type")
         get(entry["type"])
         if entry["type"] == "cost_latency" and entry.get("population") not in {
-            "per_item",
             "run",
+            "version",
         }:
-            raise ValueError("cost_latency population must be 'per_item' or 'run'")
+            raise ValueError("cost_latency population must be 'run' or 'version'")
 
 
 def _item_snapshot(item: TaskItem) -> dict[str, Any]:

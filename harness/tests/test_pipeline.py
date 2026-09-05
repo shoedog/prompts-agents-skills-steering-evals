@@ -412,6 +412,7 @@ def _write_fake_llm(binary: Path) -> None:
     binary.parent.mkdir(exist_ok=True)
     binary.write_text(
         """#!/usr/bin/env python3
+import hashlib
 import json
 import os
 import sys
@@ -420,9 +421,14 @@ def arg(name):
     return sys.argv[sys.argv.index(name) + 1]
 
 response = json.loads(os.environ["FAKE_LLM_RESPONSE"])
+identity = hashlib.md5(arg("--task-version").encode(), usedforsecurity=False).hexdigest()
+invocation_id = (
+    f"{identity[:8]}-{identity[8:12]}-4{identity[13:16]}-"
+    f"8{identity[17:20]}-{identity[20:32]}"
+)
 envelope = {
     "schema_version": "1",
-    "invocation_id": "123e4567-e89b-42d3-a456-426614174000",
+    "invocation_id": invocation_id,
     "task": arg("--task"),
     "task_version": arg("--task-version"),
     "provider": "fake",

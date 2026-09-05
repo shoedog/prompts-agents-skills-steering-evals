@@ -28,7 +28,7 @@ Paired population identity: baseline→candidate; n items: 2; population sha256:
 | brier | 0.325000 | 0.012500 | -0.312500 | -0.637500 | 0.012500 | n/a | 2 | 20260904 | 40 | `44b90d10dac01f41ff72f8d71090eae76dc4fb0a452255d594d3adaf42b5a46f` |
 | kappa | 0.000000 | 1.000000 | 1.000000 | 0.000000 | 1.000000 | n/a | 2 | 20260904 | 40 | `44b90d10dac01f41ff72f8d71090eae76dc4fb0a452255d594d3adaf42b5a46f` |
 | cost_per_item | 0.015000 | 0.020000 | 0.005000 | 0.005000 | 0.005000 | n/a | 2 | 20260904 | 40 | `44b90d10dac01f41ff72f8d71090eae76dc4fb0a452255d594d3adaf42b5a46f` |
-| p95_latency_ms | 195.000000 | 177.000000 | -18.000000 | -20.000000 | 20.000000 | n/a | 2 | 20260904 | 40 | `44b90d10dac01f41ff72f8d71090eae76dc4fb0a452255d594d3adaf42b5a46f` |
+| p95_latency_ms (population=version, n=2) | 195.000000 | 177.000000 | -18.000000 | -20.000000 | 20.000000 | n/a | 2 | 20260904 | 40 | `44b90d10dac01f41ff72f8d71090eae76dc4fb0a452255d594d3adaf42b5a46f` |
 | recall:correct (gate) | 0.000000 | 1.000000 | 1.000000 | 0.000000 | 1.000000 | 1.000000 | 2 | 20260904 | 40 | `44b90d10dac01f41ff72f8d71090eae76dc4fb0a452255d594d3adaf42b5a46f` |
 | recall:swallowed_fatal (gate) | 1.000000 | 1.000000 | 0.000000 | 0.000000 | 0.000000 | 1.000000 | 2 | 20260904 | 40 | `44b90d10dac01f41ff72f8d71090eae76dc4fb0a452255d594d3adaf42b5a46f` |
 
@@ -46,7 +46,7 @@ Paired population identity: baseline→candidate-alt; n items: 2; population sha
 | brier | 0.325000 | 0.012500 | -0.312500 | -0.637500 | 0.012500 | n/a | 2 | 20260904 | 40 | `249c556a9c01c9008bde76c3fc5ac8446be4145d7301dcb8876b57f9c419574c` |
 | kappa | 0.000000 | 1.000000 | 1.000000 | 0.000000 | 1.000000 | n/a | 2 | 20260904 | 40 | `249c556a9c01c9008bde76c3fc5ac8446be4145d7301dcb8876b57f9c419574c` |
 | cost_per_item | 0.015000 | 0.020000 | 0.005000 | 0.005000 | 0.005000 | n/a | 2 | 20260904 | 40 | `249c556a9c01c9008bde76c3fc5ac8446be4145d7301dcb8876b57f9c419574c` |
-| p95_latency_ms | 195.000000 | 177.000000 | -18.000000 | -20.000000 | 20.000000 | n/a | 2 | 20260904 | 40 | `249c556a9c01c9008bde76c3fc5ac8446be4145d7301dcb8876b57f9c419574c` |
+| p95_latency_ms (population=version, n=2) | 195.000000 | 177.000000 | -18.000000 | -20.000000 | 20.000000 | n/a | 2 | 20260904 | 40 | `249c556a9c01c9008bde76c3fc5ac8446be4145d7301dcb8876b57f9c419574c` |
 | recall:correct (gate) | 0.000000 | 1.000000 | 1.000000 | 0.000000 | 1.000000 | 1.000000 | 2 | 20260904 | 40 | `249c556a9c01c9008bde76c3fc5ac8446be4145d7301dcb8876b57f9c419574c` |
 | recall:swallowed_fatal (gate) | 1.000000 | 1.000000 | 0.000000 | 0.000000 | 0.000000 | 1.000000 | 2 | 20260904 | 40 | `249c556a9c01c9008bde76c3fc5ac8446be4145d7301dcb8876b57f9c419574c` |
 
@@ -88,11 +88,13 @@ Caveat: these percentile CIs include 0, so the paired evidence does not separate
 
 ## Cost and provenance
 
-| Version | Calls | Total USD | Cache hit rate | p50 ms | p95 ms | Stage-error calls |
+run p95 ms (population=run, n=6): 195.000000
+
+| Version | Calls | Total USD | Cache hit rate | p50 ms | p95 ms (population=version) | Stage-error calls |
 |---|---:|---:|---:|---:|---:|---:|
-| baseline | 2 | 0.030000 | 0.500000 | 150.000000 | 195.000000 | 0 |
-| candidate | 2 | 0.040000 | 0.500000 | 150.000000 | 177.000000 | 0 |
-| candidate-alt | 2 | 0.040000 | 0.500000 | 150.000000 | 177.000000 | 0 |
+| baseline | 2 | 0.030000 | 0.500000 | 150.000000 | 195.000000 (n=2) | 0 |
+| candidate | 2 | 0.040000 | 0.500000 | 150.000000 | 177.000000 (n=2) | 0 |
+| candidate-alt | 2 | 0.040000 | 0.500000 | 150.000000 | 177.000000 (n=2) | 0 |
 
 - baseline stage-error exclusions: []
 - baseline first-tier validity: 1.000000 (2/2)

@@ -255,6 +255,17 @@ def _stage_error_item_ids(grouped: Mapping[str, Sequence[Mapping[str, Any]]]) ->
     }
 
 
+def _cost_population(calls: Sequence[dict[str, Any]], kind: str) -> dict[str, Any]:
+    reduced = cost_latency(calls)
+    reduced["population"] = {
+        "kind": kind,
+        "n_calls": len(calls),
+        "n_items": len({call["item_id"] for call in calls}),
+        "n_versions": len({call["version"] for call in calls}),
+    }
+    return reduced
+
+
 def _call_population(run: Any, versions: Sequence[str]) -> dict[str, dict[str, list[dict]]]:
     grouped: dict[str, dict[str, list[dict]]] = {
         version: {item_id: [] for item_id in run.items} for version in versions
@@ -313,7 +324,7 @@ def _version_summary(
     ]
     classification = classification_metrics(scored, classes)
     calibration = brier(scored)
-    costs = cost_latency(calls)
+    costs = _cost_population(calls, "version")
     predictions = [_prediction(row) for row in scored]
     return (
         {
@@ -439,6 +450,10 @@ def _comparison(
         )
         for name, statistic in metric_stats
     }
+    metrics["p95_latency_ms"]["population"] = {
+        "kind": "version",
+        "n_calls": len(paired_ids) * int(run.config["samples_per_item"]),
+    }
     metrics["schema_validity"]["mcnemar_p"] = _paired_binary_p(
         list(baseline.values()),
         list(candidate.values()),
@@ -541,6 +556,7 @@ def summarize(run: LoadedRun) -> dict[str, Any]:
             "method": "percentile",
             "alpha": 0.05,
         },
+        "run_cost": _cost_population(list(run.calls), "run"),
         "versions": version_summaries,
         "promotions": promotions,
         "recomputed_assert_records": len(assert_rows),
@@ -631,8 +647,15 @@ def _report_markdown(summary: Mapping[str, Any]) -> str:
             for label, evidence in comparison["recall_cis"].items()
         ]
         for name, evidence in table_rows:
+            label = name
+            if name == "p95_latency_ms":
+                descriptor = evidence["population"]
+                label = (
+                    "p95_latency_ms "
+                    f"(population={descriptor['kind']}, n={descriptor['n_calls']})"
+                )
             lines.append(
-                f"| {name} | {_fmt(evidence['baseline'])} | {_fmt(evidence['candidate'])} | "
+                f"| {label} | {_fmt(evidence['baseline'])} | {_fmt(evidence['candidate'])} | "
                 f"{_fmt(evidence['delta'])} | {_fmt(evidence['lo'])} | {_fmt(evidence['hi'])} | "
                 f"{_fmt(evidence.get('mcnemar_p'))} | {evidence['n_items']} | {comparison['seed']} | "
                 f"{comparison['resamples']} | `{population['sha256']}` |"
@@ -675,7 +698,10 @@ def _report_markdown(summary: Mapping[str, Any]) -> str:
             "",
             "## Cost and provenance",
             "",
-            "| Version | Calls | Total USD | Cache hit rate | p50 ms | p95 ms | Stage-error calls |",
+            f"run p95 ms (population=run, n={summary['run_cost']['population']['n_calls']}): "
+            f"{_fmt(summary['run_cost']['p95_ms'])}",
+            "",
+            "| Version | Calls | Total USD | Cache hit rate | p50 ms | p95 ms (population=version) | Stage-error calls |",
             "|---|---:|---:|---:|---:|---:|---:|",
         ]
     )
@@ -683,7 +709,8 @@ def _report_markdown(summary: Mapping[str, Any]) -> str:
         cost = values["cost"]
         lines.append(
             f"| {version} | {cost['calls']} | {_fmt(cost['cost_usd'])} | "
-            f"{_fmt(values['cache_hit_rate'])} | {_fmt(cost['p50_ms'])} | {_fmt(cost['p95_ms'])} | "
+            f"{_fmt(values['cache_hit_rate'])} | {_fmt(cost['p50_ms'])} | "
+            f"{_fmt(cost['p95_ms'])} (n={cost['population']['n_calls']}) | "
             f"{values['stage_errors']['calls']} |"
         )
     lines.append("")

@@ -77,6 +77,15 @@ def test_config_rejects_path_escape(tmp_path):
         load_config(_config(tmp_path, taskset="../elsewhere"), root=tmp_path)
 
 
+@pytest.mark.parametrize("population", [None, "per_item"])
+def test_cost_latency_requires_eval9_population_vocabulary(tmp_path, population):
+    assertion = {"type": "cost_latency", "max_p95_ms": 100}
+    if population is not None:
+        assertion["population"] = population
+    with pytest.raises(ConfigError, match="population must be 'run' or 'version'"):
+        load_config(_config(tmp_path, asserts=[assertion]), root=tmp_path)
+
+
 def test_config_rejects_experiment_id_that_escapes_results(tmp_path):
     with pytest.raises(ConfigError, match="one path component"):
         load_config(

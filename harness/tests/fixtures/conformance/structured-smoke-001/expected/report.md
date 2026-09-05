@@ -36,9 +36,11 @@
 
 ## Cost and provenance
 
-| Version | Calls | Total USD | Cache hit rate | p50 ms | p95 ms | Stage-error calls |
+run p95 ms (population=run, n=1): 0.000000
+
+| Version | Calls | Total USD | Cache hit rate | p50 ms | p95 ms (population=version) | Stage-error calls |
 |---|---:|---:|---:|---:|---:|---:|
-| v1 | 1 | 0.001000 | 0.000000 | 0.000000 | 0.000000 | 0 |
+| v1 | 1 | 0.001000 | 0.000000 | 0.000000 | 0.000000 (n=1) | 0 |
 
 - v1 stage-error exclusions: []
 - v1 first-tier validity: 1.000000 (1/1)

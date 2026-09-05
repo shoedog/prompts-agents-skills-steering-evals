@@ -16,9 +16,9 @@ def cost_latency_assert(
     *, output, raw, expected, item, cfg, samples=None, population: Population | None = None
 ) -> AssertResult:
     declared = cfg.get("population")
-    if declared not in {"per_item", "run"}:
+    if declared not in {"run", "version"}:
         raise AssertConfigError(
-            f"cost_latency population must be 'per_item' or 'run'; got {declared!r}"
+            f"cost_latency population must be 'run' or 'version'; got {declared!r}"
         )
     if population is None:
         return AssertResult(
@@ -46,14 +46,6 @@ def cost_latency_assert(
             None,
             f"population sample_count {population.sample_count} does not match {len(samples)} samples",
         )
-    if population.kind == "per_item" and population.item_count != 1:
-        return AssertResult(
-            "cost_latency",
-            False,
-            False,
-            None,
-            f"per_item population must contain 1 item, got {population.item_count}",
-        )
     invalid_identities = [
         index
         for index, sample in enumerate(samples)
@@ -72,31 +64,23 @@ def cost_latency_assert(
             f"invalid indexes: {invalid_identities}",
         )
     versions = sorted({sample["version"] for sample in samples})
-    if len(versions) != 1:
+    if population.kind == "version" and len(versions) != 1:
         return AssertResult(
             "cost_latency",
             False,
             False,
             None,
-            f"population must contain exactly 1 version, got {versions}",
+            f"version population must contain exactly 1 version, got {versions}",
         )
     item_ids = {sample["item_id"] for sample in samples}
-    if population.kind == "run" and len(item_ids) != population.item_count:
+    if len(item_ids) != population.item_count:
         return AssertResult(
             "cost_latency",
             False,
             False,
             None,
-            f"run population item_count {population.item_count} does not match "
+            f"{population.kind} population item_count {population.item_count} does not match "
             f"{len(item_ids)} distinct item ids",
-        )
-    if population.kind == "per_item" and len(item_ids) != 1:
-        return AssertResult(
-            "cost_latency",
-            False,
-            False,
-            None,
-            f"per_item population must contain exactly 1 distinct item id, got {len(item_ids)}",
         )
     failures = []
     max_cost = cfg.get("max_usd_per_call")

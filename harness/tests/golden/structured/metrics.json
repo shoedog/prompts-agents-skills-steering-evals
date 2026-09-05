@@ -99,6 +99,10 @@
             "hi": 20.0,
             "lo": -20.0,
             "n_items": 2,
+            "population": {
+              "kind": "version",
+              "n_calls": 2
+            },
             "resamples": 40,
             "seed": 20260904
           },
@@ -247,6 +251,10 @@
             "hi": 20.0,
             "lo": -20.0,
             "n_items": 2,
+            "population": {
+              "kind": "version",
+              "n_calls": 2
+            },
             "resamples": 40,
             "seed": 20260904
           },
@@ -309,6 +317,18 @@
     }
   },
   "recomputed_assert_records": 6,
+  "run_cost": {
+    "calls": 6,
+    "cost_usd": 0.11,
+    "p50_ms": 150.0,
+    "p95_ms": 195.0,
+    "population": {
+      "kind": "run",
+      "n_calls": 6,
+      "n_items": 2,
+      "n_versions": 3
+    }
+  },
   "stats": {
     "alpha": 0.05,
     "method": "percentile",
@@ -475,7 +495,13 @@
         "calls": 2,
         "cost_usd": 0.03,
         "p50_ms": 150.0,
-        "p95_ms": 195.0
+        "p95_ms": 195.0,
+        "population": {
+          "kind": "version",
+          "n_calls": 2,
+          "n_items": 2,
+          "n_versions": 1
+        }
       },
       "human_vs_human": {
         "basis": "unavailable: taskset labels retain agreement flags, not secondary classes",
@@ -651,7 +677,13 @@
         "calls": 2,
         "cost_usd": 0.04,
         "p50_ms": 150.0,
-        "p95_ms": 177.0
+        "p95_ms": 177.0,
+        "population": {
+          "kind": "version",
+          "n_calls": 2,
+          "n_items": 2,
+          "n_versions": 1
+        }
       },
       "human_vs_human": {
         "basis": "unavailable: taskset labels retain agreement flags, not secondary classes",
@@ -827,7 +859,13 @@
         "calls": 2,
         "cost_usd": 0.04,
         "p50_ms": 150.0,
-        "p95_ms": 177.0
+        "p95_ms": 177.0,
+        "population": {
+          "kind": "version",
+          "n_calls": 2,
+          "n_items": 2,
+          "n_versions": 1
+        }
       },
       "human_vs_human": {
         "basis": "unavailable: taskset labels retain agreement flags, not secondary classes",

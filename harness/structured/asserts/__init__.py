@@ -30,7 +30,7 @@ class Population:
     sample_count: int
 
     def __post_init__(self) -> None:
-        if self.kind not in {"per_item", "run"}:
+        if self.kind not in {"run", "version"}:
             raise ValueError(f"unknown population kind {self.kind!r}")
         for field in ("item_count", "sample_count"):
             value = getattr(self, field)
@@ -89,9 +89,9 @@ def run_asserts(
         name = entry["type"]
         assertion = get(name)
         declared_population = entry.get("population") if name == "cost_latency" else None
-        if name == "cost_latency" and declared_population not in {"per_item", "run"}:
+        if name == "cost_latency" and declared_population not in {"run", "version"}:
             raise AssertConfigError(
-                "cost_latency population must be 'per_item' or 'run'; "
+                "cost_latency population must be 'run' or 'version'; "
                 f"got {declared_population!r}"
             )
         if hard_failure:

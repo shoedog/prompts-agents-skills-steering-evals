@@ -142,6 +142,27 @@ def test_report_order_and_required_evidence_are_explicit(frozen_structured_run):
     assert set(evidence["recall_cis"]) == set(CLASSES)
 
 
+def test_report_labels_run_and_version_p95_population_sizes(frozen_structured_run):
+    summary = render(frozen_structured_run)
+    report = (frozen_structured_run.path / "report.md").read_text()
+
+    assert summary["run_cost"]["population"] == {
+        "kind": "run",
+        "n_calls": 6,
+        "n_items": 2,
+        "n_versions": 3,
+    }
+    assert summary["versions"]["baseline"]["cost"]["population"] == {
+        "kind": "version",
+        "n_calls": 2,
+        "n_items": 2,
+        "n_versions": 1,
+    }
+    assert "run p95 ms (population=run, n=6)" in report
+    assert "p95 ms (population=version)" in report
+    assert "195.000000 (n=2)" in report
+
+
 def test_machine_reduction_omits_only_bulky_rows(frozen_structured_run):
     full = summarize(frozen_structured_run)
     render(frozen_structured_run)

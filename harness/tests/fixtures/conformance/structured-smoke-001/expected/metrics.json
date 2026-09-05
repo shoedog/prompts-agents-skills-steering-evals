@@ -12,6 +12,18 @@
   },
   "promotions": {},
   "recomputed_assert_records": 1,
+  "run_cost": {
+    "calls": 1,
+    "cost_usd": 0.001,
+    "p50_ms": 0.0,
+    "p95_ms": 0.0,
+    "population": {
+      "kind": "run",
+      "n_calls": 1,
+      "n_items": 1,
+      "n_versions": 1
+    }
+  },
   "stats": {
     "alpha": 0.05,
     "method": "percentile",
@@ -330,7 +342,13 @@
         "calls": 1,
         "cost_usd": 0.001,
         "p50_ms": 0.0,
-        "p95_ms": 0.0
+        "p95_ms": 0.0,
+        "population": {
+          "kind": "version",
+          "n_calls": 1,
+          "n_items": 1,
+          "n_versions": 1
+        }
       },
       "human_vs_human": {
         "basis": "unavailable: taskset labels retain agreement flags, not secondary classes",

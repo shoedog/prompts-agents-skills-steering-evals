@@ -97,6 +97,16 @@ def _path_inside(root: Path, raw: str, name: str) -> Path:
     return path
 
 
+def _validate_cost_latency_populations(asserts: Sequence[Any]) -> None:
+    for entry in asserts:
+        if (
+            isinstance(entry, dict)
+            and entry.get("type") == "cost_latency"
+            and entry.get("population") not in {"run", "version"}
+        ):
+            raise ConfigError("cost_latency population must be 'run' or 'version'")
+
+
 def load_config(
     path: str | Path, *, root: Path = REPO_ROOT
 ) -> StructuredConfig | AnalyzerConfig | PipelineConfig:
@@ -166,6 +176,7 @@ def load_config(
     asserts = raw.get("asserts")
     if not isinstance(asserts, list):
         raise ConfigError("asserts must be a list")
+    _validate_cost_latency_populations(asserts)
     seed = raw.get("seed")
     if not isinstance(seed, int) or isinstance(seed, bool):
         raise ConfigError("seed must be an integer")
