@@ -56,6 +56,33 @@ def test_promotion_verdict_is_frozen():
         verdict.promotable = False
 
 
+def test_promotion_verdict_retains_structured_evidence_additively():
+    evidence = {
+        "metrics": {
+            "macro_f1": {
+                "baseline": 0.5,
+                "candidate": 0.7,
+                "delta": 0.2,
+                "lo": 0.0,
+                "hi": 0.4,
+            }
+        },
+        "recall_cis": {"fatal": {"lo": -0.1, "hi": 0.2}},
+        "population": {"n_items": 20, "sha256": "a" * 64},
+        "resamples": 2000,
+        "seed": 20260904,
+    }
+    verdict = promotion_verdict(
+        macro_f1_ci={"lo": 0.0, "hi": 0.4},
+        schema_validity=1.0,
+        recall_cis=evidence["recall_cis"],
+        evidence=evidence,
+    )
+
+    assert verdict.promotable is True
+    assert verdict.evidence == evidence
+
+
 @pytest.mark.parametrize(
     "macro_ci, validity, recall_cis, reason",
     [

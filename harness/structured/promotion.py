@@ -5,12 +5,14 @@ from __future__ import annotations
 import math
 from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
 class PromotionVerdict:
     promotable: bool
     reason: str
+    evidence: Mapping[str, Any] | None = None
 
 
 def _number(value: object, field: str) -> float:
@@ -38,6 +40,7 @@ def promotion_verdict(
     macro_f1_ci: Mapping[str, float],
     schema_validity: float,
     recall_cis: Mapping[str, Mapping[str, float]],
+    evidence: Mapping[str, Any] | None = None,
 ) -> PromotionVerdict:
     """Apply the macro-F1, schema-validity, and per-class recall promotion gates."""
     macro_lo, _ = _interval(macro_f1_ci, "macro_f1_ci")
@@ -55,11 +58,13 @@ def promotion_verdict(
         return PromotionVerdict(
             False,
             f"NOT PROMOTABLE: macro_f1_ci.lo={macro_lo:g} is below 0",
+            evidence,
         )
     if validity < 0.99:
         return PromotionVerdict(
             False,
             f"NOT PROMOTABLE: schema_validity={validity:g} is below 0.99",
+            evidence,
         )
     for label in sorted(recall_upper):
         upper = recall_upper[label]
@@ -67,9 +72,11 @@ def promotion_verdict(
             return PromotionVerdict(
                 False,
                 f"NOT PROMOTABLE: recall_ci.hi[{label}]={upper:g} is below 0",
+                evidence,
             )
     return PromotionVerdict(
         True,
         "PROMOTABLE: macro_f1_ci.lo>=0, schema_validity>=0.99, "
         "and every recall_ci.hi>=0",
+        evidence,
     )
