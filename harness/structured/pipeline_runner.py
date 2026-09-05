@@ -155,7 +155,8 @@ def run_pipeline(
                 if result.stage_error is not None:
                     call["stage_error"] = result.stage_error
                     call["stage_error_detail"] = {
-                        "message": result.replay[-1]["error"]
+                        "message": result.replay[-1]["error"],
+                        **result.replay[-1].get("error_detail", {}),
                     }
                 elif result.replay:
                     call["stage_ref"] = result.replay[-1]["stage_ref"]

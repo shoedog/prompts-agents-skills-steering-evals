@@ -8,6 +8,7 @@ from typing import Any, Literal, Mapping, NotRequired, Protocol, Sequence, Typed
 
 from jsonschema import Draft202012Validator
 
+from harness.structured.executors import ExecutorError
 from harness.structured.results import ResultsWriter
 from harness.structured.schema_ref import resolve_schema_ref
 from harness.structured.taskset import TaskItem, TasksetError, verified_json
@@ -166,6 +167,13 @@ def _stage_error(
         "status": "error",
         "error": message,
     }
+    if isinstance(error, ExecutorError):
+        row["error_detail"] = {
+            "type": type(error).__name__,
+            "child_returncode": error.returncode,
+            "stdout_tail": error.stdout_tail,
+            "stderr_tail": error.stderr_tail,
+        }
     return PipelineResult((row,), None, stage["name"])
 
 
@@ -248,7 +256,14 @@ def run_pipeline_item(
                     )
                 if not terminal:
                     _validate_output(stage, output)
-            except (OSError, RuntimeError, TypeError, ValueError, KeyError) as error:
+            except (
+                ExecutorError,
+                OSError,
+                RuntimeError,
+                TypeError,
+                ValueError,
+                KeyError,
+            ) as error:
                 failed = _stage_error(
                     item=item, version=version, stage=stage, error=error
                 )

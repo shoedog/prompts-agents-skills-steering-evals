@@ -9,6 +9,7 @@ from typing import Any
 
 import pytest
 
+from harness.structured.executors import ExecutorError
 from harness.structured.pipeline import (
     PipelineResult,
     run_pipeline_item,
@@ -297,6 +298,24 @@ def test_invalid_terminal_classification_is_returned_for_scoring(
 
     assert result.stage_error is None
     assert result.output == invalid
+
+
+def test_typed_executor_exit_five_is_a_stage_error_with_diagnostic_tails(
+    pipeline_fixture,
+):
+    def fail(**kwargs):
+        del kwargs
+        raise ExecutorError(5, stdout_tail="partial stdout", stderr_tail="fatal stderr")
+
+    result = run_pipeline_item(**pipeline_fixture, executors={"llm": fail})
+
+    assert result.stage_error == "classify"
+    assert result.replay[-1]["error_detail"] == {
+        "type": "ExecutorError",
+        "child_returncode": 5,
+        "stdout_tail": "partial stdout",
+        "stderr_tail": "fatal stderr",
+    }
 
 
 def test_file_stage_reads_and_validates_its_item_pin(pipeline_fixture):
