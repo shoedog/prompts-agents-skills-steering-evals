@@ -7,8 +7,8 @@ modes:
   algorithm: [absence]
   language: [python]
   resolution: [nominal]
-  min_confidence: [nominal]
-baseline_version: absence/python/nominal/nominal
+  min_confidence: [nameonly]
+baseline_version: absence/python/nominal/nameonly
 match: {rule: category_file_line, line_tolerance: 3}
 asserts:
   - {type: analyzer_match}

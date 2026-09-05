@@ -6,10 +6,13 @@ import json
 import os
 import re
 import subprocess
+from functools import lru_cache
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Mapping
 from urllib.parse import unquote
+
+from jsonschema import Draft202012Validator, validators
 
 from harness.providers.binpath import resolve_executable
 from harness.structured.asserts.analyzer_match import MatchResult, match_findings
@@ -19,6 +22,9 @@ from harness.structured.taskset import TaskItem, load_taskset
 
 _FLAG = re.compile(r"(?<![\w-])(--[a-z][a-z0-9-]*)")
 _MODE_FLAGS = (("--resolution", "resolution"), ("--min-confidence", "min_confidence"))
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_TARGETS_SCHEMA = _REPO_ROOT / "contracts/targets.schema.json"
+_SARIF_SCHEMA = _REPO_ROOT / "harness/tests/fixtures/sarif-schema-2.1.0.json"
 
 
 class AnalyzerExecutorError(RuntimeError):
@@ -46,6 +52,44 @@ class AnalyzerResult:
     findings: tuple[dict[str, Any], ...]
     match: MatchResult | None
     strata: tuple[dict[str, Any], ...]
+
+
+@lru_cache(maxsize=2)
+def _validator(path: Path, *, declared_dialect: bool):
+    try:
+        schema = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError) as exc:
+        raise AnalyzerExecutorError(f"cannot load analyzer schema {path}: {exc}") from exc
+    validator_type = validators.validator_for(schema) if declared_dialect else Draft202012Validator
+    try:
+        validator_type.check_schema(schema)
+    except Exception as exc:
+        raise AnalyzerExecutorError(f"invalid analyzer schema {path}: {exc}") from exc
+    return validator_type(schema)
+
+
+def _validate_document(document: Mapping[str, Any]) -> str:
+    if document.get("schema_version") == "1.0":
+        label = "targets"
+        validator = _validator(_TARGETS_SCHEMA, declared_dialect=False)
+        contract = "targets-1.0"
+    elif document.get("version") == "2.1.0":
+        label = "SARIF"
+        validator = _validator(_SARIF_SCHEMA, declared_dialect=True)
+        contract = "sarif-2.1.0"
+    else:
+        raise AnalyzerExecutorError("unknown analyzer output contract")
+    errors = sorted(
+        validator.iter_errors(document),
+        key=lambda error: ([str(part) for part in error.absolute_path], error.message),
+    )
+    if errors:
+        first = errors[0]
+        location = "/".join(str(part) for part in first.absolute_path) or "<root>"
+        raise AnalyzerExecutorError(
+            f"{label} schema validation failed at {location}: {first.message}"
+        )
+    return contract
 
 
 def _run(argv: list[str]) -> subprocess.CompletedProcess[str]:
@@ -118,11 +162,10 @@ def _sarif_findings(document: Mapping[str, Any]) -> tuple[dict[str, Any], ...]:
 
 def findings_from_document(document: Mapping[str, Any]) -> tuple[dict[str, Any], ...]:
     """Project Prism targets v1 or SARIF 2.1 into the matching shape."""
-    if document.get("schema_version") == "1.0":
+    contract = _validate_document(document)
+    if contract == "targets-1.0":
         return _targets_findings(document)
-    if document.get("version") == "2.1.0":
-        return _sarif_findings(document)
-    raise AnalyzerExecutorError("unknown analyzer output contract")
+    return _sarif_findings(document)
 
 
 def _document_resolution(document: Mapping[str, Any]) -> str:
@@ -231,13 +274,13 @@ def run_analyzer_item(
         raise AnalyzerExecutorError(f"analyzer stdout is not JSON: {exc}") from exc
     if not isinstance(document, dict):
         raise AnalyzerExecutorError("analyzer stdout must contain one JSON object")
+    emitted = findings_from_document(document)
     observed_resolution = _document_resolution(document)
     if observed_resolution != mode.resolution:
         raise AnalyzerExecutorError(
             "analyzer resolution mismatch: "
             f"requested {mode.resolution!r}, got {observed_resolution!r}"
         )
-    emitted = findings_from_document(document)
     expected = tuple(item.expected["findings"])
     matched = match_findings(
         expected,
@@ -252,7 +295,9 @@ def run_analyzer_item(
         "version": mode.version,
         "item_id": item.id,
         "argv": argv,
-        "output_contract": "sarif-2.1.0",
+        "output_contract": (
+            "targets-1.0" if document.get("schema_version") == "1.0" else "sarif-2.1.0"
+        ),
         "output": document,
         "findings": list(emitted),
         "match": asdict(matched),

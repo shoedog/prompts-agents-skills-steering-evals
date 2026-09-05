@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 import re
 import tempfile
 import time
@@ -25,10 +26,11 @@ from typing import Any, Protocol
 
 from jsonschema import Draft202012Validator
 
+from harness.providers.binpath import resolve_executable
 from harness.resultsdir import check_structured_stale_results_dir
 from harness.structured.asserts import Population, get, run_asserts
 from harness.structured.cache import cache_key
-from harness.structured.config import StructuredConfig
+from harness.structured.config import AnalyzerConfig, StructuredConfig
 from harness.structured.executors import ExecutionRequest, ExecutionResult, Executor
 from harness.structured.promotion import PromotionVerdict
 from harness.structured.replay import LoadedRun
@@ -662,6 +664,423 @@ def _verify_final_tree(
             raise IntegrityError(f"{name}.jsonl identity order mismatch: {keys}")
 
 
+def _analyzer_artifact_key(version: str) -> str:
+    return f"mode-{hashlib.sha256(version.encode()).hexdigest()[:16]}"
+
+
+def _analyzer_config_snapshot(cfg: AnalyzerConfig, task: str) -> dict[str, Any]:
+    try:
+        taskset = cfg.taskset.relative_to(cfg.root).as_posix()
+    except ValueError as error:
+        raise ValueError("configured taskset is outside the repository root") from error
+    return {
+        "kind": "analyzer",
+        "id": cfg.id,
+        "task": task,
+        "taskset": taskset,
+        "split": cfg.split,
+        "versions": [{"name": mode.version, **asdict(mode)} for mode in cfg.modes],
+        "baseline_version": cfg.baseline_version,
+        "samples_per_item": 1,
+        "asserts": deepcopy(list(cfg.asserts)),
+        "match": {
+            "rule": "category_file_line",
+            "line_tolerance": cfg.line_tolerance,
+        },
+        "stats": deepcopy(cfg.stats),
+        "token_budget": deepcopy(cfg.token_budget),
+        "prism_bin": cfg.prism_bin,
+    }
+
+
+def _analyzer_rates(tp: int, fp: int, fn: int) -> dict[str, float | int]:
+    precision = tp / (tp + fp) if tp + fp else 0.0
+    recall = tp / (tp + fn) if tp + fn else 0.0
+    return {
+        "tp": tp,
+        "fp": fp,
+        "fn": fn,
+        "precision": precision,
+        "recall": recall,
+        "f1": 2 * precision * recall / (precision + recall) if precision + recall else 0.0,
+    }
+
+
+def _analyzer_metrics(
+    cfg: AnalyzerConfig,
+    *,
+    run_dir: Path,
+    items: tuple[TaskItem, ...],
+    calls: list[dict[str, Any]],
+) -> dict[str, Any]:
+    versions: dict[str, Any] = {}
+    for mode in cfg.modes:
+        mode_calls = [call for call in calls if call["version"] == mode.version]
+        error_ids = sorted(
+            {call["item_id"] for call in mode_calls if call.get("stage_error")}
+        )
+        skipped = [call for call in mode_calls if call.get("skipped")]
+        scored = [
+            call
+            for call in mode_calls
+            if call["item_id"] not in error_ids and not call.get("skipped")
+        ]
+        totals = {
+            field: sum(int(call["match"][field]) for call in scored)
+            for field in ("tp", "fp", "fn")
+        }
+        per_item = [
+            _analyzer_rates(
+                int(call["match"]["tp"]),
+                int(call["match"]["fp"]),
+                int(call["match"]["fn"]),
+            )
+            for call in scored
+        ]
+        strata = {}
+        for tier in ("asserted", "candidate"):
+            tier_rows = [
+                row
+                for call in scored
+                for row in call["strata"]
+                if row["tier"] == tier
+            ]
+            strata[tier] = _analyzer_rates(
+                sum(int(row["tp"]) for row in tier_rows),
+                sum(int(row["fp"]) for row in tier_rows),
+                sum(int(row["fn"]) for row in tier_rows),
+            )
+        versions[mode.version] = {
+            "identity": asdict(mode),
+            "n_items": len(scored),
+            "n_expected": sum(int(call["match"]["tp"]) + int(call["match"]["fn"]) for call in scored),
+            "n_emitted": sum(len(call["output"]["findings"]) for call in scored),
+            "micro": _analyzer_rates(**totals),
+            "macro": {
+                metric: (
+                    sum(float(row[metric]) for row in per_item) / len(per_item)
+                    if per_item
+                    else 0.0
+                )
+                for metric in ("precision", "recall", "f1")
+            },
+            "strata": strata,
+            "stage_errors": {
+                "calls": sum(bool(call.get("stage_error")) for call in mode_calls),
+                "item_ids": error_ids,
+            },
+            "skipped": {
+                "calls": len(skipped),
+                "item_ids": sorted(call["item_id"] for call in skipped),
+                "reasons": sorted({call["skipped"] for call in skipped}),
+            },
+        }
+    return {
+        "experiment": {
+            "id": cfg.id,
+            "kind": "analyzer",
+            "run_id": run_dir.name,
+            "taskset": cfg.taskset.relative_to(cfg.root).as_posix(),
+            "split": cfg.split,
+            "n_items": len(items),
+        },
+        "stats": deepcopy(cfg.stats),
+        "versions": versions,
+        "promotions": {},
+    }
+
+
+def _analyzer_report(metrics: Mapping[str, Any]) -> str:
+    experiment = metrics["experiment"]
+    lines = [
+        "# Analyzer evaluation report",
+        "",
+        f"- experiment: {experiment['id']}",
+        f"- run id: {experiment['run_id']}",
+        f"- taskset / split: {experiment['taskset']} / {experiment['split']}",
+        f"- item count: {experiment['n_items']}",
+        "",
+        "| Mode | Items | Precision | Recall | F1 | Expected | Emitted | Stage errors | Skipped |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+    ]
+    for version, values in metrics["versions"].items():
+        micro = values["micro"]
+        lines.append(
+            f"| {version} | {values['n_items']} | {micro['precision']:.6f} | "
+            f"{micro['recall']:.6f} | {micro['f1']:.6f} | {values['n_expected']} | "
+            f"{values['n_emitted']} | {values['stage_errors']['calls']} | "
+            f"{values['skipped']['calls']} |"
+        )
+    return "\n".join((*lines, "", "> PROVISIONAL — pending human spot-check.", ""))
+
+
+def run_analyzer(
+    cfg: AnalyzerConfig,
+    *,
+    clock: Clock,
+    force: bool,
+    only: frozenset[str],
+) -> RunResult:
+    """Run an analyzer config through the authenticated structured results layout."""
+    from harness.structured.analyzer import AnalyzerExecutorError, probe_flags, run_analyzer_item
+
+    taskset = load_taskset(
+        cfg.taskset, split=cfg.split, max_items=cfg.token_budget["max_items"]
+    )
+    by_id = {item.id: item for item in taskset.items}
+    unknown = sorted(only - by_id.keys())
+    if unknown:
+        raise ValueError(f"unknown --only item: {unknown[0]}")
+    items = tuple(by_id[item_id] for item_id in sorted(only or by_id.keys()))
+    if not items:
+        raise ValueError("analyzer run selected no items")
+    pairs = tuple(
+        (mode, item)
+        for mode in cfg.modes
+        for item in items
+        if item.raw.get("language") == mode.language
+    )
+    if not pairs:
+        raise ValueError("analyzer run selected no language-applicable items")
+
+    config = _analyzer_config_snapshot(cfg, taskset.manifest["task"])
+    config_digest = hashlib.sha256(canonical_json(config) + b"\n").hexdigest()
+    _, compact = _timestamp_parts(clock.now())
+    run_dir = cfg.root / "results" / cfg.id / f"{compact}-{config_digest[:8]}"
+    if not check_structured_stale_results_dir(run_dir, force=force):
+        raise StaleRunError(f"stale structured results: {run_dir}")
+    writer = ResultsWriter(run_dir)
+    item_snapshots = {item.id: _item_snapshot(item) for item in items}
+    requests = {
+        (item.id, 0): {
+            mode.version: {
+                "mode": asdict(mode),
+                "input_sha256": {
+                    name: ref.sha256 for name, ref in sorted(item.inputs.items())
+                },
+            }
+            for mode in cfg.modes
+        }
+        for item in items
+    }
+    write_input_snapshots(
+        writer,
+        config=config,
+        manifest=taskset.manifest,
+        items=item_snapshots,
+        requests=requests,
+    )
+
+    executable = None
+    flags = None
+    probe_error: Exception | None = None
+    try:
+        if cfg.prism_bin is not None:
+            executable = os.environ.get(cfg.prism_bin.removeprefix("env:"))
+        executable = executable or resolve_executable("prism")
+        flags = probe_flags(executable)
+    except Exception as error:
+        probe_error = error
+        executable = executable or "prism"
+
+    calls: list[dict[str, Any]] = []
+    for mode, item in pairs:
+        started_at, _ = _timestamp_parts(clock.now())
+        started = clock.monotonic()
+        result = None
+        error: Exception | None = probe_error
+        if error is None:
+            try:
+                result = run_analyzer_item(
+                    item,
+                    mode,
+                    binary=executable,
+                    flags=flags,
+                    line_tolerance=cfg.line_tolerance,
+                )
+            except Exception as caught:
+                error = caught
+        duration_ms = _duration_ms(clock, started)
+        artifact_key = _analyzer_artifact_key(mode.version)
+        input_sha256 = {name: ref.sha256 for name, ref in sorted(item.inputs.items())}
+        call: dict[str, Any] = {
+            "item_id": item.id,
+            "version": mode.version,
+            "sample": 0,
+            "started_at": started_at,
+            "duration_ms": duration_ms,
+            "cost_usd": 0.0,
+            "cache": "miss",
+            "input_sha256": input_sha256,
+            "replay_key": f"{mode.version}/{item.id}/s0",
+        }
+        if error is not None:
+            detail = {"type": type(error).__name__, "message": str(error)}
+            stage_value = {
+                "item_id": item.id,
+                "version": mode.version,
+                "sample": 0,
+                "stage": "analyzer",
+                "status": "error",
+                "error": detail,
+            }
+            call.update(
+                {
+                    "final_document_valid": False,
+                    "raw": "",
+                    "output": None,
+                    "stage_error": "analyzer",
+                    "stage_error_detail": detail,
+                }
+            )
+        elif result is not None and result.stage_record is None:
+            reason = result.version_record["skipped"]
+            stage_value = {
+                "item_id": item.id,
+                "version": mode.version,
+                "sample": 0,
+                "stage": "analyzer",
+                "status": "skipped",
+                "skipped": reason,
+            }
+            call.update(
+                {
+                    "final_document_valid": False,
+                    "raw": "",
+                    "output": None,
+                    "skipped": reason,
+                }
+            )
+        else:
+            if result is None or result.stage_record is None or result.match is None:
+                raise AnalyzerExecutorError("analyzer result omitted a completed stage")
+            output = {"findings": list(result.findings)}
+            stage_value = {
+                **result.stage_record,
+                "sample": 0,
+                "status": "ok",
+            }
+            call.update(
+                {
+                    "final_document_valid": True,
+                    "raw": canonical_json(output).decode(),
+                    "output": output,
+                    "match": asdict(result.match),
+                    "strata": list(result.strata),
+                }
+            )
+        stage_ref = writer.write_stage(
+            version=artifact_key,
+            item_id=item.id,
+            stage="analyzer",
+            value=stage_value,
+            sample=0,
+            shared=False,
+        )
+        call["stage_ref"] = asdict(stage_ref)
+        writer.write_json_once(
+            PurePosixPath("calls", f"{artifact_key}-{item.id}-0.json"), call
+        )
+        if call.get("stage_error"):
+            assert_record = {
+                "item_id": item.id,
+                "version": mode.version,
+                "sample": 0,
+                "stage_error": "analyzer",
+                "asserts": [],
+            }
+        elif call.get("skipped"):
+            assert_record = {
+                "item_id": item.id,
+                "version": mode.version,
+                "sample": 0,
+                "skipped": call["skipped"],
+                "asserts": [],
+            }
+        else:
+            assertions = run_asserts(
+                output=call["output"],
+                raw=call["raw"],
+                expected=item.expected,
+                item=item_snapshots[item.id],
+                cfg=config,
+                samples=[call],
+            )
+            assert_record = {
+                "item_id": item.id,
+                "version": mode.version,
+                "sample": 0,
+                "asserts": [asdict(assertion) for assertion in assertions],
+            }
+        writer.write_json_once(
+            PurePosixPath("asserts", f"{artifact_key}-{item.id}-0.json"), assert_record
+        )
+        argv = stage_value.get("argv", [executable, "--help"])
+        replay = {
+            "item_id": item.id,
+            "version": mode.version,
+            "sample": 0,
+            "stage": "analyzer",
+            "provider": "prism",
+            "provider_version": str(executable),
+            "model": mode.algorithm,
+            "task_version": mode.version,
+            "prompt_sha256": hashlib.sha256(canonical_json(argv)).hexdigest(),
+            "seed": cfg.stats["seed"],
+            "input_sha256": input_sha256,
+            "cache": "miss",
+            "started_at": started_at,
+            "duration_ms": duration_ms,
+            "cost_usd": 0.0,
+            "replay_key": call["replay_key"],
+            "stage_ref": asdict(stage_ref),
+        }
+        if call.get("stage_error"):
+            replay["stage_error"] = "analyzer"
+        if call.get("skipped"):
+            replay["skipped"] = call["skipped"]
+        writer.append_event("replay", replay)
+        writer.append_event(
+            "trace",
+            {
+                "item_id": item.id,
+                "version": mode.version,
+                "sample": 0,
+                "stage": "analyzer",
+                "status": stage_value["status"],
+                "started_at": started_at,
+                "duration_ms": duration_ms,
+            },
+        )
+        calls.append(call)
+
+    metrics = _analyzer_metrics(cfg, run_dir=run_dir, items=items, calls=calls)
+    writer.write_json(PurePosixPath("metrics.json"), metrics)
+    (run_dir / "report.md").write_text(_analyzer_report(metrics))
+    loaded = LoadedRun.load(run_dir)
+    expected = {(mode.version, item.id, 0) for mode, item in pairs}
+    for records, label in (
+        (loaded.calls, "calls"),
+        (loaded.stages, "stages"),
+        (loaded.asserts, "asserts"),
+    ):
+        actual = {
+            (record.get("version"), record.get("item_id"), record.get("sample"))
+            for record in records
+        }
+        if actual != expected:
+            raise IntegrityError(
+                f"analyzer {label} identity mismatch: missing={sorted(expected - actual)}, "
+                f"extra={sorted(actual - expected)}"
+            )
+    return RunResult(
+        run_dir=run_dir,
+        metrics=metrics,
+        promotion=None,
+        stage_errors=sum(bool(call.get("stage_error")) for call in calls),
+    )
+
+
 def run_structured(
     cfg: StructuredConfig,
     *,
@@ -803,5 +1222,6 @@ __all__ = [
     "RunResult",
     "StaleRunError",
     "SystemClock",
+    "run_analyzer",
     "run_structured",
 ]

@@ -63,13 +63,12 @@ def _version_names(config: Mapping[str, Any]) -> tuple[str, ...]:
     raw = config.get("versions")
     if not isinstance(raw, (list, tuple)) or not raw:
         raise ValueError("config.versions must be a nonempty sequence")
-    names = tuple(
-        _component(version.get("name") if isinstance(version, Mapping) else None, "version name")
-        for version in raw
-    )
+    names = tuple(version.get("name") if isinstance(version, Mapping) else None for version in raw)
+    if any(not isinstance(name, str) or not name for name in names):
+        raise ValueError("config version names must be nonempty strings")
     if len(set(names)) != len(names):
         raise ValueError("config.versions contains duplicate names")
-    return names
+    return names  # type: ignore[return-value]
 
 
 def _samples_per_item(config: Mapping[str, Any]) -> int:

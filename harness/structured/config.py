@@ -10,6 +10,8 @@ from harness.structured.schema_ref import SchemaRefError, resolve_schema_ref
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+ANALYZER_RESOLUTIONS = frozenset({"nominal", "scoped", "precise"})
+ANALYZER_CONFIDENCE_FLOORS = frozenset({"exact", "nameonly"})
 
 
 class ConfigError(ValueError):
@@ -67,7 +69,9 @@ def _path_inside(root: Path, raw: str, name: str) -> Path:
     return path
 
 
-def load_config(path: str | Path, *, root: Path = REPO_ROOT) -> StructuredConfig:
+def load_config(
+    path: str | Path, *, root: Path = REPO_ROOT
+) -> StructuredConfig | AnalyzerConfig:
     root = Path(root).resolve()
     config_path = Path(path)
     if not config_path.is_absolute():
@@ -82,6 +86,8 @@ def load_config(path: str | Path, *, root: Path = REPO_ROOT) -> StructuredConfig
     if not isinstance(raw, dict):
         raise ConfigError("structured config must contain one YAML object")
     kind = raw.get("kind")
+    if kind == "analyzer":
+        return load_analyzer_config(config_path, root=root)
     if kind != "structured_task":
         raise ConfigError(f"unknown structured kind: {kind!r}")
     experiment_id = raw.get("id")
@@ -181,6 +187,20 @@ def load_analyzer_config(path: str | Path, *, root: Path = REPO_ROOT) -> Analyze
         for name in names
     ):
         raise ConfigError(f"modes must declare nonempty string lists for {names}")
+    invalid_resolutions = sorted(set(axes["resolution"]) - ANALYZER_RESOLUTIONS)
+    if invalid_resolutions:
+        raise ConfigError(
+            "modes.resolution values must be one of "
+            f"{sorted(ANALYZER_RESOLUTIONS)}; got {invalid_resolutions}"
+        )
+    invalid_confidences = sorted(
+        set(axes["min_confidence"]) - ANALYZER_CONFIDENCE_FLOORS
+    )
+    if invalid_confidences:
+        raise ConfigError(
+            "modes.min_confidence values must be one of "
+            f"{sorted(ANALYZER_CONFIDENCE_FLOORS)}; got {invalid_confidences}"
+        )
     from harness.structured.analyzer import AnalyzerMode
 
     modes = tuple(
@@ -206,6 +226,8 @@ def load_analyzer_config(path: str | Path, *, root: Path = REPO_ROOT) -> Analyze
     if not isinstance(stats, dict) or not isinstance(budget, dict):
         raise ConfigError("stats and token_budget must be objects")
     _positive_int(stats.get("bootstrap_resamples"), "bootstrap_resamples")
+    if not isinstance(stats.get("seed"), int) or isinstance(stats.get("seed"), bool):
+        raise ConfigError("stats.seed must be an integer")
     _positive_int(budget.get("max_items"), "max_items")
     prism_bin = raw.get("prism_bin")
     if prism_bin is not None and (

@@ -10,10 +10,10 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any, Sequence
 
-from harness.structured.config import REPO_ROOT, load_config
+from harness.structured.config import AnalyzerConfig, REPO_ROOT, load_config
 from harness.structured.executors import ExecutionRequest, ExecutionResult, LlmLayerExecutor
 from harness.structured.results import canonical_json
-from harness.structured.runner import StaleRunError, SystemClock, run_structured
+from harness.structured.runner import StaleRunError, SystemClock, run_analyzer, run_structured
 
 
 class _StubExecutor:
@@ -123,15 +123,24 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 5
         if args.jobs <= 0:
             raise ValueError("--jobs must be a positive integer")
-        cfg = replace(cfg, split=split, jobs=args.jobs)
-        result = run_structured(
-            cfg,
-            executor_factory=_EXECUTOR_FACTORY,
-            clock=_CLOCK,
-            force=args.force,
-            no_cache=args.no_cache,
-            only=frozenset(args.only),
-        )
+        if isinstance(cfg, AnalyzerConfig):
+            cfg = replace(cfg, split=split)
+            result = run_analyzer(
+                cfg,
+                clock=_CLOCK,
+                force=args.force,
+                only=frozenset(args.only),
+            )
+        else:
+            cfg = replace(cfg, split=split, jobs=args.jobs)
+            result = run_structured(
+                cfg,
+                executor_factory=_EXECUTOR_FACTORY,
+                clock=_CLOCK,
+                force=args.force,
+                no_cache=args.no_cache,
+                only=frozenset(args.only),
+            )
     except StaleRunError:
         return 4
     except (OSError, RuntimeError, TypeError, ValueError, KeyError) as error:
