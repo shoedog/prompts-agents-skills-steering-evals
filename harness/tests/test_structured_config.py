@@ -71,3 +71,16 @@ def test_config_rejects_invalid_values(tmp_path, updates, message):
 def test_config_rejects_path_escape(tmp_path):
     with pytest.raises(ConfigError, match="escapes repo root"):
         load_config(_config(tmp_path, taskset="../elsewhere"), root=tmp_path)
+
+
+def test_config_rejects_experiment_id_that_escapes_results(tmp_path):
+    with pytest.raises(ConfigError, match="one path component"):
+        load_config(
+            _config(tmp_path, id="st-x/../../../victim"),
+            root=tmp_path,
+        )
+
+
+def test_config_rejects_windows_style_experiment_id_component(tmp_path):
+    with pytest.raises(ConfigError, match="one path component"):
+        load_config(_config(tmp_path, id=r"st-x\victim"), root=tmp_path)

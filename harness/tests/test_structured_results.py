@@ -17,6 +17,7 @@ from harness.structured.results import (
     ResultCollisionError,
     ResultsWriter,
     canonical_json,
+    confined_run_dir,
     write_json_atomic,
 )
 
@@ -75,6 +76,17 @@ def test_writer_rejects_a_symlink_destination_outside_run_root(tmp_path):
     with pytest.raises(ValueError, match="outside results root"):
         writer.write_json(PurePosixPath("linked/escaped.json"), {"bad": True})
     assert not (outside / "escaped.json").exists()
+
+
+def test_run_directory_rejects_experiment_symlink_outside_results(tmp_path):
+    results = tmp_path / "results"
+    outside = tmp_path / "outside"
+    results.mkdir()
+    outside.mkdir()
+    (results / "st-linked").symlink_to(outside, target_is_directory=True)
+
+    with pytest.raises(ValueError, match="escapes results"):
+        confined_run_dir(tmp_path, "st-linked", "run-1")
 
 
 def test_write_json_returns_destination_and_write_once_preserves_collision_bytes(tmp_path):

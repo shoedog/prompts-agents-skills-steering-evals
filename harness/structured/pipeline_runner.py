@@ -24,7 +24,7 @@ from harness.structured.pipeline_stages import (
 )
 from harness.structured.replay import LoadedRun
 from harness.structured.report import render
-from harness.structured.results import ResultsWriter, canonical_json
+from harness.structured.results import ResultsWriter, canonical_json, confined_run_dir
 from harness.structured.runner import StaleRunError
 from harness.structured.snapshots import write_input_snapshots
 from harness.structured.taskset import load_taskset
@@ -94,7 +94,7 @@ def run_pipeline(
     if timestamp.tzinfo is None or timestamp.utcoffset() != timezone.utc.utcoffset(timestamp):
         raise ValueError("clock returned a non-UTC timestamp")
     compact = timestamp.strftime("%Y%m%dT%H%M%SZ")
-    run_dir = cfg.root / "results" / cfg.id / f"{compact}-{digest[:8]}"
+    run_dir = confined_run_dir(cfg.root, cfg.id, f"{compact}-{digest[:8]}")
     if not check_structured_stale_results_dir(run_dir, force=force):
         raise StaleRunError(f"stale structured results: {run_dir}")
     writer = ResultsWriter(run_dir)

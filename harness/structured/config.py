@@ -78,6 +78,14 @@ def _positive_int(value: Any, name: str) -> int:
     return value
 
 
+def _validate_experiment_id(value: Any, *, kind: str, prefix: str) -> str:
+    if not isinstance(value, str) or not value.startswith(prefix):
+        raise ConfigError(f"{kind} id must start with {prefix}")
+    if value in {".", ".."} or "/" in value or "\\" in value:
+        raise ConfigError(f"{kind} id must be one path component")
+    return value
+
+
 def _inside(root: Path, path: Path) -> bool:
     return root == path or root in path.parents
 
@@ -114,9 +122,9 @@ def load_config(
         return load_pipeline_config(config_path, root=root)
     if kind != "structured_task":
         raise ConfigError(f"unknown structured kind: {kind!r}")
-    experiment_id = raw.get("id")
-    if not isinstance(experiment_id, str) or not experiment_id.startswith("st-"):
-        raise ConfigError("structured_task id must start with st-")
+    experiment_id = _validate_experiment_id(
+        raw.get("id"), kind="structured_task", prefix="st-"
+    )
     split = raw.get("split")
     if split not in {"dev", "test"}:
         raise ConfigError("split must be dev or test")
@@ -190,9 +198,7 @@ def load_analyzer_config(path: str | Path, *, root: Path = REPO_ROOT) -> Analyze
         raise ConfigError(f"cannot load config {config_path}: {exc}") from exc
     if not isinstance(raw, dict) or raw.get("kind") != "analyzer":
         raise ConfigError("analyzer config must contain kind: analyzer")
-    experiment_id = raw.get("id")
-    if not isinstance(experiment_id, str) or not experiment_id.startswith("an-"):
-        raise ConfigError("analyzer id must start with an-")
+    experiment_id = _validate_experiment_id(raw.get("id"), kind="analyzer", prefix="an-")
     split = raw.get("split")
     if split not in {"dev", "test"}:
         raise ConfigError("split must be dev or test")

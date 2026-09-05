@@ -35,7 +35,13 @@ from harness.structured.executors import ExecutionRequest, ExecutionResult, Exec
 from harness.structured.promotion import PromotionVerdict
 from harness.structured.replay import LoadedRun
 from harness.structured.report import render
-from harness.structured.results import ResultsWriter, StageRef, canonical_json, write_json_atomic
+from harness.structured.results import (
+    ResultsWriter,
+    StageRef,
+    canonical_json,
+    confined_run_dir,
+    write_json_atomic,
+)
 from harness.structured.snapshots import write_input_snapshots
 from harness.structured.taskset import TaskItem, assemble_request, load_taskset, sha256_file
 
@@ -846,7 +852,7 @@ def run_analyzer(
     config = _analyzer_config_snapshot(cfg, taskset.manifest["task"])
     config_digest = hashlib.sha256(canonical_json(config) + b"\n").hexdigest()
     _, compact = _timestamp_parts(clock.now())
-    run_dir = cfg.root / "results" / cfg.id / f"{compact}-{config_digest[:8]}"
+    run_dir = confined_run_dir(cfg.root, cfg.id, f"{compact}-{config_digest[:8]}")
     if not check_structured_stale_results_dir(run_dir, force=force):
         raise StaleRunError(f"stale structured results: {run_dir}")
     writer = ResultsWriter(run_dir)
@@ -1123,7 +1129,7 @@ def run_structured(
     started_at, compact = _timestamp_parts(clock.now())
     del started_at
     config_digest = hashlib.sha256(canonical_json(config) + b"\n").hexdigest()
-    run_dir = cfg.root / "results" / cfg.id / f"{compact}-{config_digest[:8]}"
+    run_dir = confined_run_dir(cfg.root, cfg.id, f"{compact}-{config_digest[:8]}")
     if not check_structured_stale_results_dir(run_dir, force=force):
         raise StaleRunError(f"stale structured results: {run_dir}")
     writer = ResultsWriter(run_dir)

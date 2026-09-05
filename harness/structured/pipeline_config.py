@@ -14,6 +14,7 @@ from harness.structured.config import (
     _inside,
     _path_inside,
     _positive_int,
+    _validate_experiment_id,
 )
 from harness.structured.schema_ref import SchemaRefError, resolve_schema_ref
 
@@ -30,9 +31,9 @@ def load_pipeline_config(path: str | Path, *, root: Path = REPO_ROOT) -> Pipelin
         raise ConfigError(f"cannot load config {config_path}: {exc}") from exc
     if not isinstance(raw, dict) or raw.get("kind") != "pipeline":
         raise ConfigError("pipeline config must contain kind: pipeline")
-    experiment_id = raw.get("id")
-    if not isinstance(experiment_id, str) or not experiment_id.startswith("pl-"):
-        raise ConfigError("pipeline id must start with pl-")
+    experiment_id = _validate_experiment_id(
+        raw.get("id"), kind="pipeline", prefix="pl-"
+    )
     split = raw.get("split")
     if split not in {"dev", "test"}:
         raise ConfigError("split must be dev or test")

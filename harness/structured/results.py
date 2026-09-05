@@ -18,6 +18,18 @@ class ResultCollisionError(RuntimeError):
     """A run attempted to replace an immutable structured result artifact."""
 
 
+def confined_run_dir(root: Path, experiment_id: str, run_id: str) -> Path:
+    """Resolve a run below ``results/`` before any stale-file handling."""
+    results_root = (Path(root) / "results").resolve(strict=False)
+    run_dir = results_root / experiment_id / run_id
+    resolved = run_dir.resolve(strict=False)
+    try:
+        resolved.relative_to(results_root)
+    except ValueError as error:
+        raise ValueError(f"structured run directory escapes results/: {run_dir}") from error
+    return run_dir
+
+
 @dataclass(frozen=True)
 class StageRef:
     path: str
