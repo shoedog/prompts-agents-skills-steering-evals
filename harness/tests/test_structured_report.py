@@ -185,3 +185,32 @@ def test_promotion_validity_uses_candidate_complete_scored_population(
         "n_samples": 2,
         "schema_validity": 0.5,
     }
+
+
+def test_zero_surviving_pairs_report_unavailable_and_do_not_promote(
+    frozen_structured_run,
+):
+    for call in frozen_structured_run.calls:
+        if call["version"] == "candidate":
+            call["stage_error"] = "classify"
+
+    summary = render(frozen_structured_run)
+    verdict = summary["promotions"]["candidate"]
+
+    assert verdict["promotable"] is False
+    assert verdict["reason"] == (
+        "NOT PROMOTABLE: paired evidence unavailable (0 surviving pairs)"
+    )
+    assert verdict["evidence"]["status"] == "unavailable"
+    assert verdict["evidence"]["population"]["n_items"] == 0
+    assert verdict["evidence"]["metrics"] == {}
+    assert verdict["evidence"]["recall_cis"] == {}
+    assert verdict["evidence"]["candidate_complete_scored_population"] == {
+        "item_ids": [],
+        "n_items": 0,
+        "n_samples": 0,
+        "schema_validity": None,
+    }
+    assert "evidence unavailable: 0 surviving pairs" in (
+        frozen_structured_run.path / "report.md"
+    ).read_text()

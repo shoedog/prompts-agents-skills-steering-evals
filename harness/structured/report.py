@@ -355,8 +355,54 @@ def _comparison(
             for call in grouped[version][item_id]
         )
     ]
+    candidate_excluded = _stage_error_item_ids(grouped[candidate_name])
+    candidate_complete_ids = sorted(set(run.items) - candidate_excluded)
+    candidate_complete_rows = [
+        _normalized_call(call, run.items[item_id])
+        for item_id in candidate_complete_ids
+        for call in grouped[candidate_name][item_id]
+    ]
+    candidate_complete_validity = (
+        sum(row.schema_valid_for_eval for row in candidate_complete_rows)
+        / len(candidate_complete_rows)
+        if candidate_complete_rows
+        else None
+    )
+    resamples = run.config["stats"]["bootstrap_resamples"]
+    seed = run.config["stats"]["seed"]
+    population_value = {
+        "baseline_version": baseline_name,
+        "candidate_version": candidate_name,
+        "item_ids": paired_ids,
+        "samples_per_item": run.config["samples_per_item"],
+    }
+    population = {
+        **population_value,
+        "n_items": len(paired_ids),
+        "sha256": hashlib.sha256(canonical_json(population_value)).hexdigest(),
+    }
     if not paired_ids:
-        raise ValueError(f"no stage-error-free paired items for candidate {candidate_name}")
+        return {
+            "promotable": False,
+            "reason": "NOT PROMOTABLE: paired evidence unavailable (0 surviving pairs)",
+            "evidence": {
+                "status": "unavailable",
+                "metrics": {},
+                "recall_cis": {},
+                "population": population,
+                "resamples": resamples,
+                "seed": seed,
+                "method": "percentile",
+                "alpha": 0.05,
+                "stage_error_excluded_item_ids": sorted(run.items),
+                "candidate_complete_scored_population": {
+                    "item_ids": candidate_complete_ids,
+                    "n_items": len(candidate_complete_ids),
+                    "n_samples": len(candidate_complete_rows),
+                    "schema_validity": candidate_complete_validity,
+                },
+            },
+        }
     bundles: dict[str, dict[str, dict[str, Any]]] = {baseline_name: {}, candidate_name: {}}
     for version in bundles:
         for item_id in paired_ids:
@@ -368,19 +414,6 @@ def _comparison(
             }
     baseline = bundles[baseline_name]
     candidate = bundles[candidate_name]
-    candidate_excluded = _stage_error_item_ids(grouped[candidate_name])
-    candidate_complete_ids = sorted(set(run.items) - candidate_excluded)
-    candidate_complete_rows = [
-        _normalized_call(call, run.items[item_id])
-        for item_id in candidate_complete_ids
-        for call in grouped[candidate_name][item_id]
-    ]
-    candidate_complete_validity = (
-        sum(row.schema_valid_for_eval for row in candidate_complete_rows)
-        / len(candidate_complete_rows)
-    )
-    resamples = run.config["stats"]["bootstrap_resamples"]
-    seed = run.config["stats"]["seed"]
     metric_stats: list[tuple[str, Callable[[Sequence[dict[str, Any]]], float]]] = [
         ("macro_f1", _classification_stat(classes, "macro_f1")),
     ]
@@ -426,17 +459,6 @@ def _comparison(
             lambda row, selected=label: row.prediction == selected if row.truth == selected else None,
         )
         recall_cis[label] = evidence
-    population_value = {
-        "baseline_version": baseline_name,
-        "candidate_version": candidate_name,
-        "item_ids": paired_ids,
-        "samples_per_item": run.config["samples_per_item"],
-    }
-    population = {
-        **population_value,
-        "n_items": len(paired_ids),
-        "sha256": hashlib.sha256(canonical_json(population_value)).hexdigest(),
-    }
     evidence = {
         "metrics": metrics,
         "recall_cis": recall_cis,
@@ -592,6 +614,13 @@ def _report_markdown(summary: Mapping[str, Any]) -> str:
                 "",
                 f"Paired population identity: {population['baseline_version']}→{population['candidate_version']}; "
                 f"n items: {population['n_items']}; population sha256: `{population['sha256']}`.",
+            ]
+        )
+        if comparison.get("status") == "unavailable":
+            lines.extend(["", "evidence unavailable: 0 surviving pairs.", ""])
+            continue
+        lines.extend(
+            [
                 "",
                 "| Metric | Baseline | Candidate | Delta | CI low | CI high | McNemar p | n items | Seed | Resamples | Population sha256 |",
                 "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|",
@@ -727,6 +756,8 @@ def _trend_rows(summary: Mapping[str, Any]) -> tuple[str, list[dict[str, Any]]]:
     rows = []
     for candidate_name, verdict in summary["promotions"].items():
         evidence = verdict["evidence"]
+        if evidence.get("status") == "unavailable":
+            continue
         metrics = evidence["metrics"]
         candidate = versions[candidate_name]
         baseline_name = evidence["population"]["baseline_version"]
