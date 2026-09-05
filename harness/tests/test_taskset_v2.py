@@ -7,7 +7,12 @@ import pytest
 import yaml
 
 import harness.structured.taskset as taskset_module
-from harness.tests.structured_support import build_v2_taskset, fixture_taskset
+from harness.tests.structured_support import (
+    build_v2_taskset,
+    fixture_taskset,
+    minimal_observation,
+    minimal_target,
+)
 from harness.structured.taskset import (
     InputRef,
     TasksetError,
@@ -16,6 +21,7 @@ from harness.structured.taskset import (
     resolve_schema_ref,
     sha256_directory,
     sha256_file,
+    target_for_observation,
     verified_json,
 )
 
@@ -64,6 +70,38 @@ def test_assemble_request_injects_version_and_validates_schema(fixture_taskset):
     assert request["target"] == json.loads(target_path.read_text())
     assert request["observation"]["log_excerpt"] == "fixture log 1"
     assert request["dependency_semantics"]["source"] == "catalog"
+
+
+def test_structured_planning_rejects_observation_target_mismatch(tmp_path):
+    root = build_v2_taskset(
+        tmp_path,
+        items=[{"target": minimal_target(1), "observation": minimal_observation(2)}],
+    )
+    with pytest.raises(TasksetError, match="observation target_id mismatch"):
+        load_taskset(root, split="dev", max_items=10)
+
+
+@pytest.mark.parametrize(
+    "targets, observation, message",
+    [
+        (minimal_target(1), {}, "target_id is missing"),
+        (
+            {"targets": [minimal_target(1), minimal_target(1)]},
+            minimal_observation(1),
+            "target_id is ambiguous",
+        ),
+        (
+            {"targets": [minimal_target(1), minimal_target(2)]},
+            minimal_observation(3),
+            "does not match any target",
+        ),
+    ],
+)
+def test_target_join_rejects_missing_ambiguous_and_unmatched_ids(
+    targets, observation, message
+):
+    with pytest.raises(TasksetError, match=message):
+        target_for_observation(targets, observation)
 
 
 def test_load_validates_target_contract(fixture_taskset):

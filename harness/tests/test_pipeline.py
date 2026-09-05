@@ -14,6 +14,7 @@ from harness.structured.pipeline import (
     run_pipeline_item,
 )
 from harness.structured.results import ResultsWriter
+from harness.structured.pipeline_stages import request_body
 from harness.structured.taskset import InputRef, TaskItem, TasksetError
 
 
@@ -64,6 +65,22 @@ def _classification() -> dict[str, Any]:
         "rationale": "The retryable timeout propagated without a retry.",
         "evidence_lines": [44],
     }
+
+
+def test_classification_request_joins_observation_to_named_target(pipeline_fixture):
+    second = {**_target(), "id": "2" * 64}
+    observation = {**_observation(), "target_id": second["id"]}
+
+    request = request_body(
+        item=pipeline_fixture["item"],
+        version=pipeline_fixture["version"],
+        inputs={
+            "targets": {"schema_version": "1.0", "targets": [_target(), second]},
+            "observation": observation,
+        },
+    )
+
+    assert request["target"]["id"] == second["id"]
 
 
 def _write_pin(root: Path, name: str, value: dict[str, Any]) -> InputRef:

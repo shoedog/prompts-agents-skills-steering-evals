@@ -12,19 +12,15 @@ from harness.providers.binpath import resolve_executable
 from harness.structured.executors import ExecutionRequest, LlmLayerExecutor
 from harness.structured.pipeline import StageConfig, VersionConfig
 from harness.structured.results import ResultsWriter, canonical_json, write_json_atomic
-from harness.structured.taskset import TaskItem
+from harness.structured.taskset import TaskItem, target_for_observation
 
 
 def request_body(
     *, item: TaskItem, version: VersionConfig, inputs: Mapping[str, dict[str, Any]]
 ) -> dict[str, Any]:
     target_value = inputs.get("targets", item.input_values.get("targets", {}))
-    if isinstance(target_value.get("targets"), list):
-        targets = target_value["targets"]
-        target = targets[0] if targets else {}
-    else:
-        target = target_value
     observation = inputs.get("observation", item.input_values.get("observation", {}))
+    target = target_for_observation(target_value, observation)
     site = target.get("site", {}) if isinstance(target, dict) else {}
     line = site.get("line", 1)
     observed = dict(observation.get("observed", {}))

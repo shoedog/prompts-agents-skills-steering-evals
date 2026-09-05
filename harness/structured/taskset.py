@@ -322,6 +322,32 @@ def _validate_manifest(manifest: dict[str, Any]) -> None:
             raise TasksetError(f"classification manifest missing required fields: {missing}")
 
 
+def target_for_observation(
+    target_value: dict[str, Any], observation: dict[str, Any]
+) -> dict[str, Any]:
+    target_id = observation.get("target_id")
+    if not isinstance(target_id, str) or not target_id:
+        raise TasksetError("observation target_id is missing")
+    listed = target_value.get("targets")
+    candidates = listed if isinstance(listed, list) else [target_value]
+    matches = [
+        target
+        for target in candidates
+        if isinstance(target, dict) and target.get("id") == target_id
+    ]
+    if len(matches) > 1:
+        raise TasksetError(f"observation target_id is ambiguous: {target_id}")
+    if not matches:
+        if len(candidates) == 1:
+            candidate_id = candidates[0].get("id") if isinstance(candidates[0], dict) else None
+            raise TasksetError(
+                "observation target_id mismatch: "
+                f"observation={target_id!r}, target={candidate_id!r}"
+            )
+        raise TasksetError(f"observation target_id does not match any target: {target_id}")
+    return matches[0]
+
+
 def load_taskset(root: Path, *, split: str, max_items: int) -> Taskset:
     root = Path(root).resolve()
     if split not in {"dev", "test"}:
@@ -407,6 +433,10 @@ def load_taskset(root: Path, *, split: str, max_items: int) -> Taskset:
             _validate(
                 values["observation"], observation_document, observation_schema, "observation"
             )
+            if "target" in values:
+                target_for_observation(values["target"], values["observation"])
+            elif "targets" in values:
+                target_for_observation(values["targets"], values["observation"])
         loaded.append(
             TaskItem(
                 id=raw["id"],
@@ -440,7 +470,7 @@ def assemble_request(
         request: dict[str, Any] = {
             "task": item.task,
             "task_version": task_version,
-            "target": item.input_values["target"],
+            "target": target_for_observation(item.input_values["target"], observation),
             "slice": item.input_values["slice"],
             "fault": observation["fault"],
             "observation": observed,
