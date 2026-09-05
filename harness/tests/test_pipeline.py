@@ -207,13 +207,12 @@ def test_mutated_pinned_artifact_fails_before_downstream_execution(
     assert recording_executors.calls == []
 
 
-def test_runtime_harness_never_records_the_exact_unimplemented_error(
+def test_runtime_harness_never_is_the_exact_unimplemented_error(
     pipeline_fixture, recording_executors
 ):
     pipeline = pipeline_fixture(pin="never", artifact=False)
-    result = run_pipeline_item(**pipeline, executors=recording_executors)
-    assert result.stage_error == "observation"
-    assert result.replay[-1]["error"] == "runtime harness stage not implemented"
+    with pytest.raises(TasksetError, match="^runtime harness stage not implemented$"):
+        run_pipeline_item(**pipeline, executors=recording_executors)
 
 
 def test_if_absent_without_registered_harness_records_stage_error(pipeline_fixture):

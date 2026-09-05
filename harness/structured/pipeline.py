@@ -204,10 +204,7 @@ def run_pipeline_item(
             if stage_type == "file":
                 raise TasksetError(f"file stage {name} requires a pinned artifact")
             if stage_type == "harness" and pin_mode == "never":
-                failed = _stage_error(
-                    item=item, version=version, stage=stage, error=_HARNESS_UNAVAILABLE
-                )
-                return PipelineResult(tuple((*replay, *failed.replay)), None, failed.stage_error)
+                raise TasksetError(_HARNESS_UNAVAILABLE)
             executor = executors.get(stage_type)
             if executor is None:
                 if stage_type == "harness" and pin_mode == "if_absent":
