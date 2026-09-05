@@ -12,10 +12,13 @@ from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from jsonschema import Draft202012Validator
+
 from harness.resultsdir import check_structured_stale_results_dir
 from harness.structured.asserts import run_asserts
 from harness.structured.config import PipelineConfig
 from harness.structured.pipeline import VersionConfig, run_pipeline_item
+from harness.structured.normalization import normalize_response
 from harness.structured.pipeline_stages import (
     LlmStage,
     error_envelope,
@@ -102,6 +105,7 @@ def run_pipeline(
     requests: dict[tuple[str, int], dict[str, Any]] = {}
     item_snapshots: dict[str, dict[str, Any]] = {}
     total_cost = 0.0
+    response_validator = Draft202012Validator(cfg.response_schema)
     with tempfile.TemporaryDirectory(prefix="pipeline-run-", dir=cfg.root) as temporary:
         for item in items:
             snapshot = deepcopy(item.raw)
@@ -128,8 +132,8 @@ def run_pipeline(
                 )
                 versioned_requests[version["name"]] = request
                 envelope = llm.envelope or error_envelope(version, request)
+                normalized = normalize_response(envelope, response_validator)
                 duration_ms = max(0, round((time.monotonic() - started) * 1000))
-                output = result.output
                 call: dict[str, Any] = {
                     "item_id": item.id,
                     "version": version["name"],
@@ -141,10 +145,10 @@ def run_pipeline(
                     "input_sha256": {
                         name: ref.sha256 for name, ref in sorted(item.inputs.items())
                     },
-                    "final_document_valid": output is not None,
-                    "sentinel_kind": "none" if output is not None else "transport",
-                    "raw": canonical_json(output).decode() if output is not None else "",
-                    "output": output,
+                    "final_document_valid": normalized.final_document_valid,
+                    "sentinel_kind": normalized.sentinel_kind,
+                    "raw": normalized.raw,
+                    "output": normalized.output,
                     "replay_key": f"{version['name']}/{item.id}/s0",
                     "llm_envelope": envelope,
                 }

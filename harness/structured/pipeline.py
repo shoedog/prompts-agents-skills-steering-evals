@@ -193,7 +193,8 @@ def run_pipeline_item(
             raise TasksetError(_HARNESS_UNAVAILABLE)
     replay: list[dict[str, Any]] = []
     outputs: dict[str, dict[str, Any]] = {}
-    for stage in stages:
+    for stage_index, stage in enumerate(stages):
+        terminal = stage_index == len(stages) - 1
         name = stage.get("name")
         stage_type = stage.get("type")
         pin_mode = stage.get("pin")
@@ -245,14 +246,15 @@ def run_pipeline_item(
                     raise TasksetError(
                         f"pipeline stage {name} output must be one JSON object"
                     )
-                _validate_output(stage, output)
+                if not terminal:
+                    _validate_output(stage, output)
             except (OSError, RuntimeError, TypeError, ValueError, KeyError) as error:
                 failed = _stage_error(
                     item=item, version=version, stage=stage, error=error
                 )
                 return PipelineResult(tuple((*replay, *failed.replay)), None, failed.stage_error)
             cache = "miss"
-        if use_pin:
+        if use_pin and not terminal:
             _validate_output(stage, output)
         outputs[name] = output
         replay.append(

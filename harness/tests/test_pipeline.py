@@ -287,6 +287,18 @@ def test_invalid_stage_output_is_rejected_before_the_next_executor(
     assert recording_executors.calls == [("harness", "observation")]
 
 
+def test_invalid_terminal_classification_is_returned_for_scoring(
+    pipeline_fixture, recording_executors
+):
+    invalid = {**_classification(), "confidence": 1.4}
+    recording_executors.add("llm", invalid)
+
+    result = run_pipeline_item(**pipeline_fixture, executors=recording_executors)
+
+    assert result.stage_error is None
+    assert result.output == invalid
+
+
 def test_file_stage_reads_and_validates_its_item_pin(pipeline_fixture):
     pipeline_fixture["stages"] = (
         {"name": "targets", "type": "file", "pin": "from_item"},
@@ -335,36 +347,18 @@ def test_pipeline_rejects_unknown_stage_policy(
         run_pipeline_item(**pipeline_fixture, executors=recording_executors)
 
 
-def test_pl_smoke_cli_runs_end_to_end_with_fake_llm_layer_on_path(
-    tmp_path, monkeypatch, capsys
-):
-    root = tmp_path / "repo"
-    root.mkdir()
-    shutil.copytree(Path("contracts"), root / "contracts")
-    shutil.copytree(
-        Path("tasksets/structured/eh_pipeline"),
-        root / "tasksets/structured/eh_pipeline",
-    )
-    config = root / "experiments/structured/pl-smoke.yaml"
-    config.parent.mkdir(parents=True)
-    shutil.copy2(Path("experiments/structured/pl-smoke.yaml"), config)
-
-    binary = tmp_path / "bin/llm-layer"
-    binary.parent.mkdir()
+def _write_fake_llm(binary: Path) -> None:
+    binary.parent.mkdir(exist_ok=True)
     binary.write_text(
         """#!/usr/bin/env python3
 import json
+import os
 import sys
 
 def arg(name):
     return sys.argv[sys.argv.index(name) + 1]
 
-response = {
-    "class": "no_retry_on_transient",
-    "confidence": 0.9,
-    "rationale": "The retryable timeout propagated without a retry.",
-    "evidence_lines": [11],
-}
+response = json.loads(os.environ["FAKE_LLM_RESPONSE"])
 envelope = {
     "schema_version": "1",
     "invocation_id": "123e4567-e89b-42d3-a456-426614174000",
@@ -393,6 +387,35 @@ print(json.dumps(envelope, sort_keys=True, separators=(",", ":")))
 """
     )
     binary.chmod(0o755)
+
+
+def test_pl_smoke_cli_runs_end_to_end_with_fake_llm_layer_on_path(
+    tmp_path, monkeypatch, capsys
+):
+    root = tmp_path / "repo"
+    root.mkdir()
+    shutil.copytree(Path("contracts"), root / "contracts")
+    shutil.copytree(
+        Path("tasksets/structured/eh_pipeline"),
+        root / "tasksets/structured/eh_pipeline",
+    )
+    config = root / "experiments/structured/pl-smoke.yaml"
+    config.parent.mkdir(parents=True)
+    shutil.copy2(Path("experiments/structured/pl-smoke.yaml"), config)
+
+    binary = tmp_path / "bin/llm-layer"
+    _write_fake_llm(binary)
+    monkeypatch.setenv(
+        "FAKE_LLM_RESPONSE",
+        json.dumps(
+            {
+                "class": "no_retry_on_transient",
+                "confidence": 0.9,
+                "rationale": "The retryable timeout propagated without a retry.",
+                "evidence_lines": [11],
+            }
+        ),
+    )
     monkeypatch.setenv("PATH", f"{binary.parent}{os.pathsep}{os.environ['PATH']}")
 
     from harness.structured.run import main
@@ -412,3 +435,49 @@ print(json.dumps(envelope, sort_keys=True, separators=(",", ":")))
     ] == "no_retry_on_transient"
     assert (run_dir / "metrics.json").is_file()
     assert (run_dir / "report.md").is_file()
+
+
+def test_pipeline_scores_invalid_terminal_document_with_maximum_brier_penalty(
+    tmp_path, monkeypatch, capsys
+):
+    root = tmp_path / "repo"
+    root.mkdir()
+    shutil.copytree(Path("contracts"), root / "contracts")
+    shutil.copytree(
+        Path("tasksets/structured/eh_pipeline"),
+        root / "tasksets/structured/eh_pipeline",
+    )
+    config = root / "experiments/structured/pl-smoke.yaml"
+    config.parent.mkdir(parents=True)
+    shutil.copy2(Path("experiments/structured/pl-smoke.yaml"), config)
+
+    binary = tmp_path / "bin/llm-layer"
+    _write_fake_llm(binary)
+    monkeypatch.setenv(
+        "FAKE_LLM_RESPONSE",
+        json.dumps(
+            {
+                "class": "no_retry_on_transient",
+                "confidence": 1.4,
+                "rationale": "Terminal document violates the response schema.",
+            }
+        ),
+    )
+    monkeypatch.setenv("PATH", f"{binary.parent}{os.pathsep}{os.environ['PATH']}")
+
+    from harness.structured.run import main
+
+    assert main([str(config), "--jobs", "1"]) == 0
+    output = capsys.readouterr().out.splitlines()
+    emitted = next(
+        line.removeprefix("RESULTS_DIR=")
+        for line in output
+        if line.startswith("RESULTS_DIR=")
+    )
+    metrics = json.loads((Path(emitted) / "metrics.json").read_text())
+    version = metrics["versions"]["v2026-09-04.1"]
+    assert version["stage_errors"] == {"calls": 0, "item_ids": []}
+    assert version["classification"]["confusion"]["no_retry_on_transient"]["__invalid__"] == 1
+    assert version["calibration"]["n"] == 1
+    assert version["calibration"]["score"] == 1.0
+    assert version["classification"]["schema_valid_for_eval"]["rate"] == 0.0

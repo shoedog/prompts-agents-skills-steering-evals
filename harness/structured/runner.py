@@ -32,6 +32,7 @@ from harness.structured.asserts import Population, get, run_asserts
 from harness.structured.cache import cache_key
 from harness.structured.config import AnalyzerConfig, StructuredConfig
 from harness.structured.executors import ExecutionRequest, ExecutionResult, Executor
+from harness.structured.normalization import normalize_response
 from harness.structured.promotion import PromotionVerdict
 from harness.structured.replay import LoadedRun
 from harness.structured.report import render
@@ -261,14 +262,6 @@ def _duration_ms(clock: Clock, started: float) -> int:
     return max(0, round(elapsed))
 
 
-def _sentinel_kind(envelope: Mapping[str, Any]) -> str:
-    response = envelope.get("response")
-    label = response.get("class") if isinstance(response, Mapping) else None
-    if envelope.get("final_sentinel") is True:
-        return "transport" if label == "provider_error" else "schema"
-    return "none"
-
-
 def _error_envelope(work: _Work, error: BaseException) -> dict[str, Any]:
     digest = hashlib.md5(
         canonical_json(
@@ -416,12 +409,8 @@ def _run_one(
             }
 
     envelope = deepcopy(execution.envelope)
-    response = envelope.get("response")
-    response_errors = (
-        list(response_validator.iter_errors(response)) if isinstance(response, dict) else [None]
-    )
-    final_document_valid = not response_errors
-    sentinel_kind = _sentinel_kind(envelope)
+    normalized = normalize_response(envelope, response_validator)
+    response = normalized.output
     stage_value: dict[str, Any] = {
         "item_id": work.item.id,
         "version": version,
@@ -441,11 +430,6 @@ def _run_one(
         sample=work.sample,
         shared=False,
     )
-    raw_response = (
-        json.dumps(response, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-        if isinstance(response, dict)
-        else ""
-    )
     call: dict[str, Any] = {
         "item_id": work.item.id,
         "version": version,
@@ -454,10 +438,10 @@ def _run_one(
         "duration_ms": duration_ms,
         "cache": cache_status,
         "input_sha256": dict(sorted(work.input_sha256.items())),
-        "final_document_valid": final_document_valid,
-        "sentinel_kind": sentinel_kind,
-        "raw": raw_response,
-        "output": response if isinstance(response, dict) else None,
+        "final_document_valid": normalized.final_document_valid,
+        "sentinel_kind": normalized.sentinel_kind,
+        "raw": normalized.raw,
+        "output": normalized.output,
         "replay_key": f"{version}/{work.item.id}/s{work.sample}",
         "llm_envelope": envelope,
     }
