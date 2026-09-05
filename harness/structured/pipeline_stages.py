@@ -144,4 +144,52 @@ def error_envelope(version: VersionConfig, request: Mapping[str, Any]) -> dict[s
     }
 
 
-__all__ = ["LlmStage", "error_envelope", "request_body", "run_prism_stage"]
+def pinned_envelope(
+    version: VersionConfig,
+    request: Mapping[str, Any],
+    response: Mapping[str, Any],
+    *,
+    item_id: str,
+) -> dict[str, Any]:
+    identity = hashlib.sha256(
+        canonical_json(
+            {"item_id": item_id, "version": version["name"], "response": response}
+        )
+    ).hexdigest()
+    invocation_id = (
+        f"{identity[:8]}-{identity[8:12]}-4{identity[13:16]}-"
+        f"8{identity[17:20]}-{identity[20:32]}"
+    )
+    return {
+        "schema_version": "1",
+        "invocation_id": invocation_id,
+        "task": "classify_error_handling",
+        "task_version": version["task_version"],
+        "provider": "authenticated_pin",
+        "model": str(version.get("model", version["name"])),
+        "provider_version": f"sha256:{hashlib.sha256(canonical_json(response)).hexdigest()}",
+        "prompt_sha256": hashlib.sha256(canonical_json(request)).hexdigest(),
+        "escalation_state": "authenticated_pin",
+        "first_tier_valid": None,
+        "first_tier_sentinel": None,
+        "final_sentinel": False,
+        "cache_hit": False,
+        "usage": {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+        },
+        "cost_usd": 0.0,
+        "response": dict(response),
+        "log_path": f"pinned:{item_id}:classify",
+    }
+
+
+__all__ = [
+    "LlmStage",
+    "error_envelope",
+    "pinned_envelope",
+    "request_body",
+    "run_prism_stage",
+]

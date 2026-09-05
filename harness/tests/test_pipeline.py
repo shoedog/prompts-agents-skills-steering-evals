@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+import yaml
 
 from harness.structured.executors import ExecutorError
 from harness.structured.pipeline import (
@@ -529,3 +530,51 @@ def test_pipeline_scores_invalid_terminal_document_with_maximum_brier_penalty(
     assert version["calibration"]["n"] == 1
     assert version["calibration"]["score"] == 1.0
     assert version["classification"]["schema_valid_for_eval"]["rate"] == 0.0
+
+
+def test_pipeline_scores_authenticated_pinned_terminal_classification(
+    tmp_path, monkeypatch, capsys
+):
+    root = tmp_path / "repo"
+    root.mkdir()
+    shutil.copytree(Path("contracts"), root / "contracts")
+    taskset = root / "tasksets/structured/eh_pipeline"
+    shutil.copytree(Path("tasksets/structured/eh_pipeline"), taskset)
+    config = root / "experiments/structured/pl-smoke.yaml"
+    config.parent.mkdir(parents=True)
+    shutil.copy2(Path("experiments/structured/pl-smoke.yaml"), config)
+
+    classification = _classification()
+    pin = taskset / "inputs/plx-py-0001/classify.json"
+    payload = json.dumps(classification, sort_keys=True, separators=(",", ":")).encode()
+    pin.write_bytes(payload)
+    item_path = taskset / "items/plx-py-0001.yaml"
+    item = yaml.safe_load(item_path.read_text())
+    item["stages"]["classify"] = {
+        "pin": "inputs/plx-py-0001/classify.json",
+        "sha256": hashlib.sha256(payload).hexdigest(),
+    }
+    item_path.write_text(yaml.safe_dump(item, sort_keys=False))
+    document = yaml.safe_load(config.read_text())
+    document["stages"][-1]["pin"] = "from_item"
+    config.write_text(yaml.safe_dump(document, sort_keys=False))
+
+    monkeypatch.setenv("PATH", str(tmp_path / "empty-bin"))
+    from harness.structured.run import main
+
+    assert main([str(config), "--jobs", "1"]) == 0
+    output = capsys.readouterr().out.splitlines()
+    emitted = next(
+        line.removeprefix("RESULTS_DIR=")
+        for line in output
+        if line.startswith("RESULTS_DIR=")
+    )
+    call = json.loads(next((Path(emitted) / "calls").glob("*.json")).read_text())
+    metrics = json.loads((Path(emitted) / "metrics.json").read_text())
+    version = metrics["versions"]["v2026-09-04.1"]
+    assert call["llm_envelope"]["provider"] == "authenticated_pin"
+    assert call["output"] == classification
+    assert version["classification"]["confusion"]["no_retry_on_transient"][
+        "no_retry_on_transient"
+    ] == 1
+    assert version["classification"]["schema_valid_for_eval"]["rate"] == 1.0

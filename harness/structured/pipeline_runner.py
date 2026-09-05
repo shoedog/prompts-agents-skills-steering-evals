@@ -22,6 +22,7 @@ from harness.structured.normalization import normalize_response
 from harness.structured.pipeline_stages import (
     LlmStage,
     error_envelope,
+    pinned_envelope,
     request_body,
     run_prism_stage,
 )
@@ -131,7 +132,14 @@ def run_pipeline(
                     item=item, version=version, inputs=item.input_values
                 )
                 versioned_requests[version["name"]] = request
-                envelope = llm.envelope or error_envelope(version, request)
+                if llm.envelope is not None:
+                    envelope = llm.envelope
+                elif result.stage_error is None and result.output is not None:
+                    envelope = pinned_envelope(
+                        version, request, result.output, item_id=item.id
+                    )
+                else:
+                    envelope = error_envelope(version, request)
                 normalized = normalize_response(envelope, response_validator)
                 duration_ms = max(0, round((time.monotonic() - started) * 1000))
                 call: dict[str, Any] = {
