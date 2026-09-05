@@ -300,6 +300,23 @@ def test_nonzero_llm_exit_is_a_typed_stage_failure(tmp_path, fake_llm_cli, retur
     assert (tmp_path / "scratch" / "llm-layer-call-count.txt").read_text() == "1\n"
 
 
+def test_exit_five_with_a_valid_envelope_is_still_an_executor_error(tmp_path):
+    envelope = load_envelope_fixture("success")
+    stdout = json.dumps(envelope, separators=(",", ":")) + "\n"
+    proc = subprocess.CompletedProcess(
+        args=["llm-layer"],
+        returncode=5,
+        stdout=stdout,
+        stderr="test split requires --allow-test",
+    )
+    with patch("harness.structured.executors.llm_layer.subprocess.run", return_value=proc):
+        with pytest.raises(ExecutorError) as caught:
+            execute_one(tmp_path, Path("llm-layer"))
+    assert caught.value.returncode == 5
+    assert caught.value.stdout_tail == stdout
+    assert caught.value.stderr_tail == "test split requires --allow-test"
+
+
 @pytest.mark.parametrize(
     "fixture, validator_name, json_path",
     [
@@ -359,6 +376,7 @@ def test_request_echo_mismatch_is_distinct_from_contract_failure(tmp_path, fake_
 @pytest.mark.parametrize(
     "stdout",
     [
+        "",
         "{}\n{}\n",
         "[]\n",
         '{"schema_version":"1"}\n\n',

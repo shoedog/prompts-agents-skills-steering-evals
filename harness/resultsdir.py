@@ -24,6 +24,7 @@ import glob
 import os
 import shutil
 import sys
+from pathlib import Path
 
 
 def arm_ids_on_disk(results_dir, subdir, arm) -> set:
@@ -130,4 +131,63 @@ def check_stale_results_dir(results_dir, force: bool) -> bool:
         d = os.path.join(str(results_dir), subdir)
         if os.path.isdir(d):
             shutil.rmtree(d)
+    return True
+
+
+_STRUCTURED_RESULT_DIRS = ("calls", "stages", "asserts", "inputs")
+_STRUCTURED_RESULT_FILES = (
+    "replay.jsonl",
+    "trace.jsonl",
+    "run.json",
+    "metrics.json",
+    "report.md",
+)
+
+
+def structured_stale_files(results_dir: Path) -> list[Path]:
+    """Return existing artifacts owned by one structured-eval results tree."""
+    results_dir = Path(results_dir)
+    stale: list[Path] = []
+    for name in _STRUCTURED_RESULT_DIRS:
+        directory = results_dir / name
+        if directory.is_symlink() or directory.is_file():
+            stale.append(directory)
+        elif directory.is_dir():
+            stale.extend(
+                path
+                for path in directory.rglob("*")
+                if path.is_file() or path.is_symlink()
+            )
+    for name in _STRUCTURED_RESULT_FILES:
+        path = results_dir / name
+        if path.exists() or path.is_symlink():
+            stale.append(path)
+    return sorted(stale)
+
+
+def check_structured_stale_results_dir(results_dir: Path, force: bool) -> bool:
+    """Refuse stale structured results, or remove only owned artifacts with force."""
+    results_dir = Path(results_dir)
+    stale = structured_stale_files(results_dir)
+    if not stale:
+        return True
+    if not force:
+        print(
+            f"[structured] REFUSING to run: {len(stale)} stale result artifact(s) "
+            f"already exist under {results_dir}. Re-run with --force to clear only "
+            "the structured results layout.",
+            file=sys.stderr,
+            flush=True,
+        )
+        return False
+    print(
+        f"[structured] --force: clearing {len(stale)} stale result artifact(s) "
+        f"under {results_dir}.",
+        flush=True,
+    )
+    for path in reversed(stale):
+        if path.is_dir() and not path.is_symlink():
+            shutil.rmtree(path)
+        else:
+            path.unlink()
     return True
