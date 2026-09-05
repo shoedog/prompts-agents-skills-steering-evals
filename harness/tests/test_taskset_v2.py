@@ -6,14 +6,17 @@ import re
 import pytest
 import yaml
 
+import harness.structured.taskset as taskset_module
 from harness.tests.structured_support import build_v2_taskset, fixture_taskset
 from harness.structured.taskset import (
+    InputRef,
     TasksetError,
     assemble_request,
     load_taskset,
     resolve_schema_ref,
     sha256_directory,
     sha256_file,
+    verified_json,
 )
 
 
@@ -29,6 +32,22 @@ def test_hash_check_precedes_json_parsing(fixture_taskset):
     target.write_text("not json")
     with pytest.raises(TasksetError, match="sha256 mismatch"):
         load_taskset(fixture_taskset, split="dev", max_items=10)
+
+
+def test_verified_json_parses_the_same_bytes_that_were_hashed(tmp_path, monkeypatch):
+    path = tmp_path / "artifact.json"
+    path.write_text('{"identity":"A"}\n')
+    ref = InputRef("artifact", path, sha256_file(path))
+    real_verify = taskset_module._verify_hash
+
+    def verify_then_replace(input_ref, *, ignore):
+        payload = real_verify(input_ref, ignore=ignore)
+        path.write_text('{"identity":"B"}\n')
+        return payload
+
+    monkeypatch.setattr(taskset_module, "_verify_hash", verify_then_replace)
+
+    assert verified_json(ref) == {"identity": "A"}
 
 
 def test_assemble_request_injects_version_and_validates_schema(fixture_taskset):

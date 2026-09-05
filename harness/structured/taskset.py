@@ -224,24 +224,30 @@ def _input_ref(taskset_root: Path, name: str, value: Any) -> InputRef:
     return InputRef(name=name, path=path, sha256=expected)
 
 
-def _verify_hash(ref: InputRef, *, ignore: Sequence[str]) -> None:
+def _verify_hash(ref: InputRef, *, ignore: Sequence[str]) -> bytes | None:
     try:
-        actual = sha256_directory(ref.path, ignore=ignore) if ref.path.is_dir() else sha256_file(ref.path)
+        if ref.path.is_dir():
+            payload = None
+            actual = sha256_directory(ref.path, ignore=ignore)
+        else:
+            payload = ref.path.read_bytes()
+            actual = hashlib.sha256(payload).hexdigest()
     except OSError as exc:
         raise TasksetError(f"cannot hash {ref.name} {ref.path}: {exc}") from exc
     if actual != ref.sha256:
         raise TasksetError(
             f"sha256 mismatch for {ref.name} {ref.path}: expected {ref.sha256}, got {actual}"
         )
+    return payload
 
 
 def verified_json(ref: InputRef, *, ignore: Sequence[str] = ()) -> dict[str, Any]:
-    _verify_hash(ref, ignore=ignore)
-    if ref.path.is_dir():
+    payload = _verify_hash(ref, ignore=ignore)
+    if payload is None:
         raise TasksetError(f"{ref.name} is a directory, not a JSON artifact: {ref.path}")
     try:
-        value = json.loads(ref.path.read_text())
-    except (OSError, json.JSONDecodeError) as exc:
+        value = json.loads(payload)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise TasksetError(f"cannot parse {ref.name} JSON {ref.path}: {exc}") from exc
     if not isinstance(value, dict):
         raise TasksetError(f"{ref.name} must contain one JSON object: {ref.path}")
