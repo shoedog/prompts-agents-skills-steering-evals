@@ -27,6 +27,7 @@ from harness.structured.pipeline_stages import (
     request_body,
     run_prism_stage,
 )
+from harness.structured.promotion import PromotionVerdict
 from harness.structured.replay import LoadedRun
 from harness.structured.report import render
 from harness.structured.results import ResultsWriter, canonical_json, confined_run_dir
@@ -39,7 +40,7 @@ from harness.structured.taskset import load_taskset
 class PipelineRunResult:
     run_dir: Path
     metrics: dict[str, Any]
-    promotion: None
+    promotion: PromotionVerdict | None
     stage_errors: int
 
 
@@ -250,10 +251,15 @@ def run_pipeline(
     summary = render(LoadedRun.load(run_dir))
     metrics = json.loads((run_dir / "metrics.json").read_bytes())
     del summary
+    promotion_value = next(iter(metrics["promotions"].values()), None)
     return PipelineRunResult(
         run_dir=run_dir,
         metrics=metrics,
-        promotion=None,
+        promotion=(
+            PromotionVerdict(**promotion_value)
+            if promotion_value is not None
+            else None
+        ),
         stage_errors=sum(bool(call.get("stage_error")) for call in calls),
     )
 

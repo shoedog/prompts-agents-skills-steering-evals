@@ -547,6 +547,48 @@ def test_pipeline_stored_cost_assert_receives_declared_population(
     ]
 
 
+def test_pipeline_cli_prints_computed_promotion_verdict(tmp_path, monkeypatch, capsys):
+    root = tmp_path / "repo"
+    root.mkdir()
+    shutil.copytree(Path("contracts"), root / "contracts")
+    shutil.copytree(
+        Path("tasksets/structured/eh_pipeline"),
+        root / "tasksets/structured/eh_pipeline",
+    )
+    config = root / "experiments/structured/pl-smoke.yaml"
+    config.parent.mkdir(parents=True)
+    shutil.copy2(Path("experiments/structured/pl-smoke.yaml"), config)
+    document = yaml.safe_load(config.read_text())
+    document["versions"].append(
+        {
+            "name": "v2026-09-04.2",
+            "stage": "classify",
+            "task_version": "2026-09-04.2",
+        }
+    )
+    config.write_text(yaml.safe_dump(document, sort_keys=False))
+
+    binary = tmp_path / "bin/llm-layer"
+    _write_fake_llm(binary)
+    monkeypatch.setenv("FAKE_LLM_RESPONSE", json.dumps(_classification()))
+    monkeypatch.setenv("PATH", f"{binary.parent}{os.pathsep}{os.environ['PATH']}")
+    from harness.structured.run import main
+
+    assert main([str(config), "--jobs", "1"]) == 0
+    stdout = capsys.readouterr().out
+    emitted = next(
+        line.removeprefix("RESULTS_DIR=")
+        for line in stdout.splitlines()
+        if line.startswith("RESULTS_DIR=")
+    )
+    metrics = json.loads((Path(emitted) / "metrics.json").read_text())
+    reason = metrics["promotions"]["v2026-09-04.2"]["reason"]
+
+    assert reason.startswith("PROMOTABLE:")
+    assert reason in stdout
+    assert "NO PROMOTION CANDIDATE" not in stdout
+
+
 def test_pipeline_scores_invalid_terminal_document_with_maximum_brier_penalty(
     tmp_path, monkeypatch, capsys
 ):
