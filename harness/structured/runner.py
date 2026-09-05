@@ -1046,7 +1046,11 @@ def run_analyzer(
     return RunResult(
         run_dir=run_dir,
         metrics=metrics,
-        promotion=None,
+        promotion=(
+            PromotionVerdict(**next(iter(metrics["promotions"].values())))
+            if metrics["promotions"]
+            else None
+        ),
         stage_errors=sum(bool(call.get("stage_error")) for call in calls),
     )
 

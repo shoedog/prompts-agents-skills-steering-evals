@@ -391,6 +391,59 @@ def test_analyzer_replay_uses_finding_reducer_without_executor(tmp_path, monkeyp
     assert binary.with_suffix(".calls").read_bytes() == before_calls
 
 
+def test_analyzer_modes_emit_paired_ci_tier_and_gate_evidence(
+    tmp_path, monkeypatch, capsys
+):
+    from harness.structured import run as run_module
+
+    root = _copy_analyzer_smoke_root(tmp_path)
+    config_path = root / "experiments/structured/an-smoke.yaml"
+    config = yaml.safe_load(config_path.read_text())
+    config["modes"]["min_confidence"] = ["nameonly", "exact"]
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False))
+    binary = _fake_prism(
+        tmp_path,
+        help_text="Usage: prism --resolution --min-confidence",
+        document=_recorded("absence-nominal.sarif.json"),
+    )
+    monkeypatch.setenv("PRISM_BIN", str(binary))
+    monkeypatch.setattr(run_module, "_CLOCK", _FixedClock("2026-09-05T12:00:00Z"))
+
+    assert run_module.main([str(config_path)]) == 0
+    stdout = capsys.readouterr().out
+    run_dir = next((root / "results/an-smoke").iterdir())
+    metrics = json.loads((run_dir / "metrics.json").read_text())
+    candidate = metrics["promotions"]["absence/python/nominal/exact"]
+
+    assert candidate["promotable"] is True
+    assert candidate["evidence"]["population"]["item_ids"] == [
+        "px-py-absence-0001"
+    ]
+    assert candidate["evidence"]["metrics"]["macro_f1"] == {
+        "alpha": 0.05,
+        "baseline": 1.0,
+        "candidate": 1.0,
+        "delta": 0.0,
+        "hi": 0.0,
+        "lo": 0.0,
+        "n_items": 1,
+        "resamples": 20,
+        "seed": 20260904,
+    }
+    assert candidate["evidence"]["gate"] == {
+        "metric": "macro_f1",
+        "observed_ci_lo": 0.0,
+        "operator": ">=",
+        "passed": True,
+        "threshold": 0.0,
+    }
+    assert "PROMOTABLE: analyzer macro_f1_ci.lo=0" in stdout
+    report = (run_dir / "report.md").read_text()
+    assert "## Paired analyzer deltas" in report
+    assert "## Tier metrics" in report
+    assert "asserted" in report and "candidate" in report
+
+
 def test_analyzer_cli_records_missing_prism_and_excludes_item(tmp_path, monkeypatch):
     from harness.structured import run as run_module
 
