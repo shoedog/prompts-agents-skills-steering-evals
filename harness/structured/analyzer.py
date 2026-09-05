@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 from dataclasses import asdict, dataclass
@@ -12,7 +13,8 @@ from urllib.parse import unquote
 
 from harness.providers.binpath import resolve_executable
 from harness.structured.asserts.analyzer_match import MatchResult, match_findings
-from harness.structured.taskset import TaskItem
+from harness.structured.config import AnalyzerConfig, load_analyzer_config
+from harness.structured.taskset import TaskItem, load_taskset
 
 
 _FLAG = re.compile(r"(?<![\w-])(--[a-z][a-z0-9-]*)")
@@ -259,11 +261,39 @@ def run_analyzer_item(
     return AnalyzerResult(version_record, stage_record, emitted, matched, strata)
 
 
+def run_analyzer_config(
+    cfg: AnalyzerConfig, *, binary: str | None = None
+) -> tuple[AnalyzerResult, ...]:
+    """Run all language-applicable item/mode pairs after one help probe."""
+    executable = binary
+    if executable is None and cfg.prism_bin is not None:
+        executable = os.environ.get(cfg.prism_bin.removeprefix("env:"))
+    executable = executable or resolve_executable("prism")
+    flags = probe_flags(executable)
+    taskset = load_taskset(
+        cfg.taskset, split=cfg.split, max_items=cfg.token_budget["max_items"]
+    )
+    return tuple(
+        run_analyzer_item(
+            item,
+            mode,
+            binary=executable,
+            flags=flags,
+            line_tolerance=cfg.line_tolerance,
+        )
+        for mode in cfg.modes
+        for item in taskset.items
+        if item.raw.get("language") == mode.language
+    )
+
+
 __all__ = [
     "AnalyzerExecutorError",
     "AnalyzerMode",
     "AnalyzerResult",
     "findings_from_document",
+    "load_analyzer_config",
     "probe_flags",
+    "run_analyzer_config",
     "run_analyzer_item",
 ]

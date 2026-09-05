@@ -4,16 +4,20 @@ import json
 from pathlib import Path
 
 import pytest
+import yaml
 from jsonschema import Draft202012Validator
 
 from harness.structured.analyzer import (
     AnalyzerExecutorError,
     AnalyzerMode,
     findings_from_document,
+    load_analyzer_config,
     probe_flags,
+    run_analyzer_config,
     run_analyzer_item,
 )
 from harness.structured.asserts.analyzer_match import match_findings
+from harness.structured.config import ConfigError
 from harness.structured.taskset import InputRef, TaskItem
 
 
@@ -184,3 +188,55 @@ def test_valid_sarif_line_zero_without_region_is_an_unmatched_emission():
         max_findings=2,
     )
     assert (emitted[0]["line"], matched.tp, matched.fp, matched.fn) == (0, 0, 1, 1)
+
+
+def test_analyzer_config_expands_modes_and_probes_once_before_skipping(tmp_path):
+    cfg = load_analyzer_config(REPO_ROOT / "experiments/structured/an-smoke.yaml")
+    assert [mode.version for mode in cfg.modes] == ["absence/python/nominal/nominal"]
+    binary = _fake_prism(
+        tmp_path,
+        help_text="Usage: prism --repo --algorithm --diff --format --min-confidence",
+        document=_recorded("absence-nominal.sarif.json"),
+    )
+    results = run_analyzer_config(cfg, binary=str(binary))
+    assert len(results) == 1
+    assert results[0].version_record["skipped"] == "flag_unavailable(--resolution)"
+    assert (tmp_path / "prism.calls").read_text().splitlines() == ['["--help"]']
+
+
+@pytest.mark.parametrize(
+    "mutation, message",
+    [
+        ({"baseline_version": "missing"}, "baseline_version"),
+        ({"modes": {"algorithm": []}}, "modes must declare"),
+        ({"match": {"rule": "function", "line_tolerance": 3}}, "match.rule"),
+        ({"prism_bin": "/tmp/prism"}, "prism_bin"),
+    ],
+)
+def test_analyzer_config_rejects_invalid_mode_policy(tmp_path, mutation, message):
+    (tmp_path / "taskset").mkdir()
+    value = {
+        "kind": "analyzer",
+        "id": "an-fixture",
+        "taskset": "taskset",
+        "split": "dev",
+        "modes": {
+            "algorithm": ["absence"],
+            "language": ["python"],
+            "resolution": ["nominal"],
+            "min_confidence": ["nominal"],
+        },
+        "baseline_version": "absence/python/nominal/nominal",
+        "match": {"rule": "category_file_line", "line_tolerance": 3},
+        "asserts": [{"type": "analyzer_match"}],
+        "stats": {"bootstrap_resamples": 20},
+        "token_budget": {"max_items": 1},
+    }
+    if "modes" in mutation:
+        value["modes"].update(mutation["modes"])
+    else:
+        value.update(mutation)
+    path = tmp_path / "an.yaml"
+    path.write_text(yaml.safe_dump(value))
+    with pytest.raises(ConfigError, match=message):
+        load_analyzer_config(path, root=tmp_path)

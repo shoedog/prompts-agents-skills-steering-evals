@@ -35,6 +35,21 @@ class StructuredConfig:
     response_schema: dict[str, Any]
 
 
+@dataclass(frozen=True)
+class AnalyzerConfig:
+    id: str
+    taskset: Path
+    split: str
+    modes: Sequence[Any]
+    baseline_version: str
+    prism_bin: str | None
+    line_tolerance: int
+    asserts: Sequence[dict[str, Any]]
+    stats: dict[str, Any]
+    token_budget: dict[str, Any]
+    root: Path
+
+
 def _positive_int(value: Any, name: str) -> int:
     if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
         raise ConfigError(f"{name} must be a positive integer")
@@ -129,4 +144,75 @@ def load_config(path: str | Path, *, root: Path = REPO_ROOT) -> StructuredConfig
         root=root,
         request_schema=request_schema,
         response_schema=response_schema,
+    )
+
+
+def load_analyzer_config(path: str | Path, *, root: Path = REPO_ROOT) -> AnalyzerConfig:
+    """Load the analyzer config shape without changing ``load_config``'s interface."""
+    root = Path(root).resolve()
+    config_path = Path(path)
+    config_path = (config_path if config_path.is_absolute() else root / config_path).resolve()
+    if not _inside(root, config_path):
+        raise ConfigError(f"config path escapes repo root: {path}")
+    try:
+        raw = yaml.safe_load(config_path.read_text())
+    except (OSError, yaml.YAMLError) as exc:
+        raise ConfigError(f"cannot load config {config_path}: {exc}") from exc
+    if not isinstance(raw, dict) or raw.get("kind") != "analyzer":
+        raise ConfigError("analyzer config must contain kind: analyzer")
+    experiment_id = raw.get("id")
+    if not isinstance(experiment_id, str) or not experiment_id.startswith("an-"):
+        raise ConfigError("analyzer id must start with an-")
+    split = raw.get("split")
+    if split not in {"dev", "test"}:
+        raise ConfigError("split must be dev or test")
+    taskset_raw = raw.get("taskset")
+    if not isinstance(taskset_raw, str):
+        raise ConfigError("taskset must be a path string")
+    taskset = _path_inside(root, taskset_raw, "taskset")
+    if not taskset.is_dir():
+        raise ConfigError(f"taskset directory does not exist: {taskset}")
+    axes = raw.get("modes")
+    names = ("algorithm", "language", "resolution", "min_confidence")
+    if not isinstance(axes, dict) or any(
+        not isinstance(axes.get(name), list)
+        or not axes[name]
+        or any(not isinstance(value, str) or not value for value in axes[name])
+        for name in names
+    ):
+        raise ConfigError(f"modes must declare nonempty string lists for {names}")
+    from harness.structured.analyzer import AnalyzerMode
+
+    modes = tuple(
+        AnalyzerMode(algorithm, language, resolution, confidence)
+        for algorithm in axes["algorithm"]
+        for language in axes["language"]
+        for resolution in axes["resolution"]
+        for confidence in axes["min_confidence"]
+    )
+    baseline = raw.get("baseline_version")
+    if baseline not in {mode.version for mode in modes}:
+        raise ConfigError("baseline_version must name one expanded analyzer mode")
+    match = raw.get("match")
+    tolerance = match.get("line_tolerance") if isinstance(match, dict) else None
+    if not isinstance(tolerance, int) or isinstance(tolerance, bool) or tolerance < 0:
+        raise ConfigError("match.line_tolerance must be a nonnegative integer")
+    if not isinstance(match, dict) or match.get("rule") != "category_file_line":
+        raise ConfigError("analyzer match.rule must be category_file_line")
+    asserts = raw.get("asserts")
+    if not isinstance(asserts, list) or {entry.get("type") for entry in asserts if isinstance(entry, dict)} != {"analyzer_match"}:
+        raise ConfigError("analyzer asserts must contain analyzer_match")
+    stats, budget = raw.get("stats"), raw.get("token_budget")
+    if not isinstance(stats, dict) or not isinstance(budget, dict):
+        raise ConfigError("stats and token_budget must be objects")
+    _positive_int(stats.get("bootstrap_resamples"), "bootstrap_resamples")
+    _positive_int(budget.get("max_items"), "max_items")
+    prism_bin = raw.get("prism_bin")
+    if prism_bin is not None and (
+        not isinstance(prism_bin, str) or not prism_bin.startswith("env:") or len(prism_bin) == 4
+    ):
+        raise ConfigError("prism_bin must be env:VARIABLE when present")
+    return AnalyzerConfig(
+        experiment_id, taskset, split, modes, baseline, prism_bin, tolerance,
+        tuple(asserts), stats, budget, root,
     )
