@@ -62,6 +62,7 @@ def test_render_appends_one_trend_row_per_candidate_and_preserves_prefix(
         "experiment": "st-fixture",
         "run_id": "20260905T120000Z-fixture",
         "split": "dev",
+        "candidate": "candidate",
         "version": "candidate",
         "baseline_version": "baseline",
         "n_items": 2,
@@ -84,6 +85,30 @@ def test_render_appends_one_trend_row_per_candidate_and_preserves_prefix(
     render(LoadedRun.load(second_path))
     assert trend_path.read_bytes().startswith(first)
     assert len(trend_path.read_bytes().splitlines()) == 4
+
+
+def test_render_keeps_distinct_candidate_names_with_one_task_version(
+    frozen_structured_run,
+):
+    for version in frozen_structured_run.config["versions"]:
+        if version["name"] in {"candidate", "candidate-alt"}:
+            version["task_version"] = "shared-task-version"
+    trend_path = (
+        frozen_structured_run.path.parents[1]
+        / "trends"
+        / "classify_error_handling.jsonl"
+    )
+
+    render(frozen_structured_run)
+    first = trend_path.read_bytes()
+    rows = [json.loads(line) for line in first.splitlines()]
+    assert [(row.get("candidate"), row["version"]) for row in rows] == [
+        ("candidate", "shared-task-version"),
+        ("candidate-alt", "shared-task-version"),
+    ]
+
+    render(frozen_structured_run)
+    assert trend_path.read_bytes() == first
 
 
 def test_render_rejects_missing_candidate_task_version_before_writing(

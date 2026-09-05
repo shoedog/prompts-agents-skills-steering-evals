@@ -83,6 +83,7 @@ def _trend_rows(summary: Mapping[str, Any]) -> tuple[str, list[dict[str, Any]]]:
                 "experiment": experiment["id"],
                 "run_id": run_id,
                 "split": experiment["split"],
+                "candidate": candidate_name,
                 "version": candidate_version,
                 "baseline_version": baseline_version,
                 "n_items": evidence["population"]["n_items"],

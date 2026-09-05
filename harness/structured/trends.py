@@ -28,7 +28,7 @@ def append_trend(path: Path, row: dict) -> None:
 
 def append_trend_once(path: Path, row: dict) -> bool:
     """Append unless this run/candidate identity already exists, under one lock."""
-    identity_fields = ("experiment", "run_id", "version")
+    identity_fields = ("task", "candidate", "version", "run_id")
     if any(not isinstance(row.get(field), str) or not row[field] for field in identity_fields):
         raise ValueError(f"trend row needs nonempty identity fields: {identity_fields}")
     identity = tuple(row[field] for field in identity_fields)
