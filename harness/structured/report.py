@@ -29,7 +29,7 @@ from harness.structured.metrics import (
 )
 from harness.structured.promotion import promotion_verdict
 from harness.structured.results import canonical_json
-from harness.structured.trends import append_trend
+from harness.structured.trends import append_trend_once
 
 
 if TYPE_CHECKING:
@@ -818,5 +818,5 @@ def render(run: LoadedRun) -> dict[str, Any]:
     _write_bytes_atomic(run.path / "metrics.json", metrics_bytes)
     trend_path = run.path.parents[1] / "trends" / f"{task}.jsonl"
     for row in trend_rows:
-        append_trend(trend_path, row)
+        append_trend_once(trend_path, row)
     return summary

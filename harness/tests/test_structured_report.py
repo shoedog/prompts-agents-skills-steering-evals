@@ -76,6 +76,9 @@ def test_render_appends_one_trend_row_per_candidate_and_preserves_prefix(
         "promotable": True,
     }
 
+    render(frozen_structured_run)
+    assert trend_path.read_bytes() == first
+
     second_path = frozen_structured_run.path.with_name("20260905T130000Z-fixture")
     shutil.copytree(STRUCTURED_FIXTURE, second_path)
     render(LoadedRun.load(second_path))
