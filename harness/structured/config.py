@@ -26,6 +26,7 @@ class StructuredConfig:
     baseline_version: str
     samples_per_item: int
     seed: int
+    jobs: int
     asserts: Sequence[dict[str, Any]]
     stats: dict[str, Any]
     token_budget: dict[str, Any]
@@ -86,8 +87,7 @@ def load_config(path: str | Path, *, root: Path = REPO_ROOT) -> StructuredConfig
     if baseline not in names:
         raise ConfigError("baseline_version must name one declared version")
     samples = _positive_int(raw.get("samples_per_item"), "samples_per_item")
-    if "jobs" in raw:
-        _positive_int(raw["jobs"], "jobs")
+    jobs = _positive_int(raw.get("jobs", 4), "jobs")
     stats = raw.get("stats")
     if not isinstance(stats, dict):
         raise ConfigError("stats must be an object")
@@ -122,6 +122,7 @@ def load_config(path: str | Path, *, root: Path = REPO_ROOT) -> StructuredConfig
         baseline_version=baseline,
         samples_per_item=samples,
         seed=seed,
+        jobs=jobs,
         asserts=tuple(asserts),
         stats=stats,
         token_budget=budget,

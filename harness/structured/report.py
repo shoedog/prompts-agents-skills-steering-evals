@@ -215,6 +215,8 @@ def _assert_rows(
             for call in calls_by_version_item[version][item_id]
             if not call.get("stage_error")
         ]
+        if not run_calls:
+            continue
         run_samples = [_assert_sample(call) for call in run_calls]
         run_population = (
             run_samples,
@@ -485,8 +487,6 @@ def summarize(run: LoadedRun) -> dict[str, Any]:
     if baseline not in versions:
         raise ValueError("baseline_version does not name a configured version")
     candidates = tuple(version for version in versions if version != baseline)
-    if not candidates:
-        raise ValueError("structured report requires at least one candidate version")
     classes = tuple(run.manifest.get("classes", ()))
     if not classes:
         raise ValueError("snapshot manifest must declare classes")
