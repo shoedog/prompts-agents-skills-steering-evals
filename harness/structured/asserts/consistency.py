@@ -7,7 +7,9 @@ from harness.structured.asserts import AssertResult, register
 
 
 @register("consistency")
-def consistency_assert(*, output, raw, expected, item, cfg, samples=None) -> AssertResult:
+def consistency_assert(
+    *, output, raw, expected, item, cfg, samples=None, population=None
+) -> AssertResult:
     if cfg.get("samples_per_item", 0) <= 1:
         return AssertResult(
             "consistency", False, False, None, "consistency requires samples_per_item > 1"

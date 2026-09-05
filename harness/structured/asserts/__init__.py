@@ -10,6 +10,10 @@ from dataclasses import dataclass
 from typing import Any, Callable, Protocol
 
 
+class AssertConfigError(ValueError):
+    pass
+
+
 @dataclass(frozen=True)
 class AssertResult:
     name: str
@@ -17,6 +21,21 @@ class AssertResult:
     hard: bool
     score: float | None
     detail: str
+
+
+@dataclass(frozen=True)
+class Population:
+    kind: str
+    item_count: int
+    sample_count: int
+
+    def __post_init__(self) -> None:
+        if self.kind not in {"per_item", "run"}:
+            raise ValueError(f"unknown population kind {self.kind!r}")
+        for field in ("item_count", "sample_count"):
+            value = getattr(self, field)
+            if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+                raise ValueError(f"population {field} must be a positive integer")
 
 
 class Assert(Protocol):
@@ -29,6 +48,7 @@ class Assert(Protocol):
         item: dict[str, Any],
         cfg: dict[str, Any],
         samples: list[dict[str, Any]] | None,
+        population: Population | None = None,
     ) -> AssertResult: ...
 
 
@@ -60,25 +80,38 @@ def run_asserts(
     item: dict[str, Any],
     cfg: dict[str, Any],
     samples: list[dict[str, Any]] | None,
+    populations: dict[str, tuple[list[dict[str, Any]], Population]] | None = None,
 ) -> list[AssertResult]:
+    """Run configured asserts; Task 8 supplies full populations as `(samples, descriptor)`."""
     results: list[AssertResult] = []
     hard_failure = False
     for entry in cfg.get("asserts", []):
         name = entry["type"]
         assertion = get(name)
+        declared_population = entry.get("population") if name == "cost_latency" else None
+        if name == "cost_latency" and declared_population not in {"per_item", "run"}:
+            raise AssertConfigError(
+                "cost_latency population must be 'per_item' or 'run'; "
+                f"got {declared_population!r}"
+            )
         if hard_failure:
             results.append(
                 AssertResult(name, False, False, None, "not_applicable: hard schema failure")
             )
             continue
         assertion_cfg = {**cfg, **entry}
+        assertion_samples = samples
+        population = None
+        if populations is not None and declared_population in populations:
+            assertion_samples, population = populations[declared_population]
         result = assertion(
             output=output,
             raw=raw,
             expected=expected,
             item=item,
             cfg=assertion_cfg,
-            samples=samples,
+            samples=assertion_samples,
+            population=population,
         )
         results.append(result)
         hard_failure = not result.passed and result.hard

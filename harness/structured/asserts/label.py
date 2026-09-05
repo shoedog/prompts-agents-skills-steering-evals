@@ -5,7 +5,7 @@ from harness.structured.asserts import AssertResult, register
 
 
 @register("label")
-def label_assert(*, output, raw, expected, item, cfg, samples=None) -> AssertResult:
+def label_assert(*, output, raw, expected, item, cfg, samples=None, population=None) -> AssertResult:
     field = cfg.get("field", "class")
     actual = output.get(field) if output is not None else None
     wanted = expected.get("label")

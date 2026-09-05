@@ -31,7 +31,7 @@ def _selected_schema(cfg: dict[str, Any]) -> dict[str, Any]:
 
 
 @register("schema")
-def schema_assert(*, output, raw, expected, item, cfg, samples=None) -> AssertResult:
+def schema_assert(*, output, raw, expected, item, cfg, samples=None, population=None) -> AssertResult:
     if output is None:
         return AssertResult("schema", False, True, 0.0, f"output is not JSON: {raw[:160]!r}")
     errors = sorted(
