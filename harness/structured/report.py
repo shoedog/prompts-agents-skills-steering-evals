@@ -209,11 +209,12 @@ def _assert_rows(
     rows: list[dict[str, Any]] = []
     cfg = {**run.config, "classes": list(classes)}
     for version in _version_names(run.config):
+        excluded_item_ids = _stage_error_item_ids(calls_by_version_item[version])
         run_calls = [
             call
             for item_id in sorted(calls_by_version_item[version])
             for call in calls_by_version_item[version][item_id]
-            if not call.get("stage_error")
+            if item_id not in excluded_item_ids
         ]
         if not run_calls:
             continue
@@ -227,13 +228,9 @@ def _assert_rows(
             ),
         )
         for item_id in sorted(calls_by_version_item[version]):
-            item_calls = [
-                call
-                for call in calls_by_version_item[version][item_id]
-                if not call.get("stage_error")
-            ]
-            if not item_calls:
+            if item_id in excluded_item_ids:
                 continue
+            item_calls = calls_by_version_item[version][item_id]
             item_samples = [_assert_sample(call) for call in item_calls]
             populations = {
                 "per_item": (
@@ -291,6 +288,14 @@ def _assert_sample(call: Mapping[str, Any]) -> dict[str, Any]:
     return sample
 
 
+def _stage_error_item_ids(grouped: Mapping[str, Sequence[Mapping[str, Any]]]) -> set[str]:
+    return {
+        item_id
+        for item_id, calls in grouped.items()
+        if any(call.get("stage_error") for call in calls)
+    }
+
+
 def _call_population(run: Any, versions: Sequence[str]) -> dict[str, dict[str, list[dict]]]:
     grouped: dict[str, dict[str, list[dict]]] = {
         version: {item_id: [] for item_id in run.items} for version in versions
@@ -336,6 +341,7 @@ def _version_summary(
     classes: Sequence[str],
     human_kappa: dict[str, Any],
 ) -> tuple[dict[str, Any], list[ScoredSample]]:
+    excluded_item_ids = _stage_error_item_ids(grouped)
     stage_error_calls = [
         call for item_id in sorted(grouped) for call in grouped[item_id] if call.get("stage_error")
     ]
@@ -344,7 +350,7 @@ def _version_summary(
         _normalized_call(call, run.items[item_id])
         for item_id in sorted(grouped)
         for call in grouped[item_id]
-        if not call.get("stage_error")
+        if item_id not in excluded_item_ids
     ]
     classification = classification_metrics(scored, classes)
     calibration = brier(scored)
@@ -367,7 +373,7 @@ def _version_summary(
             ),
             "stage_errors": {
                 "calls": len(stage_error_calls),
-                "item_ids": sorted({call["item_id"] for call in stage_error_calls}),
+                "item_ids": sorted(excluded_item_ids),
             },
         },
         scored,

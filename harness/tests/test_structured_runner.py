@@ -14,6 +14,8 @@ import yaml
 
 from harness.structured.config import load_config
 from harness.structured.executors import ExecutionResult, ExecutorError
+from harness.structured.replay import LoadedRun
+from harness.structured.report import summarize
 from harness.structured.results import canonical_json
 from harness.structured.runner import RunResult, run_structured
 from harness.structured.taskset import sha256_file
@@ -38,11 +40,13 @@ class FixtureExecutor:
         *,
         promotable: bool = True,
         child_exit: int | None = None,
+        child_exit_sample: int | None = None,
         prompt_token: str = "",
     ) -> None:
         self.version = version
         self.promotable = promotable
         self.child_exit = child_exit
+        self.child_exit_sample = child_exit_sample
         self.prompt_token = prompt_token
         self.calls = 0
 
@@ -54,7 +58,9 @@ class FixtureExecutor:
     def run(self, request):
         self.calls += 1
         assert request.scratch_dir.is_dir()
-        if self.child_exit is not None:
+        if self.child_exit is not None and (
+            self.child_exit_sample is None or request.sample == self.child_exit_sample
+        ):
             raise ExecutorError(self.child_exit, stderr_tail="fixture child failure")
         body = json.loads(request.request_file.read_text())
         label = "correct"
@@ -187,7 +193,10 @@ def run_smoke(tmp_path: Path, monkeypatch):
         no_cache=False,
         shared_stage=None,
         child_exit=None,
+        child_exit_sample=None,
         prompt_token="",
+        cache_identity=True,
+        execution_counts=None,
         return_result=False,
     ):
         nonlocal call_number
@@ -218,10 +227,20 @@ def run_smoke(tmp_path: Path, monkeypatch):
 
         def factory(version):
             executor = FixtureExecutor(
-                version, child_exit=child_exit, prompt_token=prompt_token
+                version,
+                child_exit=child_exit,
+                child_exit_sample=child_exit_sample,
+                prompt_token=prompt_token,
             )
             executors.append(executor)
-            return executor
+            if cache_identity:
+                return executor
+
+            class ExecutorWithoutCacheIdentity:
+                def run(self, request):
+                    return executor.run(request)
+
+            return ExecutorWithoutCacheIdentity()
 
         clock = FixedClock("2026-09-04T18:40:11Z")
         call_number += 1
@@ -233,6 +252,8 @@ def run_smoke(tmp_path: Path, monkeypatch):
             no_cache=no_cache,
             only=frozenset(),
         )
+        if execution_counts is not None:
+            execution_counts.extend(executor.calls for executor in executors)
         assert isinstance(result, RunResult)
         captured = tmp_path / "captures" / str(call_number)
         shutil.copytree(result.run_dir, captured)
@@ -268,6 +289,19 @@ def test_second_run_hits_cache_and_no_cache_bypasses_reads(run_smoke):
     assert replay_cache_values(second) == ["hit"]
     assert replay_cache_values(third) == ["miss"]
     assert metrics_bytes(first) == metrics_bytes(second) == metrics_bytes(third)
+
+
+def test_executor_without_cache_identity_always_executes_and_leaves_no_cache_record(
+    run_smoke,
+):
+    execution_counts = []
+    first = run_smoke(cache_identity=False, execution_counts=execution_counts)
+    second = run_smoke(cache_identity=False, execution_counts=execution_counts)
+
+    assert execution_counts == [1, 1]
+    assert replay_cache_values(first) == ["miss"]
+    assert replay_cache_values(second) == ["miss"]
+    assert not list((first.parents[1] / ".cache/structured").glob("*.json"))
 
 
 def test_prompt_identity_change_cannot_reuse_a_stale_cache_entry(run_smoke):
@@ -320,6 +354,26 @@ def test_stage_error_is_recorded_and_excluded_from_scoring(run_smoke):
     assert result.promotion is None
     with pytest.raises(FrozenInstanceError):
         result.stage_errors = 0
+
+
+def test_one_failed_sample_excludes_the_whole_item_from_version_reductions(run_smoke):
+    result = run_smoke(
+        samples=2,
+        child_exit=3,
+        child_exit_sample=0,
+        return_result=True,
+    )
+    version = result.metrics["versions"]["v1"]
+    full_summary = summarize(LoadedRun.load(result.run_dir))
+
+    assert result.stage_errors == 1
+    assert version["stage_errors"]["item_ids"] == ["eh-py-0001"]
+    assert version["classification"]["n"] == 0
+    assert version["calibration"]["n"] == 0
+    assert version["kappa_vs_human"] == 0.0
+    assert full_summary["scored_rows"]["v1"] == []
+    assert result.metrics["recomputed_assert_records"] == 0
+    assert full_summary["worst_rows"] == []
 
 
 @pytest.fixture

@@ -1,4 +1,11 @@
-"""Deterministic orchestration for structured-task evaluation runs."""
+"""Deterministic orchestration for structured-task evaluation runs.
+
+Cache reuse requires either an executor-provided preflight identity or audited
+``provider_version`` and ``prompt_sha256`` config pins. For
+``LlmLayerExecutor``, those pins must change with the provider version or the
+serialized prompt. The runner cannot prove that a live executor would emit the
+configured pins, so stale pins can reuse an old entry.
+"""
 
 from __future__ import annotations
 
@@ -363,28 +370,29 @@ def _run_one(
             duration_ms = _duration_ms(clock, started)
             cache_status = "miss"
             envelope = execution.envelope
-            full_key = cache_key(
-                "llm",
-                envelope["provider_version"],
-                work.version["provider"]["model"],
-                work.version["task_version"],
-                envelope["prompt_sha256"],
-                work.seed,
-                work.sample,
-                work.input_sha256,
-            )
-            write_json_atomic(
-                cache_root / f"{full_key}.json",
-                {
-                    "lookup": lookup,
-                    "result": {
-                        "envelope": envelope,
-                        "raw_stdout": execution.raw_stdout,
-                        "returncode": execution.returncode,
-                        "duration_ms": duration_ms,
+            if identity is not None:
+                full_key = cache_key(
+                    "llm",
+                    envelope["provider_version"],
+                    work.version["provider"]["model"],
+                    work.version["task_version"],
+                    envelope["prompt_sha256"],
+                    work.seed,
+                    work.sample,
+                    work.input_sha256,
+                )
+                write_json_atomic(
+                    cache_root / f"{full_key}.json",
+                    {
+                        "lookup": lookup,
+                        "result": {
+                            "envelope": envelope,
+                            "raw_stdout": execution.raw_stdout,
+                            "returncode": execution.returncode,
+                            "duration_ms": duration_ms,
+                        },
                     },
-                },
-            )
+                )
         except Exception as error:
             duration_ms = _duration_ms(clock, started)
             cache_status = "miss"
