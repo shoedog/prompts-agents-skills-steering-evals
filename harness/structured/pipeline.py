@@ -72,9 +72,29 @@ _TARGET_DOCUMENT = _schema("contracts/targets.schema.json")
 _TARGET = _schema("contracts/targets.schema.json#/$defs/target")
 _OBSERVATION_DOCUMENT = _schema("contracts/observations.schema.json")
 _OBSERVATION = _schema("contracts/observations.schema.json#/$defs/observation")
+_CLASSIFICATION_REQUEST = _schema(
+    "contracts/classify_error_handling.schema.json#/$defs/request"
+)
 _CLASSIFICATION = _schema(
     "contracts/classify_error_handling.schema.json#/$defs/response"
 )
+
+
+def _validate_schema(label: str, schema: dict[str, Any], value: dict[str, Any]) -> None:
+    errors = sorted(
+        Draft202012Validator(schema).iter_errors(value),
+        key=lambda error: [str(part) for part in error.absolute_path],
+    )
+    if errors:
+        first = errors[0]
+        location = "/".join(str(part) for part in first.absolute_path) or "<root>"
+        raise TasksetError(
+            f"{label} schema validation failed at {location}: {first.message}"
+        )
+
+
+def validate_request(value: dict[str, Any]) -> None:
+    _validate_schema("request", _CLASSIFICATION_REQUEST, value)
 
 
 def _validate_output(stage: StageConfig, value: dict[str, Any]) -> None:
@@ -94,16 +114,7 @@ def _validate_output(stage: StageConfig, value: dict[str, Any]) -> None:
         label = "classify"
     else:
         raise TasksetError(f"no output schema for pipeline stage {name!r}")
-    errors = sorted(
-        Draft202012Validator(schema).iter_errors(value),
-        key=lambda error: [str(part) for part in error.absolute_path],
-    )
-    if errors:
-        first = errors[0]
-        location = "/".join(str(part) for part in first.absolute_path) or "<root>"
-        raise TasksetError(
-            f"{label} schema validation failed at {location}: {first.message}"
-        )
+    _validate_schema(label, schema, value)
 
 
 def _stage_pin(item: TaskItem, name: str) -> tuple[dict[str, Any], bool]:
@@ -297,4 +308,5 @@ __all__ = [
     "StageExecutor",
     "VersionConfig",
     "run_pipeline_item",
+    "validate_request",
 ]

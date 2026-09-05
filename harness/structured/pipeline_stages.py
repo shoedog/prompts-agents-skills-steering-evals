@@ -10,7 +10,7 @@ from typing import Any, Mapping
 
 from harness.providers.binpath import resolve_executable
 from harness.structured.executors import ExecutionRequest, LlmLayerExecutor
-from harness.structured.pipeline import StageConfig, VersionConfig
+from harness.structured.pipeline import StageConfig, VersionConfig, validate_request
 from harness.structured.results import ResultsWriter, canonical_json, write_json_atomic
 from harness.structured.taskset import TaskItem, target_for_observation
 
@@ -60,6 +60,7 @@ class LlmStage:
     ) -> dict[str, Any]:
         del writer
         request = request_body(item=item, version=version, inputs=inputs)
+        validate_request(request)
         self.request = request
         request_file = self.scratch / f"{version['name']}-{item.id}.json"
         write_json_atomic(request_file, request)

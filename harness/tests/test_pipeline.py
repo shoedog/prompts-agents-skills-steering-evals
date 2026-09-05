@@ -5,6 +5,7 @@ import json
 import os
 import shutil
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -15,7 +16,7 @@ from harness.structured.pipeline import (
     run_pipeline_item,
 )
 from harness.structured.results import ResultsWriter
-from harness.structured.pipeline_stages import request_body
+from harness.structured.pipeline_stages import LlmStage, request_body
 from harness.structured.taskset import InputRef, TaskItem, TasksetError
 
 
@@ -82,6 +83,34 @@ def test_classification_request_joins_observation_to_named_target(pipeline_fixtu
     )
 
     assert request["target"]["id"] == second["id"]
+
+
+def test_llm_stage_rejects_invalid_request_before_dispatch(
+    pipeline_fixture, tmp_path, monkeypatch
+):
+    calls = []
+
+    class RecordingExecutor:
+        def run(self, request):
+            calls.append(request)
+            return SimpleNamespace(envelope={"response": _classification()})
+
+    monkeypatch.setattr(
+        "harness.structured.pipeline_stages.LlmLayerExecutor", RecordingExecutor
+    )
+    observation = {**_observation(), "fault": None}
+    stage = LlmStage(tmp_path)
+
+    with pytest.raises(TasksetError, match="request schema validation failed at fault"):
+        stage(
+            stage=pipeline_fixture["stages"][-1],
+            item=pipeline_fixture["item"],
+            version={**pipeline_fixture["version"], "seed": 1},
+            inputs={"targets": _target(), "observation": observation},
+            writer=pipeline_fixture["writer"],
+        )
+
+    assert calls == []
 
 
 def _write_pin(root: Path, name: str, value: dict[str, Any]) -> InputRef:
