@@ -23,16 +23,31 @@ def test_paired_bootstrap_matches_numeric_golden():
         seed=20260904,
     )
     assert result == fixture["expected"]
-    assert (
-        paired_delta_ci(
-            fixture["baseline"],
-            fixture["candidate"],
-            mean_outcome,
-            resamples=2000,
-            seed=7,
-        )
-        != result
+
+
+def test_paired_bootstrap_seed_changes_numeric_interval_on_discriminating_population():
+    baseline = {str(index): {"outcome": 0.0} for index in range(4)}
+    candidate = {
+        str(index): {"outcome": outcome}
+        for index, outcome in enumerate((0.0, 0.0, 0.0, 1.0))
+    }
+    first = paired_delta_ci(
+        baseline,
+        candidate,
+        mean_outcome,
+        resamples=9,
+        seed=1,
     )
+    second = paired_delta_ci(
+        baseline,
+        candidate,
+        mean_outcome,
+        resamples=9,
+        seed=2,
+    )
+
+    assert (first["lo"], first["hi"]) == (0.0, 0.95)
+    assert (second["lo"], second["hi"]) == (0.0, 0.5)
 
 
 def test_percentile_uses_linear_interpolation():
