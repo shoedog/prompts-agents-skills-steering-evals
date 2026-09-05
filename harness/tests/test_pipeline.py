@@ -762,3 +762,62 @@ def test_pipeline_scores_authenticated_pinned_terminal_classification(
         "no_retry_on_transient"
     ] == 1
     assert version["classification"]["schema_valid_for_eval"]["rate"] == 1.0
+
+
+def test_pipeline_scores_authenticated_pinned_sentinel_at_maximum_brier(
+    tmp_path, monkeypatch, capsys
+):
+    root = tmp_path / "repo"
+    root.mkdir()
+    shutil.copytree(Path("contracts"), root / "contracts")
+    taskset = root / "tasksets/structured/eh_pipeline"
+    shutil.copytree(Path("tasksets/structured/eh_pipeline"), taskset)
+    config = root / "experiments/structured/pl-smoke.yaml"
+    config.parent.mkdir(parents=True)
+    shutil.copy2(Path("experiments/structured/pl-smoke.yaml"), config)
+
+    classification = {
+        "class": "invalid_output",
+        "confidence": 0.5,
+        "rationale": "The authenticated classifier response is a schema sentinel.",
+    }
+    pin = taskset / "inputs/plx-py-0001/classify.json"
+    payload = json.dumps(classification, sort_keys=True, separators=(",", ":")).encode()
+    pin.write_bytes(payload)
+    item_path = taskset / "items/plx-py-0001.yaml"
+    item = yaml.safe_load(item_path.read_text())
+    item["stages"]["classify"] = {
+        "pin": "inputs/plx-py-0001/classify.json",
+        "sha256": hashlib.sha256(payload).hexdigest(),
+    }
+    item["expected"]["classify"]["label"] = "correct"
+    item_path.write_text(yaml.safe_dump(item, sort_keys=False))
+    manifest_path = taskset / "manifest.yaml"
+    manifest = yaml.safe_load(manifest_path.read_text())
+    manifest["classes"].append("correct")
+    manifest_path.write_text(yaml.safe_dump(manifest, sort_keys=False))
+    document = yaml.safe_load(config.read_text())
+    document["stages"][-1]["pin"] = "from_item"
+    config.write_text(yaml.safe_dump(document, sort_keys=False))
+
+    monkeypatch.setenv("PATH", str(tmp_path / "empty-bin"))
+    from harness.structured.run import main
+
+    assert main([str(config), "--jobs", "1"]) == 0
+    output = capsys.readouterr().out.splitlines()
+    emitted = next(
+        line.removeprefix("RESULTS_DIR=")
+        for line in output
+        if line.startswith("RESULTS_DIR=")
+    )
+    call = json.loads(next((Path(emitted) / "calls").glob("*.json")).read_text())
+    version = json.loads((Path(emitted) / "metrics.json").read_text())["versions"][
+        "v2026-09-04.1"
+    ]
+
+    assert (
+        call["llm_envelope"]["final_sentinel"],
+        call["sentinel_kind"],
+        version["calibration"]["score"],
+        version["calibration"]["maximum_penalty"],
+    ) == (True, "schema", 1.0, 1)

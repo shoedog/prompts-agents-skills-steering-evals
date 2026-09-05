@@ -195,7 +195,7 @@ def pinned_envelope(
         "escalation_state": "authenticated_pin",
         "first_tier_valid": None,
         "first_tier_sentinel": None,
-        "final_sentinel": False,
+        "final_sentinel": response.get("class") in {"invalid_output", "unclear"},
         "cache_hit": False,
         "usage": {
             "input_tokens": 0,
