@@ -17,6 +17,7 @@ from harness.structured.snapshots import InputEntry, InputIndex
 
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
+_RUN_HEADER_KEYS = {"inputs_index_path", "inputs_index_sha256"}
 
 
 class ReplayInputError(ValueError):
@@ -62,6 +63,27 @@ def _read(path: Path, label: str) -> bytes:
         return path.read_bytes()
     except OSError as error:
         raise ReplayInputError(f"cannot read {label}: {path}: {error}") from error
+
+
+def _validate_run_header(header: dict[str, Any]) -> tuple[str, str]:
+    unknown = sorted(set(header) - _RUN_HEADER_KEYS)
+    if unknown:
+        raise ReplayInputError(f"run.json unknown key: {unknown[0]}")
+    missing = sorted(_RUN_HEADER_KEYS - set(header))
+    if missing:
+        raise ReplayInputError(f"run.json missing key: {missing[0]}")
+    for key in sorted(_RUN_HEADER_KEYS):
+        if not isinstance(header[key], str):
+            raise ReplayInputError(f"run.json key {key} must be a string")
+    index_path = header["inputs_index_path"]
+    digest = header["inputs_index_sha256"]
+    if index_path != "inputs/index.json":
+        raise ReplayInputError("run.json inputs_index_path must be inputs/index.json")
+    if _SHA256.fullmatch(digest) is None:
+        raise ReplayInputError(
+            "run.json inputs_index_sha256 must be 64 lowercase hex characters"
+        )
+    return index_path, digest
 
 
 def _validate_index(value: dict[str, Any]) -> tuple[InputEntry, ...]:
@@ -224,14 +246,8 @@ def load_result_records(root: Path) -> dict[str, tuple[dict[str, Any], ...]]:
 
 def _load_run(root: Path) -> LoadedRun:
     header = _json_object(_read(root / "run.json", "run.json"), "run.json")
-    digest = header.get("inputs_index_sha256")
-    if not isinstance(digest, str) or _SHA256.fullmatch(digest) is None:
-        raise ReplayInputError(
-            "run.json inputs_index_sha256 must be 64 lowercase hex characters"
-        )
-    if header.get("inputs_index_path") != "inputs/index.json":
-        raise ReplayInputError("run.json inputs_index_path must be inputs/index.json")
-    index_path = root / "inputs/index.json"
+    relative_index_path, digest = _validate_run_header(header)
+    index_path = root / relative_index_path
     index_bytes = _read(index_path, "inputs/index.json")
     actual_index_digest = hashlib.sha256(index_bytes).hexdigest()
     if actual_index_digest != digest:

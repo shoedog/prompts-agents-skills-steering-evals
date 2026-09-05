@@ -1,4 +1,4 @@
-"""Golden-run guard for the review-ablation path.
+"""Golden-run guards for review-ablation and structured replay paths.
 
 This test exists to make the review path EXPENSIVE TO BREAK and FREE TO KEEP
 WORKING. It pins the whole no-model-call surface of `experiments/smoke.yaml` —
@@ -50,14 +50,23 @@ import shutil
 import sys
 from pathlib import Path
 
+import pytest
+
 from harness import config, report
 from harness.config import REPO_ROOT
 from harness.gen_promptfoo import gen_promptfoo
+from harness.structured.replay import LoadedRun, replay as replay_structured
 
 CONFIG_PATH = "experiments/smoke.yaml"
 
 GOLDEN = Path(__file__).resolve().parent / "golden" / "smoke"
 RECORDS = GOLDEN / "records"
+STRUCTURED_GOLDEN = Path(__file__).resolve().parent / "golden" / "structured"
+STRUCTURED_FIXTURE = (
+    Path(__file__).resolve().parent
+    / "fixtures/structured/results/st-fixture/20260905T120000Z-fixture"
+)
+STRUCTURED_FILES = ("report.md", "metrics.json")
 
 REPO_PLACEHOLDER = "<REPO>"
 TMP_PLACEHOLDER = "<TMPDIR>"
@@ -122,6 +131,21 @@ def _assert_matches_golden(rel: str, produced: Path, tmp: Path) -> None:
     )
 
 
+def _materialize_structured_run(dest: Path) -> LoadedRun:
+    run_path = dest / "results/st-fixture/20260905T120000Z-fixture"
+    shutil.copytree(STRUCTURED_FIXTURE, run_path)
+    return LoadedRun.load(run_path)
+
+
+def _assert_structured_matches_golden(
+    name: str, produced_run: Path, golden: Path = STRUCTURED_GOLDEN
+) -> None:
+    assert (produced_run / name).read_bytes() == (golden / name).read_bytes(), (
+        f"{name} no longer matches its structured golden. This is a BUILD BREAK: "
+        "establish why the replay output changed before updating the golden."
+    )
+
+
 def test_generation_leg_matches_golden(tmp_path):
     """config -> composed prompts -> both arms' promptfoo YAML, byte-identical."""
     cfg = config.load(CONFIG_PATH)
@@ -153,6 +177,29 @@ def test_reduction_leg_matches_golden(tmp_path):
 
     for rel in REDUCE_FILES:
         _assert_matches_golden(rel, tmp_path / rel, tmp_path)
+
+
+def test_structured_replay_matches_goldens_byte_identically(tmp_path):
+    run = _materialize_structured_run(tmp_path)
+
+    result = replay_structured(run.path)
+
+    assert result.executor_calls == 0
+    for name in STRUCTURED_FILES:
+        _assert_structured_matches_golden(name, run.path)
+
+
+@pytest.mark.parametrize("name", STRUCTURED_FILES)
+def test_structured_golden_perturbation_is_detected(tmp_path, name):
+    run = _materialize_structured_run(tmp_path)
+    replay_structured(run.path)
+    perturbed = tmp_path / "perturbed-structured-golden"
+    shutil.copytree(STRUCTURED_GOLDEN, perturbed)
+    path = perturbed / name
+    path.write_bytes(path.read_bytes() + b"\nperturbed\n")
+
+    with pytest.raises(AssertionError, match="structured golden"):
+        _assert_structured_matches_golden(name, run.path, perturbed)
 
 
 # --------------------------------------------------------------------------- #

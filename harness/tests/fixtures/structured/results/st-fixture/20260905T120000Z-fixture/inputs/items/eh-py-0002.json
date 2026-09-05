@@ -1,0 +1,1 @@
+{"expected":{"label":"swallowed_fatal"},"id":"eh-py-0002","labels":{"primary":{"at":"2026-09-04","by":"a"},"secondary":{"agrees":true,"at":"2026-09-04","by":"b"}},"task":"classify_error_handling"}

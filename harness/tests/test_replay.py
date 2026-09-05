@@ -53,7 +53,7 @@ def test_snapshot_index_has_exact_digest_pair_and_closed_versioned_requests(
         (frozen_structured_run.path / "inputs/requests/eh-py-0001-s0.json").read_bytes()
     )
     assert set(request) == {"item_id", "sample", "versions"}
-    assert list(request["versions"]) == ["baseline", "candidate"]
+    assert list(request["versions"]) == ["baseline", "candidate", "candidate-alt"]
 
 
 def test_replay_uses_no_executor_and_reproduces_reductions(frozen_structured_run):
@@ -119,6 +119,48 @@ def test_index_digest_is_checked_before_index_json_is_parsed(frozen_structured_r
     index_path.write_bytes(b"{not-json")
     with pytest.raises(ReplayInputError, match="inputs_index_sha256 mismatch"):
         replay(frozen_structured_run.path)
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        (
+            lambda header: header.update({"tampered": True}),
+            "run.json unknown key: tampered",
+        ),
+        (
+            lambda header: header.pop("inputs_index_path"),
+            "run.json missing key: inputs_index_path",
+        ),
+        (
+            lambda header: header.update({"inputs_index_path": 1}),
+            "run.json key inputs_index_path must be a string",
+        ),
+    ],
+)
+def test_replay_requires_a_closed_typed_header_before_reading_index(
+    frozen_structured_run, monkeypatch, mutate, message
+):
+    header_path = frozen_structured_run.path / "run.json"
+    header = json.loads(header_path.read_bytes())
+    mutate(header)
+    write_json_atomic(header_path, header)
+    replay_module = __import__("harness.structured.replay", fromlist=["_read"])
+    real_read = replay_module._read
+    index_read = False
+
+    def guarded_read(path, label):
+        nonlocal index_read
+        if label == "inputs/index.json":
+            index_read = True
+            raise AssertionError("index read before run.json header validation")
+        return real_read(path, label)
+
+    monkeypatch.setattr(replay_module, "_read", guarded_read)
+    with pytest.raises(ReplayInputError) as caught:
+        replay(frozen_structured_run.path)
+    assert str(caught.value) == message
+    assert index_read is False
 
 
 @pytest.mark.parametrize("value", [None, "ABC", "a" * 63, "A" * 64])

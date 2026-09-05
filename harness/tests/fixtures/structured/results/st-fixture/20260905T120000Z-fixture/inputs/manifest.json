@@ -1,0 +1,1 @@
+{"class_field":"class","classes":["correct","swallowed_fatal"],"items":[{"contamination_risk":"low","id":"eh-py-0001","split":"dev"},{"contamination_risk":"low","id":"eh-py-0002","split":"dev"}],"schema_version":2,"splits":{"dev":{"items":2,"min_per_class":1}},"task":"classify_error_handling","taskset":"fixture-taskset"}
