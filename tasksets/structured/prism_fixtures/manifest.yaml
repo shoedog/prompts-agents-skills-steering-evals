@@ -1,0 +1,14 @@
+taskset: prism_fixtures
+schema_version: 2
+task: prism_analyzer
+labeling_guide: LABELING.md
+line_tolerance: 3
+classes:
+  - missing_error_handling
+splits:
+  dev: {items: 1, min_per_class: 0}
+  test: {items: 0, min_per_class: 0, consulted: 0}
+items:
+  - id: px-py-absence-0001
+    split: dev
+    contamination_risk: low

@@ -1,0 +1,9 @@
+--- a/src/client.py
++++ b/src/client.py
+@@ -1,2 +1,5 @@
+ def fetch(client):
+-    return client.get()
++    try:
++        return client.get()
++    except TimeoutError:
++        return None

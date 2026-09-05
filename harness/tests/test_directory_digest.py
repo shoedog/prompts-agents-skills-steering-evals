@@ -13,7 +13,7 @@ from harness.structured.taskset import TasksetError, sha256_directory
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-FIXTURE = REPO_ROOT / "tests/fixtures/conformance/digest-001"
+FIXTURE = Path(__file__).resolve().parent / "fixtures/directory_digest_v1"
 
 
 def test_directory_digest_matches_conformance_fixture():
@@ -88,6 +88,28 @@ def test_nfc_path_collision_is_rejected(tmp_path, monkeypatch):
     )
     with pytest.raises(TasksetError, match="normalize to the same path"):
         sha256_directory(tmp_path, ignore=[])
+
+
+def test_walk_order_and_nfc_spelling_do_not_change_digest(tmp_path, monkeypatch):
+    composed = "\N{LATIN SMALL LETTER E WITH ACUTE}.txt"
+    decomposed = "e\N{COMBINING ACUTE ACCENT}.txt"
+    source = tmp_path / "source"
+    source.write_bytes(b"same bytes\n")
+
+    class Entry:
+        def __init__(self, name):
+            self.name = name
+            self.path = str(source)
+
+        def stat(self, *, follow_symlinks):
+            assert follow_symlinks is False
+            return source.stat()
+
+    order = [Entry("z.txt"), Entry(decomposed)]
+    monkeypatch.setattr("harness.structured.taskset.os.scandir", lambda directory: list(order))
+    first = sha256_directory(tmp_path, ignore=[])
+    order[:] = [Entry(composed), Entry("z.txt")]
+    assert sha256_directory(tmp_path, ignore=[]) == first
 
 
 def test_socket_is_rejected(tmp_path, monkeypatch):

@@ -119,6 +119,7 @@ def run_asserts(
 
 
 # Import registered asserts only after the registry primitives exist.
+from harness.structured.asserts import analyzer_match as _analyzer_match  # noqa: E402,F401
 from harness.structured.asserts import consistency as _consistency  # noqa: E402,F401
 from harness.structured.asserts import cost_latency as _cost_latency  # noqa: E402,F401
 from harness.structured.asserts import evidence as _evidence  # noqa: E402,F401

@@ -1,0 +1,16 @@
+kind: analyzer
+id: an-smoke
+taskset: tasksets/structured/prism_fixtures
+split: dev
+prism_bin: env:PRISM_BIN
+modes:
+  algorithm: [absence]
+  language: [python]
+  resolution: [nominal]
+  min_confidence: [nominal]
+baseline_version: absence/python/nominal/nominal
+match: {rule: category_file_line, line_tolerance: 3}
+asserts:
+  - {type: analyzer_match}
+stats: {bootstrap_resamples: 20, seed: 20260904}
+token_budget: {max_items: 1}
