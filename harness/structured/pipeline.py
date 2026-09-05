@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from pathlib import Path
-from typing import Any, Literal, Mapping, NotRequired, Protocol, Sequence, TypedDict
+from typing import Any, Mapping, Sequence
 
 from jsonschema import Draft202012Validator
 
 from harness.structured.executors import ExecutorError
+from harness.structured.pipeline_types import (
+    ExecutorRegistry,
+    PipelineResult,
+    StageConfig,
+    StageExecutor,
+    VersionConfig,
+)
 from harness.structured.results import ResultsWriter
 from harness.structured.schema_ref import resolve_schema_ref
 from harness.structured.taskset import TaskItem, TasksetError, verified_json
@@ -18,44 +25,6 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 _PIN_MODES = frozenset({"from_item", "never", "if_absent"})
 _STAGE_TYPES = frozenset({"file", "prism", "harness", "llm"})
 _HARNESS_UNAVAILABLE = "runtime harness stage not implemented"
-
-
-class StageConfig(TypedDict):
-    name: str
-    type: Literal["file", "prism", "harness", "llm"]
-    pin: Literal["from_item", "never", "if_absent"]
-    task: NotRequired[str]
-    algorithm: NotRequired[str]
-
-
-class VersionConfig(TypedDict):
-    name: str
-    task_version: str
-    stage: NotRequired[str]
-    model: NotRequired[str]
-    seed: NotRequired[int]
-
-
-class StageExecutor(Protocol):
-    def __call__(
-        self,
-        *,
-        stage: StageConfig,
-        item: TaskItem,
-        version: VersionConfig,
-        inputs: Mapping[str, dict[str, Any]],
-        writer: ResultsWriter,
-    ) -> dict[str, Any]: ...
-
-
-ExecutorRegistry = Mapping[str, StageExecutor]
-
-
-@dataclass(frozen=True)
-class PipelineResult:
-    replay: tuple[dict[str, Any], ...]
-    output: dict[str, Any] | None
-    stage_error: str | None
 
 
 def _schema(ref: str) -> dict[str, Any]:

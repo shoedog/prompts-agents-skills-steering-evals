@@ -23,15 +23,16 @@ from harness.structured.runner_config import (
     _analyzer_config_snapshot,
     _item_snapshot,
 )
+from harness.structured.analyzer_runner_finalize import verify_analyzer_records
 from harness.structured.runner_types import (
     Clock,
-    IntegrityError,
     RunResult,
     StaleRunError,
     _timestamp_parts,
 )
 from harness.structured.snapshots import write_input_snapshots
 from harness.structured.taskset import load_taskset
+
 
 def run_analyzer(
     cfg: AnalyzerConfig,
@@ -276,21 +277,7 @@ def run_analyzer(
 
     loaded = LoadedRun.load(run_dir)
     metrics = render_analyzer(loaded)
-    expected = {(mode.version, item.id, 0) for mode, item in pairs}
-    for records, label in (
-        (loaded.calls, "calls"),
-        (loaded.stages, "stages"),
-        (loaded.asserts, "asserts"),
-    ):
-        actual = {
-            (record.get("version"), record.get("item_id"), record.get("sample"))
-            for record in records
-        }
-        if actual != expected:
-            raise IntegrityError(
-                f"analyzer {label} identity mismatch: missing={sorted(expected - actual)}, "
-                f"extra={sorted(actual - expected)}"
-            )
+    verify_analyzer_records(loaded, pairs)
     return RunResult(
         run_dir=run_dir,
         metrics=metrics,
