@@ -17,7 +17,8 @@ from typing import TYPE_CHECKING, Any
 from harness.metrics import mcnemar_p
 from harness.stats.bootstrap import paired_delta_ci, percentile
 from harness.stats.paired import flips
-from harness.structured.asserts import Population, run_asserts
+from harness.structured.assertion_context import assertion_context, call_number
+from harness.structured.asserts import run_asserts
 from harness.structured.calibration import brier, cohen_kappa
 from harness.structured.metrics import (
     INVALID_PREDICTION,
@@ -48,21 +49,6 @@ def _version_names(config: Mapping[str, Any]) -> tuple[str, ...]:
     if len(names) != len(versions) or any(not isinstance(name, str) for name in names):
         raise ValueError("every snapshot config version must have a name")
     return names
-
-
-def _call_number(call: Mapping[str, Any], field: str) -> float:
-    value = call.get(field)
-    if value is None and field == "cost_usd":
-        envelope = call.get("llm_envelope")
-        value = envelope.get(field) if isinstance(envelope, Mapping) else None
-    if (
-        not isinstance(value, (int, float))
-        or isinstance(value, bool)
-        or not math.isfinite(value)
-        or value < 0
-    ):
-        raise ValueError(f"call {field} must be a finite nonnegative number")
-    return float(value)
 
 
 def _prediction(row: ScoredSample) -> str:
@@ -112,13 +98,13 @@ def _kappa(classes: Sequence[str]):
 
 
 def _cost_per_item(bundles: Sequence[dict[str, Any]]) -> float:
-    return math.fsum(_call_number(call, "cost_usd") for call in _flatten_calls(bundles)) / len(
+    return math.fsum(call_number(call, "cost_usd") for call in _flatten_calls(bundles)) / len(
         bundles
     )
 
 
 def _p95_latency(bundles: Sequence[dict[str, Any]]) -> float:
-    durations = [_call_number(call, "duration_ms") for call in _flatten_calls(bundles)]
+    durations = [call_number(call, "duration_ms") for call in _flatten_calls(bundles)]
     return percentile(durations, 0.95)
 
 
@@ -210,35 +196,14 @@ def _assert_rows(
     cfg = {**run.config, "classes": list(classes)}
     for version in _version_names(run.config):
         excluded_item_ids = _stage_error_item_ids(calls_by_version_item[version])
-        run_calls = [
-            call
-            for item_id in sorted(calls_by_version_item[version])
-            for call in calls_by_version_item[version][item_id]
-            if item_id not in excluded_item_ids
-        ]
-        if not run_calls:
-            continue
-        run_samples = [_assert_sample(call) for call in run_calls]
-        run_population = (
-            run_samples,
-            Population(
-                kind="run",
-                item_count=len({call["item_id"] for call in run_calls}),
-                sample_count=len(run_calls),
-            ),
-        )
         for item_id in sorted(calls_by_version_item[version]):
             if item_id in excluded_item_ids:
                 continue
             item_calls = calls_by_version_item[version][item_id]
-            item_samples = [_assert_sample(call) for call in item_calls]
-            populations = {
-                "per_item": (
-                    item_samples,
-                    Population("per_item", item_count=1, sample_count=len(item_samples)),
-                ),
-                "run": run_population,
-            }
+            context = assertion_context(run.calls, version=version, item_id=item_id)
+            if context is None:
+                continue
+            item_samples, populations = context
             for call in item_calls:
                 envelope = call.get("llm_envelope")
                 output = envelope.get("response") if isinstance(envelope, Mapping) else None
@@ -280,12 +245,6 @@ def _assert_rows(
                     }
                 )
     return rows
-
-
-def _assert_sample(call: Mapping[str, Any]) -> dict[str, Any]:
-    sample = dict(call)
-    sample.setdefault("cost_usd", _call_number(call, "cost_usd"))
-    return sample
 
 
 def _stage_error_item_ids(grouped: Mapping[str, Sequence[Mapping[str, Any]]]) -> set[str]:

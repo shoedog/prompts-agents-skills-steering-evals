@@ -28,7 +28,8 @@ from jsonschema import Draft202012Validator
 
 from harness.providers.binpath import resolve_executable
 from harness.resultsdir import check_structured_stale_results_dir
-from harness.structured.asserts import Population, get, run_asserts
+from harness.structured.assertion_context import assertion_context
+from harness.structured.asserts import get, run_asserts
 from harness.structured.cache import cache_key
 from harness.structured.config import AnalyzerConfig, StructuredConfig
 from harness.structured.executors import ExecutionRequest, ExecutionResult, Executor
@@ -496,46 +497,26 @@ def _write_assert_records(
     classes: tuple[str, ...],
 ) -> None:
     for version in [entry["name"] for entry in config["versions"]]:
-        run_calls = [
-            call
-            for call in calls
-            if call["version"] == version and not call.get("stage_error")
-        ]
-        run_samples = [dict(call) for call in run_calls]
-        run_population = (
-            run_samples,
-            Population(
-                "run",
-                item_count=len({call["item_id"] for call in run_calls}),
-                sample_count=len(run_calls),
-            ),
-        ) if run_calls else None
         for call in [row for row in calls if row["version"] == version]:
             relative = PurePosixPath(
                 "asserts", f"{version}-{call['item_id']}-{call['sample']}.json"
             )
-            if call.get("stage_error"):
+            context = assertion_context(
+                calls, version=version, item_id=call["item_id"]
+            )
+            if context is None:
                 writer.write_json_once(
                     relative,
                     {
                         "item_id": call["item_id"],
                         "version": version,
                         "sample": call["sample"],
-                        "stage_error": call["stage_error"],
+                        "stage_error": call.get("stage_error", "excluded_by_stage_error"),
                         "asserts": [],
                     },
                 )
                 continue
-            item_calls = [row for row in run_calls if row["item_id"] == call["item_id"]]
-            item_samples = [dict(row) for row in item_calls]
-            populations = {
-                "per_item": (
-                    item_samples,
-                    Population("per_item", item_count=1, sample_count=len(item_samples)),
-                )
-            }
-            if run_population is not None:
-                populations["run"] = run_population
+            item_samples, populations = context
             results = run_asserts(
                 output=call["output"],
                 raw=call["raw"],

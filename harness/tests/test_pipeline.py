@@ -498,6 +498,55 @@ def test_pl_smoke_cli_runs_end_to_end_with_fake_llm_layer_on_path(
     assert (run_dir / "report.md").is_file()
 
 
+def test_pipeline_stored_cost_assert_receives_declared_population(
+    tmp_path, monkeypatch, capsys
+):
+    root = tmp_path / "repo"
+    root.mkdir()
+    shutil.copytree(Path("contracts"), root / "contracts")
+    shutil.copytree(
+        Path("tasksets/structured/eh_pipeline"),
+        root / "tasksets/structured/eh_pipeline",
+    )
+    config = root / "experiments/structured/pl-smoke.yaml"
+    config.parent.mkdir(parents=True)
+    shutil.copy2(Path("experiments/structured/pl-smoke.yaml"), config)
+    document = yaml.safe_load(config.read_text())
+    document["asserts"] = [
+        {
+            "type": "cost_latency",
+            "population": "run",
+            "max_usd_per_call": 0.02,
+        }
+    ]
+    config.write_text(yaml.safe_dump(document, sort_keys=False))
+
+    binary = tmp_path / "bin/llm-layer"
+    _write_fake_llm(binary)
+    monkeypatch.setenv("FAKE_LLM_RESPONSE", json.dumps(_classification()))
+    monkeypatch.setenv("PATH", f"{binary.parent}{os.pathsep}{os.environ['PATH']}")
+    from harness.structured.run import main
+
+    assert main([str(config), "--jobs", "1"]) == 0
+    output = capsys.readouterr().out.splitlines()
+    emitted = next(
+        line.removeprefix("RESULTS_DIR=")
+        for line in output
+        if line.startswith("RESULTS_DIR=")
+    )
+    stored = json.loads(next((Path(emitted) / "asserts").glob("*.json")).read_text())
+
+    assert stored["asserts"] == [
+        {
+            "detail": "cost and latency within limits",
+            "hard": False,
+            "name": "cost_latency",
+            "passed": True,
+            "score": None,
+        }
+    ]
+
+
 def test_pipeline_scores_invalid_terminal_document_with_maximum_brier_penalty(
     tmp_path, monkeypatch, capsys
 ):

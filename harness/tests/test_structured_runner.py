@@ -15,7 +15,7 @@ import yaml
 from harness.structured.config import load_config
 from harness.structured.executors import ExecutionResult, ExecutorError
 from harness.structured.metrics import normalize_sample
-from harness.structured.replay import LoadedRun
+from harness.structured.replay import LoadedRun, replay
 from harness.structured.report import summarize
 from harness.structured.results import canonical_json
 from harness.structured.runner import RunResult, run_structured
@@ -366,6 +366,40 @@ def test_structured_smoke_writes_exact_tree(run_smoke):
         "metrics.json",
         "report.md",
     }
+
+
+def test_stored_cost_assertions_equal_reduction_and_replay(tmp_path):
+    build_v2_taskset(
+        tmp_path,
+        items=[{"id": "eh-py-0001", "label": "correct"}],
+    )
+    config_path = _write_config(tmp_path)
+    document = yaml.safe_load(config_path.read_text())
+    document["asserts"] = [
+        {
+            "type": "cost_latency",
+            "population": "run",
+            "max_usd_per_call": 0.02,
+        }
+    ]
+    config_path.write_text(yaml.safe_dump(document, sort_keys=False))
+    cfg = load_config(config_path, root=tmp_path)
+
+    result = run_structured(
+        cfg,
+        executor_factory=lambda version: FixtureExecutor(version),
+        clock=FixedClock("2026-09-04T18:40:11Z"),
+        force=False,
+        no_cache=True,
+        only=frozenset(),
+    )
+    stored = json.loads(next((result.run_dir / "asserts").glob("*.json")).read_text())
+    reduced = summarize(LoadedRun.load(result.run_dir))["worst_rows"][0]["asserts"]
+    replay(result.run_dir)
+    replayed = summarize(LoadedRun.load(result.run_dir))["worst_rows"][0]["asserts"]
+
+    assert stored["asserts"] == reduced == replayed
+    assert stored["asserts"][0]["passed"] is True
 
 
 def test_second_run_hits_cache_and_no_cache_bypasses_reads(run_smoke):

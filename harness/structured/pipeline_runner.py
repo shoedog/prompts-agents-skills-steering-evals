@@ -15,6 +15,7 @@ from typing import Any
 from jsonschema import Draft202012Validator
 
 from harness.resultsdir import check_structured_stale_results_dir
+from harness.structured.assertion_context import assertion_context
 from harness.structured.asserts import run_asserts
 from harness.structured.config import PipelineConfig
 from harness.structured.pipeline import VersionConfig, run_pipeline_item
@@ -225,13 +226,19 @@ def run_pipeline(
                 "asserts": [],
             }
         else:
+            context = assertion_context(
+                calls, version=call["version"], item_id=call["item_id"]
+            )
+            assert context is not None
+            item_samples, populations = context
             assertions = run_asserts(
                 output=call["output"],
                 raw=call["raw"],
                 expected=item_snapshots[call["item_id"]]["expected"],
                 item=item_snapshots[call["item_id"]],
                 cfg={**config, "classes": list(taskset.classes)},
-                samples=[call],
+                samples=item_samples,
+                populations=populations,
             )
             record = {
                 "item_id": call["item_id"],
