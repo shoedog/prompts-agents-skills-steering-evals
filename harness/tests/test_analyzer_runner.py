@@ -20,6 +20,7 @@ from harness.structured.analyzer import (
 )
 from harness.structured.asserts.analyzer_match import match_findings
 from harness.structured.config import ConfigError
+from harness.structured.replay import replay
 from harness.structured.taskset import InputRef, TaskItem
 
 
@@ -365,6 +366,29 @@ def test_analyzer_cli_writes_complete_results_tree_with_fake_prism(tmp_path, mon
     assert assertion["asserts"][0]["name"] == "analyzer_match"
     assert metrics["versions"]["absence/python/nominal/nameonly"]["n_items"] == 1
     assert metrics["versions"]["absence/python/nominal/nameonly"]["micro"]["f1"] == 1.0
+
+
+def test_analyzer_replay_uses_finding_reducer_without_executor(tmp_path, monkeypatch):
+    from harness.structured import run as run_module
+
+    root = _copy_analyzer_smoke_root(tmp_path)
+    binary = _fake_prism(
+        tmp_path,
+        help_text="Usage: prism --resolution --min-confidence",
+        document=_recorded("absence-nominal.sarif.json"),
+    )
+    monkeypatch.setenv("PRISM_BIN", str(binary))
+    monkeypatch.setattr(run_module, "_CLOCK", _FixedClock("2026-09-05T12:00:00Z"))
+    assert run_module.main([str(root / "experiments/structured/an-smoke.yaml")]) == 0
+    run_dir = next((root / "results/an-smoke").iterdir())
+    before_calls = binary.with_suffix(".calls").read_bytes()
+    expected = json.loads((run_dir / "metrics.json").read_text())
+
+    result = replay(run_dir)
+
+    assert result.executor_calls == 0
+    assert result.metrics == expected
+    assert binary.with_suffix(".calls").read_bytes() == before_calls
 
 
 def test_analyzer_cli_records_missing_prism_and_excludes_item(tmp_path, monkeypatch):

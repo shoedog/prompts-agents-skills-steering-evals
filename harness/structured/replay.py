@@ -296,15 +296,20 @@ def _load_run(root: Path) -> LoadedRun:
 
 def replay(results_dir: Path) -> ReplayResult:
     """Authenticate a supplied tree and deterministically rewrite its reductions."""
-    from harness.structured.report import render
-
     run = LoadedRun.load(results_dir)
-    summary = render(run)
-    metrics = {
-        key: value
-        for key, value in summary.items()
-        if key not in {"calls", "scored_rows", "worst_rows"}
-    }
+    if run.config.get("kind") == "analyzer":
+        from harness.structured.analyzer_report import render_analyzer
+
+        metrics = render_analyzer(run)
+    else:
+        from harness.structured.report import render
+
+        summary = render(run)
+        metrics = {
+            key: value
+            for key, value in summary.items()
+            if key not in {"calls", "scored_rows", "worst_rows"}
+        }
     json_metrics = json.loads(canonical_json(metrics))
     return ReplayResult(executor_calls=0, metrics=json_metrics)
 

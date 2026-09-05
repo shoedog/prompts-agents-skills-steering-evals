@@ -28,6 +28,7 @@ from jsonschema import Draft202012Validator
 
 from harness.providers.binpath import resolve_executable
 from harness.resultsdir import check_structured_stale_results_dir
+from harness.structured.analyzer_report import render_analyzer
 from harness.structured.assertion_context import assertion_context
 from harness.structured.asserts import get, run_asserts
 from harness.structured.cache import cache_key
@@ -1025,10 +1026,8 @@ def run_analyzer(
         )
         calls.append(call)
 
-    metrics = _analyzer_metrics(cfg, run_dir=run_dir, items=items, calls=calls)
-    writer.write_json(PurePosixPath("metrics.json"), metrics)
-    (run_dir / "report.md").write_text(_analyzer_report(metrics))
     loaded = LoadedRun.load(run_dir)
+    metrics = render_analyzer(loaded)
     expected = {(mode.version, item.id, 0) for mode, item in pairs}
     for records, label in (
         (loaded.calls, "calls"),
