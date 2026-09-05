@@ -533,3 +533,31 @@ def test_only_rejects_unknown_item_before_executor_creation(tmp_path):
         )
     assert created is False
     assert not (tmp_path / "results").exists()
+
+
+def test_structured_budget_stops_dispatch_after_first_positive_cost(tmp_path):
+    build_v2_taskset(
+        tmp_path,
+        items=[
+            {"id": "eh-py-0001", "label": "correct"},
+            {"id": "eh-py-0002", "label": "correct"},
+        ],
+    )
+    cfg = replace(
+        load_config(_write_config(tmp_path), root=tmp_path),
+        jobs=1,
+        token_budget={"max_cost_usd": 0.0, "max_items": 2},
+    )
+    executor = FixtureExecutor(cfg.versions[0])
+
+    with pytest.raises(RuntimeError, match="max_cost_usd"):
+        run_structured(
+            cfg,
+            executor_factory=lambda _version: executor,
+            clock=FixedClock("2026-09-04T18:40:11Z"),
+            force=False,
+            no_cache=True,
+            only=frozenset(),
+        )
+
+    assert executor.calls == 1

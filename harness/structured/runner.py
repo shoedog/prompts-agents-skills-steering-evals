@@ -17,7 +17,7 @@ import re
 import tempfile
 import time
 from collections.abc import Mapping
-from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from copy import deepcopy
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -1172,9 +1172,16 @@ def run_structured(
                         )
                     )
         response_validator = Draft202012Validator(cfg.response_schema)
+        max_cost = float(cfg.token_budget["max_cost_usd"])
+        spent = 0.0
+        budget_reached = False
+        next_work = 0
         with ThreadPoolExecutor(max_workers=cfg.jobs) as pool:
-            futures: list[Future[_Completed]] = [
-                pool.submit(
+            futures: dict[Future[_Completed], int] = {}
+
+            def submit(work_index: int) -> None:
+                work = work_items[work_index]
+                future = pool.submit(
                     _run_one,
                     work,
                     executor=executors[work.version["name"]],
@@ -1184,9 +1191,36 @@ def run_structured(
                     no_cache=no_cache,
                     response_validator=response_validator,
                 )
-                for work in work_items
-            ]
-            completed = [future.result() for future in futures]
+                futures[future] = work_index
+
+            while next_work < len(work_items) and len(futures) < cfg.jobs:
+                submit(next_work)
+                next_work += 1
+
+            while futures:
+                done, _ = wait(futures, return_when=FIRST_COMPLETED)
+                for future in sorted(done, key=futures.__getitem__):
+                    futures.pop(future)
+                    if future.cancelled():
+                        continue
+                    result = future.result()
+                    completed.append(result)
+                    if result.call["cache"] == "miss":
+                        spent += float(result.call["llm_envelope"]["cost_usd"])
+                if spent > 0.0 and spent >= max_cost:
+                    budget_reached = True
+                    for future in futures:
+                        future.cancel()
+                if not budget_reached:
+                    while next_work < len(work_items) and len(futures) < cfg.jobs:
+                        submit(next_work)
+                        next_work += 1
+
+        if budget_reached:
+            raise RuntimeError(
+                "token_budget.max_cost_usd reached after provider invocation: "
+                f"reported ${spent:.6f} against ${max_cost:.6f}"
+            )
 
     completed.sort(key=lambda value: value.key)
     calls = [value.call for value in completed]

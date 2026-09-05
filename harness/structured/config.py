@@ -149,6 +149,9 @@ def load_config(
     if not isinstance(budget, dict):
         raise ConfigError("token_budget must be an object")
     _positive_int(budget.get("max_items"), "max_items")
+    max_cost = budget.get("max_cost_usd")
+    if not isinstance(max_cost, (int, float)) or isinstance(max_cost, bool) or max_cost < 0:
+        raise ConfigError("token_budget.max_cost_usd must be nonnegative")
     taskset_raw = raw.get("taskset")
     if not isinstance(taskset_raw, str):
         raise ConfigError("taskset must be a path string")

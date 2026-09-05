@@ -59,6 +59,10 @@ def test_load_structured_config_resolves_paths_and_is_frozen(tmp_path):
         ({"samples_per_item": 0}, "samples_per_item"),
         ({"stats": {"bootstrap_resamples": 0, "seed": 1}}, "bootstrap_resamples"),
         ({"token_budget": {"max_items": 0}}, "max_items"),
+        (
+            {"token_budget": {"max_items": 1, "max_cost_usd": -0.01}},
+            "max_cost_usd",
+        ),
         ({"jobs": 0}, "jobs"),
         ({"split": "holdout"}, "split"),
     ],
