@@ -17,7 +17,7 @@ from harness.structured.pipeline import (
     run_pipeline_item,
 )
 from harness.structured.results import ResultsWriter
-from harness.structured.pipeline_stages import LlmStage, request_body
+from harness.structured.pipeline_stages import LlmStage, error_envelope, request_body
 from harness.structured.taskset import InputRef, TaskItem, TasksetError
 
 
@@ -112,6 +112,18 @@ def test_llm_stage_rejects_invalid_request_before_dispatch(
         )
 
     assert calls == []
+
+
+def test_failure_envelopes_have_distinct_invocation_identities(pipeline_fixture):
+    request = request_body(
+        item=pipeline_fixture["item"],
+        version=pipeline_fixture["version"],
+        inputs=pipeline_fixture["item"].input_values,
+    )
+    first = error_envelope(pipeline_fixture["version"], request, item_id="item-1")
+    second = error_envelope(pipeline_fixture["version"], request, item_id="item-2")
+
+    assert first["invocation_id"] != second["invocation_id"]
 
 
 def _write_pin(root: Path, name: str, value: dict[str, Any]) -> InputRef:

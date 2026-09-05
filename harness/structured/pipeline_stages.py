@@ -117,10 +117,27 @@ def run_prism_stage(
     return value
 
 
-def error_envelope(version: VersionConfig, request: Mapping[str, Any]) -> dict[str, Any]:
+def _invocation_id(identity_inputs: Mapping[str, Any]) -> str:
+    identity = hashlib.sha256(canonical_json(identity_inputs)).hexdigest()
+    return (
+        f"{identity[:8]}-{identity[8:12]}-4{identity[13:16]}-"
+        f"8{identity[17:20]}-{identity[20:32]}"
+    )
+
+
+def error_envelope(
+    version: VersionConfig, request: Mapping[str, Any], *, item_id: str
+) -> dict[str, Any]:
     return {
         "schema_version": "1",
-        "invocation_id": "00000000-0000-4000-8000-000000000000",
+        "invocation_id": _invocation_id(
+            {
+                "kind": "executor_failure",
+                "item_id": item_id,
+                "version": version,
+                "request": request,
+            }
+        ),
         "task": "classify_error_handling",
         "task_version": version["task_version"],
         "provider": "unavailable",
@@ -140,7 +157,7 @@ def error_envelope(version: VersionConfig, request: Mapping[str, Any]) -> dict[s
         },
         "cost_usd": 0.0,
         "response": {"class": "provider_error"},
-        "log_path": "",
+        "log_path": "unavailable:executor_failure",
     }
 
 
@@ -151,14 +168,13 @@ def pinned_envelope(
     *,
     item_id: str,
 ) -> dict[str, Any]:
-    identity = hashlib.sha256(
-        canonical_json(
-            {"item_id": item_id, "version": version["name"], "response": response}
-        )
-    ).hexdigest()
-    invocation_id = (
-        f"{identity[:8]}-{identity[8:12]}-4{identity[13:16]}-"
-        f"8{identity[17:20]}-{identity[20:32]}"
+    invocation_id = _invocation_id(
+        {
+            "kind": "authenticated_pin",
+            "item_id": item_id,
+            "version": version["name"],
+            "response": response,
+        }
     )
     return {
         "schema_version": "1",

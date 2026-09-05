@@ -139,7 +139,7 @@ def run_pipeline(
                         version, request, result.output, item_id=item.id
                     )
                 else:
-                    envelope = error_envelope(version, request)
+                    envelope = error_envelope(version, request, item_id=item.id)
                 normalized = normalize_response(envelope, response_validator)
                 duration_ms = max(0, round((time.monotonic() - started) * 1000))
                 call: dict[str, Any] = {
