@@ -44,8 +44,11 @@ def request_body(
 
 
 class LlmStage:
-    def __init__(self, scratch: Path) -> None:
+    def __init__(
+        self, scratch: Path, *, planned_request: Mapping[str, Any] | None = None
+    ) -> None:
         self.scratch = scratch
+        self.planned_request = planned_request
         self.envelope: dict[str, Any] | None = None
         self.request: dict[str, Any] | None = None
 
@@ -59,7 +62,11 @@ class LlmStage:
         writer: ResultsWriter,
     ) -> dict[str, Any]:
         del writer
-        request = request_body(item=item, version=version, inputs=inputs)
+        request = (
+            dict(self.planned_request)
+            if self.planned_request is not None
+            else request_body(item=item, version=version, inputs=inputs)
+        )
         validate_request(request)
         self.request = request
         request_file = self.scratch / f"{version['name']}-{item.id}.json"

@@ -10,7 +10,7 @@ from copy import deepcopy
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, Sequence
 
 from jsonschema import Draft202012Validator
 
@@ -18,7 +18,7 @@ from harness.resultsdir import check_structured_stale_results_dir
 from harness.structured.assertion_context import assertion_context
 from harness.structured.asserts import run_asserts
 from harness.structured.config import PipelineConfig
-from harness.structured.pipeline import VersionConfig, run_pipeline_item
+from harness.structured.pipeline import VersionConfig, run_pipeline_item, validate_request
 from harness.structured.normalization import normalize_response
 from harness.structured.pipeline_stages import (
     LlmStage,
@@ -33,7 +33,7 @@ from harness.structured.report import render
 from harness.structured.results import ResultsWriter, canonical_json, confined_run_dir
 from harness.structured.runner import StaleRunError
 from harness.structured.snapshots import write_input_snapshots
-from harness.structured.taskset import load_taskset
+from harness.structured.taskset import TaskItem, TasksetError, load_taskset
 
 
 @dataclass(frozen=True)
@@ -76,6 +76,42 @@ def _config_snapshot(cfg: PipelineConfig, task: str) -> dict[str, Any]:
     }
 
 
+def _plan_requests(
+    items: Sequence[TaskItem], cfg: PipelineConfig
+) -> dict[tuple[str, str], dict[str, Any]]:
+    planned: dict[tuple[str, str], dict[str, Any]] = {}
+    for item in items:
+        available: dict[str, dict[str, Any]] = {}
+        declarations = item.raw.get("stages", {})
+        for stage in cfg.stages:
+            if stage["type"] == "llm":
+                break
+            name = stage["name"]
+            declaration = declarations.get(name, {})
+            has_pin = isinstance(declaration.get("pin"), str)
+            use_pin = stage["pin"] == "from_item" or (
+                stage["pin"] == "if_absent" and has_pin
+            )
+            if use_pin and name in item.input_values:
+                available[name] = item.input_values[name]
+        if not {"targets", "observation"}.issubset(available):
+            continue
+        for raw_version in cfg.versions:
+            version: VersionConfig = {
+                **deepcopy(raw_version),
+                "seed": cfg.seed,
+            }
+            try:
+                request = request_body(item=item, version=version, inputs=available)
+                validate_request(request)
+            except (KeyError, TypeError, ValueError) as error:
+                raise TasksetError(
+                    f"pipeline planning failed for item {item.id}: {error}"
+                ) from error
+            planned[(item.id, version["name"])] = request
+    return planned
+
+
 def run_pipeline(
     cfg: PipelineConfig,
     *,
@@ -93,6 +129,7 @@ def run_pipeline(
     items = tuple(by_id[item_id] for item_id in sorted(only or by_id))
     if not items:
         raise ValueError("pipeline run selected no items")
+    planned_requests = _plan_requests(items, cfg)
     llm_stage = next(stage for stage in cfg.stages if stage["type"] == "llm")
     config = _config_snapshot(cfg, llm_stage["task"])
     digest = hashlib.sha256(canonical_json(config) + b"\n").hexdigest()
@@ -122,7 +159,10 @@ def run_pipeline(
                 }
                 started_at = clock.now()
                 started = time.monotonic()
-                llm = LlmStage(Path(temporary))
+                llm = LlmStage(
+                    Path(temporary),
+                    planned_request=planned_requests.get((item.id, version["name"])),
+                )
                 result = run_pipeline_item(
                     item,
                     version,

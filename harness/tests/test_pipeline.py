@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import shutil
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -12,13 +13,25 @@ import pytest
 import yaml
 
 from harness.structured.executors import ExecutorError
+from harness.structured.config import PipelineConfig, load_config
 from harness.structured.pipeline import (
     PipelineResult,
     run_pipeline_item,
 )
+from harness.structured.pipeline_runner import run_pipeline
 from harness.structured.results import ResultsWriter
-from harness.structured.pipeline_stages import LlmStage, error_envelope, request_body
-from harness.structured.taskset import InputRef, TaskItem, TasksetError
+from harness.structured.pipeline_stages import (
+    LlmStage,
+    error_envelope,
+    pinned_envelope,
+    request_body,
+)
+from harness.structured.taskset import (
+    InputRef,
+    TaskItem,
+    TasksetError,
+    load_taskset,
+)
 
 
 TARGET_ID = "1" * 64
@@ -112,6 +125,68 @@ def test_llm_stage_rejects_invalid_request_before_dispatch(
         )
 
     assert calls == []
+
+
+def test_pipeline_planning_rejects_later_null_fault_before_any_dispatch(
+    tmp_path, monkeypatch
+):
+    loaded = load_taskset(
+        Path("tasksets/structured/eh_pipeline"), split="dev", max_items=10
+    )
+    first = loaded.items[0]
+    second_observation = {**first.input_values["observation"], "fault": None}
+    second = replace(
+        first,
+        id="plx-py-0002",
+        input_values={**first.input_values, "observation": second_observation},
+        raw={**first.raw, "id": "plx-py-0002"},
+    )
+    second_summary = {**loaded.manifest["items"][0], "id": second.id}
+    selected = replace(
+        loaded,
+        items=(first, second),
+        manifest={
+            **loaded.manifest,
+            "items": [*loaded.manifest["items"], second_summary],
+        },
+    )
+    monkeypatch.setattr(
+        "harness.structured.pipeline_runner.load_taskset", lambda *args, **kwargs: selected
+    )
+    calls = []
+
+    class RecordingExecutor:
+        def run(self, execution_request):
+            calls.append(execution_request)
+            request = json.loads(execution_request.request_file.read_bytes())
+            version = {
+                "name": execution_request.model,
+                "task_version": execution_request.task_version,
+            }
+            return SimpleNamespace(
+                envelope=pinned_envelope(
+                    version, request, _classification(), item_id=f"recorded-{len(calls)}"
+                )
+            )
+
+    monkeypatch.setattr(
+        "harness.structured.pipeline_stages.LlmLayerExecutor", RecordingExecutor
+    )
+    cfg = load_config("experiments/structured/pl-smoke.yaml")
+    assert isinstance(cfg, PipelineConfig)
+    cfg = replace(cfg, root=tmp_path, taskset=tmp_path / "taskset")
+    clock = SimpleNamespace(now=lambda: "2026-09-05T14:00:00Z")
+
+    planning_error = None
+    try:
+        run_pipeline(cfg, clock=clock, force=False, only=frozenset())
+    except TasksetError as error:
+        planning_error = error
+
+    assert (
+        planning_error is not None and "plx-py-0002" in str(planning_error),
+        len(calls),
+    ) == (True, 0)
 
 
 def test_failure_envelopes_have_distinct_invocation_identities(pipeline_fixture):
