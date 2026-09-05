@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://defect-tooling.local/contracts/taskset_v2.schema.json",
+  "title": "Structured evaluation taskset item v2",
+  "oneOf": [
+    {"$ref": "#/$defs/classification_item"},
+    {"$ref": "#/$defs/analyzer_item"},
+    {"$ref": "#/$defs/pipeline_item"}
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "input_ref": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "dependency_semantics": {
+      "type": "object",
+      "required": ["source"],
+      "additionalProperties": false,
+      "properties": {
+        "source": {"enum": ["catalog", "openapi", "proto", "docs", "none"]},
+        "text": {"type": "string", "maxLength": 8000}
+      }
+    },
+    "label": {
+      "type": "object",
+      "required": ["by", "at"],
+      "additionalProperties": false,
+      "properties": {
+        "by": {"type": "string", "minLength": 1},
+        "at": {"type": "string", "format": "date"},
+        "agrees": {"type": "boolean"}
+      }
+    },
+    "labels": {
+      "type": "object",
+      "required": ["primary"],
+      "additionalProperties": false,
+      "properties": {
+        "primary": {"$ref": "#/$defs/label"},
+        "secondary": {"$ref": "#/$defs/label"}
+      }
+    },
+    "common": {
+      "type": "object",
+      "required": ["id", "task", "language", "source", "split", "contamination_risk", "expected"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+        "task": {"type": "string", "minLength": 1},
+        "language": {"type": "string", "minLength": 1},
+        "source": {"enum": ["mined", "synthetic", "incident", "fixture", "observed"]},
+        "split": {"enum": ["dev", "test"]},
+        "contamination_risk": {"enum": ["low", "medium", "high"]},
+        "ignore": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "expected": {"type": "object"}
+      }
+    },
+    "classification_expected": {
+      "type": "object",
+      "required": ["label", "confidence_min", "rationale_must_mention", "evidence_lines_subset"],
+      "additionalProperties": false,
+      "properties": {
+        "label": {"enum": ["correct", "swallowed_fatal", "retried_non_retryable", "no_retry_on_transient", "partial_as_success", "resource_leak_on_error", "missing_timeout", "unbounded_retry", "unclear"]},
+        "confidence_min": {"type": "number", "minimum": 0, "maximum": 1},
+        "rationale_must_mention": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "evidence_lines_subset": {"type": "array", "items": {"type": "integer", "minimum": 1}, "uniqueItems": true}
+      }
+    },
+    "classification_inputs": {
+      "type": "object",
+      "required": ["target", "slice", "observation"],
+      "additionalProperties": false,
+      "properties": {
+        "target": {"$ref": "#/$defs/input_ref"},
+        "slice": {"$ref": "#/$defs/input_ref"},
+        "observation": {"$ref": "#/$defs/input_ref"},
+        "dependency_semantics": {"$ref": "#/$defs/dependency_semantics"}
+      }
+    },
+    "classification_item": {
+      "allOf": [
+        {"$ref": "#/$defs/common"},
+        {
+          "type": "object",
+          "required": ["defect_class", "inputs", "labels"],
+          "additionalProperties": false,
+          "properties": {
+            "id": true,
+            "task": {"const": "classify_error_handling"},
+            "defect_class": {"type": "string", "minLength": 1},
+            "language": true,
+            "source": true,
+            "split": true,
+            "contamination_risk": true,
+            "ignore": true,
+            "inputs": {"$ref": "#/$defs/classification_inputs"},
+            "expected": {"$ref": "#/$defs/classification_expected"},
+            "labels": {"$ref": "#/$defs/labels"}
+          }
+        }
+      ]
+    },
+    "finding": {
+      "type": "object",
+      "required": ["category", "file", "line"],
+      "additionalProperties": false,
+      "properties": {
+        "category": {"type": "string"},
+        "file": {"type": "string"},
+        "line": {"type": "integer", "minimum": 1},
+        "tier": {"enum": ["asserted", "candidate"]}
+      }
+    },
+    "analyzer_expected": {
+      "type": "object",
+      "required": ["findings", "negative_findings", "max_findings"],
+      "additionalProperties": false,
+      "properties": {
+        "findings": {"type": "array", "items": {"$ref": "#/$defs/finding"}},
+        "negative_findings": {"type": "array", "items": {"$ref": "#/$defs/finding"}},
+        "max_findings": {"type": "integer", "minimum": 0}
+      }
+    },
+    "analyzer_item": {
+      "allOf": [
+        {"$ref": "#/$defs/common"},
+        {
+          "type": "object",
+          "required": ["algorithm", "inputs"],
+          "additionalProperties": false,
+          "properties": {
+            "id": true,
+            "task": {"const": "prism_analyzer"},
+            "language": true,
+            "algorithm": {"type": "string", "minLength": 1},
+            "source": true,
+            "split": true,
+            "contamination_risk": true,
+            "ignore": true,
+            "inputs": {
+              "type": "object",
+              "required": ["repo", "diff"],
+              "additionalProperties": false,
+              "properties": {
+                "repo": {"$ref": "#/$defs/input_ref"},
+                "diff": {"$ref": "#/$defs/input_ref"}
+              }
+            },
+            "expected": {"$ref": "#/$defs/analyzer_expected"}
+          }
+        }
+      ]
+    },
+    "stage_pin": {
+      "type": "object",
+      "required": ["pin"],
+      "additionalProperties": false,
+      "properties": {
+        "pin": {"type": ["string", "null"]},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "shared": {"type": "boolean"}
+      },
+      "if": {"properties": {"pin": {"type": "string"}}},
+      "then": {"required": ["sha256"]}
+    },
+    "pipeline_item": {
+      "allOf": [
+        {"$ref": "#/$defs/common"},
+        {
+          "type": "object",
+          "required": ["stages"],
+          "additionalProperties": false,
+          "properties": {
+            "id": true,
+            "task": {"const": "eh_pipeline"},
+            "language": true,
+            "source": true,
+            "split": true,
+            "contamination_risk": true,
+            "ignore": true,
+            "stages": {"type": "object", "additionalProperties": {"$ref": "#/$defs/stage_pin"}},
+            "expected": {"type": "object"}
+          }
+        }
+      ]
+    }
+  }
+}

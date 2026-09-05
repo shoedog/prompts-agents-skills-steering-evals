@@ -1,0 +1,392 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/shoedog/prism/contracts/observations.schema.json",
+  "title": "Runtime observations (v1)",
+  "description": "Produced by the runtime harness after running a test command with faults injected at instrumentation targets. Default granularity: one observation per (target, fault, test) triple actually attempted (the same site is commonly reached by several tests, and which test reached it is evidence the classifier uses); a harness may collapse to (target, fault) pairs when asked (CR-5). Plus one observation per target with reached=false when the site never executed (coverage gap). OTel-compatible where possible: each observation may carry trace/span ids. v1.1 (2026-09-04, additive; schema_version stays \"1\"): run.classification_rules_version (CR-8), run.plan_id, observation.resolution (CR-7), not_reached_reason += fault_unavailable (a fault whose binding could not be prepared: `fault` IS present and `observed` is absent), side-effect events gain t_ms.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run",
+    "observations"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "run": {
+      "type": "object",
+      "required": [
+        "id",
+        "started_at",
+        "language",
+        "harness_version",
+        "targets_sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "finished_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "language": {
+          "type": "string"
+        },
+        "harness_version": {
+          "type": "string"
+        },
+        "targets_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "sha256 of the targets JSON file consumed."
+        },
+        "test_command": {
+          "type": "string"
+        },
+        "repo_sha": {
+          "type": "string"
+        },
+        "mechanism": {
+          "type": "string",
+          "description": "Injection mechanism used. Known values: python.attr_patch (namespace-resolved attribute patching scoped by caller frame; harness v0), python.import_hook, node.loader_hook, go.shim, java.bytebuddy, toxiproxy. Unknown values are allowed but must be documented by the producer (CR-4).",
+          "examples": [
+            "python.attr_patch",
+            "node.loader_hook",
+            "toxiproxy"
+          ]
+        },
+        "catalog_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "sha256 of the fault catalog file that supplied retryable/fatal semantics (CR-3)."
+        },
+        "catalog_version": {
+          "type": "string",
+          "description": "Catalog's own version string (CR-3)."
+        },
+        "python_version": {
+          "type": "string",
+          "description": "Interpreter version, e.g. 3.12.4; injection behaviour depends on CPython line-number reporting (CR-6)."
+        },
+        "platform": {
+          "type": "string",
+          "description": "platform.platform() or equivalent (CR-6)."
+        },
+        "classification_rules_version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Version of the ordered outcome-classification rule set (runtime-harness spec \u00a76.3) that produced every observed.outcome in this document (CR-8). A port must reproduce the same version's outputs on the conformance fixtures."
+        },
+        "plan_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "plan.schema.json plan_id of the experiment set this run executed."
+        }
+      }
+    },
+    "observations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/observation"
+      }
+    }
+  },
+  "$defs": {
+    "observation": {
+      "type": "object",
+      "required": [
+        "target_id",
+        "site",
+        "reached"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "site": {
+          "type": "object",
+          "required": [
+            "file",
+            "line"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "file": {
+              "type": "string"
+            },
+            "line": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "symbol": {
+              "type": "string"
+            }
+          }
+        },
+        "reached": {
+          "type": "boolean",
+          "description": "false \u21d2 the site never executed under the test command; nothing else is populated. This is a finding in its own right (untested error path)."
+        },
+        "not_reached_reason": {
+          "type": "string",
+          "enum": [
+            "never_executed",
+            "callee_unresolved",
+            "no_applicable_fault",
+            "ambiguous_receiver",
+            "patch_shadowed",
+            "run_timeout",
+            "plugin_error",
+            "fault_unavailable",
+            "no_dependency_hint"
+          ],
+          "description": "Why the site produced no fault observation; meaningful only when reached == false (CR-2). never_executed: the test command never ran the site; callee_unresolved: dependency_hint/site text could not be bound to a patchable object; no_applicable_fault: no catalog entry matched; ambiguous_receiver: more than one binding candidate; patch_shadowed: the callee was rebound locally before the site; run_timeout: the run hit --timeout-s; plugin_error: harness-internal failure (see log_excerpt). `fault_unavailable`: the injector could not prepare the fault's binding (no exception candidate importable/constructible, builder cannot serve the resolved root) \u2014 `fault` is present so the consumer knows which fault was undeliverable, `reached` is false and `observed` is absent."
+        },
+        "fault": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "catalog_id",
+            "kind",
+            "name"
+          ],
+          "properties": {
+            "catalog_id": {
+              "type": "string",
+              "description": "Fault catalog entry id, e.g. http.timeout, db.connection_lost."
+            },
+            "kind": {
+              "type": "string",
+              "enum": [
+                "http",
+                "db",
+                "queue",
+                "filesystem",
+                "clock",
+                "process",
+                "network",
+                "cache"
+              ]
+            },
+            "name": {
+              "type": "string"
+            },
+            "params": {
+              "type": "object"
+            },
+            "retryable": {
+              "type": "boolean",
+              "description": "Catalog's documented semantics: is this fault transient/retryable?"
+            },
+            "fatal": {
+              "type": "boolean",
+              "description": "Catalog's documented semantics: must this fault propagate (never be swallowed)?"
+            }
+          }
+        },
+        "observed": {
+          "type": "object",
+          "required": [
+            "outcome",
+            "duration_ms"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "outcome": {
+              "type": "string",
+              "enum": [
+                "propagated",
+                "swallowed",
+                "retried_then_succeeded",
+                "retried_then_failed",
+                "fallback_returned",
+                "partial_returned",
+                "crashed",
+                "hung",
+                "unknown"
+              ]
+            },
+            "exception": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "propagated_to": {
+                  "type": "string",
+                  "description": "Function name where it was last observed (caught or test boundary)."
+                }
+              }
+            },
+            "retries": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "backoff_ms": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "bounded": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "return_value_summary": {
+              "type": "string",
+              "description": "Type + short repr of the value returned from the enclosing function, if it returned."
+            },
+            "duration_ms": {
+              "type": "number"
+            },
+            "timeout_configured_ms": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "side_effects": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "kind"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "write",
+                      "emit",
+                      "log",
+                      "network",
+                      "delete",
+                      "other"
+                    ]
+                  },
+                  "detail": {
+                    "type": "string"
+                  },
+                  "after_fault": {
+                    "type": "boolean"
+                  },
+                  "t_ms": {
+                    "type": "number",
+                    "description": "Monotonic ms since probe entry (v1.1; projected unchanged from the fragment event)."
+                  }
+                }
+              }
+            },
+            "resources": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "open_fds_delta": {
+                  "type": "integer"
+                },
+                "threads_delta": {
+                  "type": "integer"
+                },
+                "locks_held_after": {
+                  "type": "integer"
+                },
+                "listeners_delta": {
+                  "type": "integer"
+                }
+              }
+            },
+            "test": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "passed",
+                    "failed",
+                    "error",
+                    "skipped"
+                  ]
+                },
+                "assertion_message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "trace_id": {
+          "type": "string"
+        },
+        "span_id": {
+          "type": "string"
+        },
+        "log_excerpt": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "resolution": {
+          "type": "object",
+          "required": [
+            "status"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "resolved",
+                "unresolved"
+              ]
+            },
+            "owner_kind": {
+              "type": "string"
+            },
+            "owner": {
+              "type": "string"
+            },
+            "attr": {
+              "type": "string"
+            },
+            "predicted_owner_kind": {
+              "type": "string"
+            },
+            "agreed": {
+              "type": "boolean"
+            },
+            "reason": {
+              "type": "string",
+              "maxLength": 1000
+            }
+          },
+          "description": "Where the patch actually landed (CR-7; runtime fact from the injector, see fragment.schema.json `resolution`)."
+        }
+      }
+    }
+  }
+}

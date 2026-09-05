@@ -1,0 +1,1 @@
+{"text":"55: handle = open_resource()\n56: return handle.read()\n","file":"svc/client_5.py","function":"read_data","lines":[55,56],"language":"python"}

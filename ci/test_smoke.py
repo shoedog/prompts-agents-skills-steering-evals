@@ -74,6 +74,18 @@ def test_taskset_check():
         assert proc.returncode == 0, f"{d.name}: {proc.stdout + proc.stderr}"
 
 
+def test_taskset_v2_lint():
+    structured = REPO_ROOT / "tasksets" / "structured"
+    tasksets = sorted(
+        path for path in structured.iterdir()
+        if (path / "manifest.yaml").is_file()
+    )
+    assert tasksets
+    for taskset in tasksets:
+        proc = _run_script("validators/taskset_v2_lint.py", str(taskset))
+        assert proc.returncode == 0, f"{taskset.name}: {proc.stdout + proc.stderr}"
+
+
 # --------------------------------------------------------------------------- #
 # (b) Live smoke run + deepeval integrity gate.
 # --------------------------------------------------------------------------- #

@@ -1,0 +1,21 @@
+id: eh-py-0005
+task: classify_error_handling
+defect_class: error_handling.resource_leak_on_error
+language: python
+source: synthetic
+split: dev
+contamination_risk: low
+inputs:
+  target: {path: inputs/eh-py-0005/target.json, sha256: 73f8e9a1674ea97090da06b85bd0bfe0dfd77cc810a2880844c6884ce216457b}
+  slice: {path: inputs/eh-py-0005/slice.json, sha256: 582877717cf125d558be4acf10b9119be0792e9717d364506695e89c028eb5c4}
+  observation: {path: inputs/eh-py-0005/observation.json, sha256: de8ada075c02d7fe1dd6d9ab5ff4e0025189922ea20b67edac8b5d5ce1b5762e}
+  dependency_semantics:
+    source: catalog
+    text: A descriptor acquired before the read must be closed when OSError propagates.
+expected:
+  label: resource_leak_on_error
+  confidence_min: 0.6
+  rationale_must_mention: [descriptor, OSError]
+  evidence_lines_subset: [55, 56]
+labels:
+  primary: {by: seed-author, at: "2026-09-04"}

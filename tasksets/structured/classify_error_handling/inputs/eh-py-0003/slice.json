@@ -1,0 +1,1 @@
+{"text":"31: for attempt in range(3):\n32:     client.fetch()\n","file":"svc/client_3.py","function":"fetch_data","lines":[31,32],"language":"python"}

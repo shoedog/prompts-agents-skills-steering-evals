@@ -1,0 +1,21 @@
+id: eh-py-0004
+task: classify_error_handling
+defect_class: error_handling.no_retry_on_transient
+language: python
+source: synthetic
+split: dev
+contamination_risk: low
+inputs:
+  target: {path: inputs/eh-py-0004/target.json, sha256: 471a1c0d29135a5058bb46f5043f42ca7e41b8a40a1446e597d947bc9cd98fa2}
+  slice: {path: inputs/eh-py-0004/slice.json, sha256: 79f0ba9f98f99e8e62b5a101d3f79f22db48a88f4bb089ab90c0f36071e79f5f}
+  observation: {path: inputs/eh-py-0004/observation.json, sha256: 86257a9ceec642e9edfe88bcf86066756cd2bb480c6f847ff719ef643a89ab62}
+  dependency_semantics:
+    source: catalog
+    text: HTTP 429 is transient and retryable with the server Retry-After policy.
+expected:
+  label: no_retry_on_transient
+  confidence_min: 0.6
+  rationale_must_mention: [HTTP 429, retry]
+  evidence_lines_subset: [44]
+labels:
+  primary: {by: seed-author, at: "2026-09-04"}
