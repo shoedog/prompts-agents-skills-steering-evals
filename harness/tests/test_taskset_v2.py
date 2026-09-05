@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 
 import pytest
 import yaml
@@ -86,6 +87,62 @@ def test_load_rejects_labeling_guide_escape(fixture_taskset):
     manifest["labeling_guide"] = "../../outside.md"
     path.write_text(yaml.safe_dump(manifest, sort_keys=False))
     with pytest.raises(TasksetError, match="labeling_guide path escapes taskset root"):
+        load_taskset(fixture_taskset, split="dev", max_items=10)
+
+
+@pytest.mark.parametrize(
+    "mutate, offending_path",
+    [
+        (lambda manifest: manifest.__setitem__("unexpected", True), "manifest.unexpected"),
+        (
+            lambda manifest: manifest["items"][0].__setitem__("unexpected", True),
+            "manifest.items[0].unexpected",
+        ),
+    ],
+)
+def test_load_rejects_unknown_manifest_keys(fixture_taskset, mutate, offending_path):
+    path = fixture_taskset / "manifest.yaml"
+    manifest = yaml.safe_load(path.read_text())
+    mutate(manifest)
+    path.write_text(yaml.safe_dump(manifest, sort_keys=False))
+    with pytest.raises(TasksetError, match=re.escape(offending_path)):
+        load_taskset(fixture_taskset, split="dev", max_items=10)
+
+
+def test_load_rejects_missing_dependency_semantics(fixture_taskset):
+    path = fixture_taskset / "items/eh-py-0001.yaml"
+    item = yaml.safe_load(path.read_text())
+    del item["inputs"]["dependency_semantics"]
+    path.write_text(yaml.safe_dump(item, sort_keys=False))
+    with pytest.raises(TasksetError, match="dependency_semantics"):
+        load_taskset(fixture_taskset, split="dev", max_items=10)
+
+
+def test_source_none_dependency_semantics_reaches_request(fixture_taskset):
+    path = fixture_taskset / "items/eh-py-0001.yaml"
+    item = yaml.safe_load(path.read_text())
+    item["inputs"]["dependency_semantics"] = {"source": "none"}
+    path.write_text(yaml.safe_dump(item, sort_keys=False))
+    taskset = load_taskset(fixture_taskset, split="dev", max_items=10)
+    request = assemble_request(
+        taskset.items[0], task_version="2026-09-04.1", request_schema=taskset.request_schema
+    )
+    assert request["dependency_semantics"] == {"source": "none"}
+
+
+def test_load_missing_item_names_the_path(fixture_taskset):
+    path = fixture_taskset / "items/eh-py-0001.yaml"
+    path.unlink()
+    with pytest.raises(TasksetError, match=re.escape(str(path))):
+        load_taskset(fixture_taskset, split="dev", max_items=10)
+
+
+def test_load_rejects_v1_manifest_with_version_error(fixture_taskset):
+    path = fixture_taskset / "manifest.yaml"
+    manifest = yaml.safe_load(path.read_text())
+    manifest["schema_version"] = 1
+    path.write_text(yaml.safe_dump(manifest, sort_keys=False))
+    with pytest.raises(TasksetError, match="schema_version must be 2"):
         load_taskset(fixture_taskset, split="dev", max_items=10)
 
 

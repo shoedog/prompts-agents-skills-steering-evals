@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import stat
 from pathlib import Path
@@ -47,6 +48,20 @@ def test_symlink_hashes_literal_target_without_following(tmp_path):
     (tmp_path / "link").unlink()
     os.symlink("different-target", tmp_path / "link")
     assert sha256_directory(tmp_path, ignore=[]) != before
+
+
+def test_symlink_hashes_non_utf8_target_bytes(tmp_path):
+    target = b"bad-\xff"
+    link = os.fsencode(tmp_path / "raw-link")
+    try:
+        os.symlink(target, link)
+    except OSError as exc:
+        pytest.skip(f"filesystem refused a non-UTF-8 symlink target: {exc}")
+
+    entry = hashlib.sha256(
+        b"l\0raw-link\0" + str(len(target)).encode("ascii") + b"\0" + target
+    ).digest()
+    assert sha256_directory(tmp_path, ignore=[]) == hashlib.sha256(entry).hexdigest()
 
 
 def test_nfc_path_collision_is_rejected(tmp_path, monkeypatch):

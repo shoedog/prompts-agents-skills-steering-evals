@@ -100,8 +100,8 @@ def sha256_directory(root: Path, *, ignore: Sequence[str]) -> str:
             if stat.S_ISLNK(mode):
                 kind = b"l"
                 try:
-                    payload = os.readlink(path).encode("utf-8")
-                except (OSError, UnicodeEncodeError) as exc:
+                    payload = os.readlink(os.fsencode(path))
+                except OSError as exc:
                     raise TasksetError(f"cannot read symlink {raw_relative}: {exc}") from exc
             elif stat.S_ISREG(mode):
                 kind = b"x" if mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH) else b"f"
@@ -151,7 +151,38 @@ def _validate(value: Any, document: dict[str, Any], selected: dict[str, Any], la
         key=lambda error: [str(part) for part in error.absolute_path],
     )
     if errors:
-        first = errors[0]
+        actionable = []
+
+        def collect(error: Any) -> None:
+            if error.context:
+                for child in error.context:
+                    collect(child)
+            else:
+                actionable.append(error)
+
+        for error in errors:
+            collect(error)
+        branch_by_task = {
+            "classify_error_handling": 0,
+            "prism_analyzer": 1,
+            "eh_pipeline": 2,
+        }
+        branch = branch_by_task.get(value.get("task")) if isinstance(value, dict) else None
+        if branch is not None:
+            matching = [
+                error
+                for error in actionable
+                if list(error.absolute_schema_path)[:2] == ["oneOf", branch]
+            ]
+            if matching:
+                actionable = matching
+        first = sorted(
+            actionable or errors,
+            key=lambda error: (
+                [str(part) for part in error.absolute_path],
+                [str(part) for part in error.absolute_schema_path],
+            ),
+        )[0]
         location = "/".join(str(part) for part in first.absolute_path) or "<root>"
         raise TasksetError(f"{label} schema validation failed at {location}: {first.message}")
 
@@ -218,6 +249,13 @@ def verified_json(ref: InputRef, *, ignore: Sequence[str] = ()) -> dict[str, Any
 
 
 def _validate_manifest(manifest: dict[str, Any]) -> None:
+    allowed = {
+        "taskset", "schema_version", "task", "request_schema", "response_schema",
+        "labeling_guide", "class_field", "classes", "splits", "items", "line_tolerance",
+    }
+    unexpected = sorted(set(manifest) - allowed)
+    if unexpected:
+        raise TasksetError(f"unknown manifest field: manifest.{unexpected[0]}")
     required = {
         "taskset", "schema_version", "task", "labeling_guide", "splits", "items",
     }
@@ -228,9 +266,28 @@ def _validate_manifest(manifest: dict[str, Any]) -> None:
         raise TasksetError("manifest schema_version must be 2")
     if not isinstance(manifest["items"], list) or not isinstance(manifest["splits"], dict):
         raise TasksetError("manifest items and splits must be collections")
+    summary_allowed = {"id", "split", "contamination_risk"}
+    summary_required = summary_allowed
+    for index, summary in enumerate(manifest["items"]):
+        if not isinstance(summary, dict):
+            raise TasksetError(f"manifest.items[{index}] must be an object")
+        unexpected = sorted(set(summary) - summary_allowed)
+        if unexpected:
+            raise TasksetError(
+                f"unknown manifest item field: manifest.items[{index}].{unexpected[0]}"
+            )
+        missing = sorted(summary_required - summary.keys())
+        if missing:
+            raise TasksetError(
+                f"manifest.items[{index}] missing required fields: {missing}"
+            )
     for split, policy in manifest["splits"].items():
         if split not in {"dev", "test"} or not isinstance(policy, dict):
             raise TasksetError(f"invalid manifest split policy: {split!r}")
+        policy_allowed = {"items", "min_per_class", "consulted"}
+        unexpected = sorted(set(policy) - policy_allowed)
+        if unexpected:
+            raise TasksetError(f"unknown manifest split field: manifest.splits.{split}.{unexpected[0]}")
         for field in ("items", "min_per_class"):
             value = policy.get(field)
             if not isinstance(value, int) or isinstance(value, bool) or value < 0:
@@ -370,6 +427,7 @@ def assemble_request(
 ) -> dict[str, Any]:
     try:
         observation = item.input_values["observation"]
+        dependency = item.raw["inputs"]["dependency_semantics"]
         observed = dict(observation["observed"])
         if "log_excerpt" in observation:
             observed["log_excerpt"] = observation["log_excerpt"]
@@ -380,14 +438,10 @@ def assemble_request(
             "slice": item.input_values["slice"],
             "fault": observation["fault"],
             "observation": observed,
+            "dependency_semantics": dependency,
         }
     except KeyError as exc:
         raise TasksetError(f"item {item.id} cannot assemble request; missing {exc.args[0]}") from exc
-    dependency = item.raw.get("dependency_semantics")
-    if dependency is None:
-        dependency = item.raw.get("inputs", {}).get("dependency_semantics")
-    if dependency is not None:
-        request["dependency_semantics"] = dependency
     errors = sorted(
         Draft202012Validator(request_schema).iter_errors(request),
         key=lambda error: [str(part) for part in error.absolute_path],

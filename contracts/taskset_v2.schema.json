@@ -73,7 +73,7 @@
     },
     "classification_inputs": {
       "type": "object",
-      "required": ["target", "slice", "observation"],
+      "required": ["target", "slice", "observation", "dependency_semantics"],
       "additionalProperties": false,
       "properties": {
         "target": {"$ref": "#/$defs/input_ref"},
