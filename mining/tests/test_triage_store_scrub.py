@@ -42,8 +42,11 @@ def base_rows():
         {"key": "failure|claude.user_correction|sandbox01|L5", "source": "failure",
          "class": "claude.user_correction", "ts": "2026-08-02T01:00",
          "session": "sandbox01", "line": 5,
-         "row": "- [ ] 2026-08-02T01:00 `sandbox01` L5 (m @ /Users/wesleyjinks/code/"
-                "prompts-skills-steering/results/exp-w3a-cite-or-label/sandbox/treatment-mc-01): "
+         # the sandbox cwd must lie under THIS checkout's results/ dir (that is
+         # what scrub matches on), so build it from the module constant rather
+         # than a developer's absolute path
+         "row": "- [ ] 2026-08-02T01:00 `sandbox01` L5 (m @ "
+                f"{scrub.REPO_RESULTS_DIR}exp-w3a-cite-or-label/sandbox/treatment-mc-01): "
                 "re-read the diff",
          "first_seen": "2026-08-02"},
         {"key": "failure|claude.admission|clean01|L7", "source": "failure",
