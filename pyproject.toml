@@ -9,3 +9,10 @@ testpaths = ["ci", "harness", "mining"]
 markers = [
     "live: makes real LLM API calls (skipped unless RUN_LIVE=1; deselect with -m 'not live')",
 ]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["harness*", "ci*"]
