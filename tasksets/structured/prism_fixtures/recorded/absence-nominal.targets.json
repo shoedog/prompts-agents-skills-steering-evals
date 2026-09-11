@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "producer": {
+    "tool": "prism",
+    "version": "0.1.0",
+    "resolution_mode": "nominal",
+    "build_identity": "fixture",
+    "algorithms": ["absence"]
+  },
+  "repo": {"root": "/recorded/fixture"},
+  "diff": {
+    "sha256": "2f4582ff1d1a53f9b66a2d3d55cb0a6451cfdb91e9daa4b9c2c1e88cfc3543e3",
+    "files": ["src/client.py"]
+  },
+  "targets": [
+    {
+      "id": "74d3840bbb909a46dfe33c6d5d419c29ad6fef5cdffea1fc6a71583d3a96ad4c",
+      "site": {"file": "src/client.py", "line": 4, "symbol": "fetch", "language": "python"},
+      "kind": "external_call",
+      "category": "missing_error_handling",
+      "expected": {"property": "error_handled"},
+      "source_algorithm": "absence",
+      "confidence": "exact",
+      "tier": "asserted",
+      "severity": "warning",
+      "description": "A changed call may lack error handling.",
+      "parse_quality": "clean"
+    }
+  ]
+}

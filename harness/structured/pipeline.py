@@ -1,0 +1,281 @@
+"""Pinned-prefix execution for one structured pipeline item."""
+
+from __future__ import annotations
+
+from dataclasses import asdict
+from pathlib import Path
+from typing import Any, Mapping, Sequence
+
+from jsonschema import Draft202012Validator
+
+from harness.structured.executors import ExecutorError
+from harness.structured.pipeline_types import (
+    ExecutorRegistry,
+    PipelineResult,
+    StageConfig,
+    StageExecutor,
+    VersionConfig,
+)
+from harness.structured.results import ResultsWriter
+from harness.structured.schema_ref import resolve_schema_ref
+from harness.structured.taskset import TaskItem, TasksetError, verified_json
+
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_PIN_MODES = frozenset({"from_item", "never", "if_absent"})
+_STAGE_TYPES = frozenset({"file", "prism", "harness", "llm"})
+_HARNESS_UNAVAILABLE = "runtime harness stage not implemented"
+
+
+def _schema(ref: str) -> dict[str, Any]:
+    document, selected = resolve_schema_ref(_REPO_ROOT, ref)
+    schema = dict(selected)
+    if "$defs" in document and "$defs" not in schema:
+        schema["$defs"] = document["$defs"]
+    if "$schema" in document and "$schema" not in schema:
+        schema["$schema"] = document["$schema"]
+    return schema
+
+
+_TARGET_DOCUMENT = _schema("contracts/targets.schema.json")
+_TARGET = _schema("contracts/targets.schema.json#/$defs/target")
+_OBSERVATION_DOCUMENT = _schema("contracts/observations.schema.json")
+_OBSERVATION = _schema("contracts/observations.schema.json#/$defs/observation")
+_CLASSIFICATION_REQUEST = _schema(
+    "contracts/classify_error_handling.schema.json#/$defs/request"
+)
+_CLASSIFICATION = _schema(
+    "contracts/classify_error_handling.schema.json#/$defs/response"
+)
+
+
+def _validate_schema(label: str, schema: dict[str, Any], value: dict[str, Any]) -> None:
+    errors = sorted(
+        Draft202012Validator(schema).iter_errors(value),
+        key=lambda error: [str(part) for part in error.absolute_path],
+    )
+    if errors:
+        first = errors[0]
+        location = "/".join(str(part) for part in first.absolute_path) or "<root>"
+        raise TasksetError(
+            f"{label} schema validation failed at {location}: {first.message}"
+        )
+
+
+def validate_request(value: dict[str, Any]) -> None:
+    _validate_schema("request", _CLASSIFICATION_REQUEST, value)
+
+
+def _validate_output(stage: StageConfig, value: dict[str, Any]) -> None:
+    name = stage["name"]
+    if name == "targets":
+        schema = _TARGET_DOCUMENT if value.get("schema_version") == "1.0" else _TARGET
+        label = "targets"
+    elif name == "observation":
+        schema = (
+            _OBSERVATION_DOCUMENT
+            if value.get("schema_version") == "1"
+            else _OBSERVATION
+        )
+        label = "observation"
+    elif name == "classify" or stage.get("task") == "classify_error_handling":
+        schema = _CLASSIFICATION
+        label = "classify"
+    else:
+        raise TasksetError(f"no output schema for pipeline stage {name!r}")
+    _validate_schema(label, schema, value)
+
+
+def _stage_pin(item: TaskItem, name: str) -> tuple[dict[str, Any], bool]:
+    raw_stages = item.raw.get("stages")
+    if not isinstance(raw_stages, dict) or not isinstance(raw_stages.get(name), dict):
+        raise TasksetError(f"item {item.id} has no stage declaration for {name}")
+    declaration = raw_stages[name]
+    return declaration, isinstance(declaration.get("pin"), str)
+
+
+def _pinned(item: TaskItem, stage: StageConfig) -> dict[str, Any]:
+    name = stage["name"]
+    ref = item.inputs.get(name)
+    if ref is None:
+        raise TasksetError(f"item {item.id} has no pinned artifact for stage {name}")
+    return verified_json(ref, ignore=item.raw.get("ignore", ()))
+
+
+def _record_stage(
+    *,
+    writer: ResultsWriter,
+    item: TaskItem,
+    version: VersionConfig,
+    stage: StageConfig,
+    declaration: Mapping[str, Any],
+    output: dict[str, Any],
+    cache: str,
+) -> dict[str, Any]:
+    shared = declaration.get("shared") is True
+    record = {
+        "item_id": item.id,
+        "version": version["name"],
+        "sample": None if shared else 0,
+        "stage": stage["name"],
+        "type": stage["type"],
+        "cache": cache,
+        "status": "ok",
+        "output": output,
+    }
+    ref = writer.write_stage(
+        version=version["name"],
+        item_id=item.id,
+        stage=stage["name"],
+        value=record,
+        sample=None if shared else 0,
+        shared=shared,
+    )
+    return {**record, "stage_ref": asdict(ref)}
+
+
+def _stage_error(
+    *, item: TaskItem, version: VersionConfig, stage: StageConfig, error: BaseException | str
+) -> PipelineResult:
+    message = str(error)
+    row = {
+        "item_id": item.id,
+        "version": version["name"],
+        "stage": stage["name"],
+        "type": stage["type"],
+        "cache": "miss",
+        "status": "error",
+        "error": message,
+    }
+    if isinstance(error, ExecutorError):
+        row["error_detail"] = {
+            "type": type(error).__name__,
+            "child_returncode": error.returncode,
+            "stdout_tail": error.stdout_tail,
+            "stderr_tail": error.stderr_tail,
+        }
+    return PipelineResult((row,), None, stage["name"])
+
+
+def run_pipeline_item(
+    item: TaskItem,
+    version: VersionConfig,
+    stages: Sequence[StageConfig],
+    executors: ExecutorRegistry,
+    writer: ResultsWriter,
+) -> PipelineResult:
+    """Run one item in stage order, replacing configured prefixes with pins."""
+    if not isinstance(version.get("name"), str) or not version["name"]:
+        raise TasksetError("pipeline version needs a nonempty name")
+    for stage in stages:
+        name = stage.get("name")
+        stage_type = stage.get("type")
+        pin_mode = stage.get("pin")
+        if not isinstance(name, str) or not name:
+            raise TasksetError("pipeline stage needs a nonempty name")
+        if stage_type not in _STAGE_TYPES:
+            raise TasksetError(f"unknown pipeline stage type: {stage_type!r}")
+        if pin_mode not in _PIN_MODES:
+            raise TasksetError(f"unknown pipeline pin mode: {pin_mode!r}")
+        if stage_type == "harness" and pin_mode == "never":
+            raise TasksetError(_HARNESS_UNAVAILABLE)
+    replay: list[dict[str, Any]] = []
+    outputs: dict[str, dict[str, Any]] = {}
+    for stage_index, stage in enumerate(stages):
+        terminal = stage_index == len(stages) - 1
+        name = stage.get("name")
+        stage_type = stage.get("type")
+        pin_mode = stage.get("pin")
+        if not isinstance(name, str) or not name:
+            raise TasksetError("pipeline stage needs a nonempty name")
+        if stage_type not in _STAGE_TYPES:
+            raise TasksetError(f"unknown pipeline stage type: {stage_type!r}")
+        if pin_mode not in _PIN_MODES:
+            raise TasksetError(f"unknown pipeline pin mode: {pin_mode!r}")
+        declaration, has_pin = _stage_pin(item, name)
+        use_pin = pin_mode == "from_item" or (pin_mode == "if_absent" and has_pin)
+        if use_pin:
+            if not has_pin:
+                raise TasksetError(
+                    f"item {item.id} has no pinned artifact for from_item stage {name}"
+                )
+            output = _pinned(item, stage)
+            cache = "pinned"
+        else:
+            if stage_type == "file":
+                raise TasksetError(f"file stage {name} requires a pinned artifact")
+            if stage_type == "harness" and pin_mode == "never":
+                raise TasksetError(_HARNESS_UNAVAILABLE)
+            executor = executors.get(stage_type)
+            if executor is None:
+                if stage_type == "harness" and pin_mode == "if_absent":
+                    replay.append(
+                        {
+                            "item_id": item.id,
+                            "version": version["name"],
+                            "stage": name,
+                            "type": stage_type,
+                            "cache": "miss",
+                            "status": "error",
+                            "error": _HARNESS_UNAVAILABLE,
+                        }
+                    )
+                    return PipelineResult(tuple(replay), None, name)
+                raise TasksetError(f"no executor registered for stage type {stage_type}")
+            try:
+                output = executor(
+                    stage=stage,
+                    item=item,
+                    version=version,
+                    inputs=dict(outputs),
+                    writer=writer,
+                )
+                if not isinstance(output, dict):
+                    raise TasksetError(
+                        f"pipeline stage {name} output must be one JSON object"
+                    )
+                if not terminal:
+                    _validate_output(stage, output)
+            except (
+                ExecutorError,
+                OSError,
+                RuntimeError,
+                TypeError,
+                ValueError,
+                KeyError,
+            ) as error:
+                failed = _stage_error(
+                    item=item, version=version, stage=stage, error=error
+                )
+                return PipelineResult(tuple((*replay, *failed.replay)), None, failed.stage_error)
+            cache = "miss"
+        if use_pin and not terminal:
+            _validate_output(stage, output)
+        outputs[name] = output
+        replay.append(
+            _record_stage(
+                writer=writer,
+                item=item,
+                version=version,
+                stage=stage,
+                declaration=declaration,
+                output=output,
+                cache=cache,
+            )
+        )
+    return PipelineResult(
+        replay=tuple(replay),
+        output=outputs[stages[-1]["name"]] if stages else None,
+        stage_error=None,
+    )
+
+
+__all__ = [
+    "ExecutorRegistry",
+    "PipelineResult",
+    "StageConfig",
+    "StageExecutor",
+    "VersionConfig",
+    "run_pipeline_item",
+    "validate_request",
+]

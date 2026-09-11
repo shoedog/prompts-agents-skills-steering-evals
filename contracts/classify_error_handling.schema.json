@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/shoedog/prism/contracts/classify_error_handling.schema.json",
+  "title": "LLM layer task: classify_error_handling (v1)",
+  "description": "Request/response contract for the first LLM-layer task. The response is a structured output enforced by JSON schema; the LLM is never the sole oracle for a gate \u2014 a finding blocks merge only when a runtime observation confirms it.",
+  "$defs": {
+    "request": {
+      "type": "object",
+      "required": [
+        "task",
+        "task_version",
+        "target",
+        "slice",
+        "fault",
+        "observation"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "task": {
+          "const": "classify_error_handling"
+        },
+        "task_version": {
+          "type": "string",
+          "description": "Prompt/schema version, e.g. 2026-09-04.1. Logged with every call for eval-set construction."
+        },
+        "target": {
+          "type": "object",
+          "description": "One `target` object from targets.schema.json."
+        },
+        "slice": {
+          "type": "object",
+          "required": [
+            "text"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "type": "string",
+              "description": "Line-numbered slice text (prism review/json `slice_text`) for the enclosing function plus relevant callers/callees."
+            },
+            "file": {
+              "type": "string"
+            },
+            "function": {
+              "type": "string"
+            },
+            "lines": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "Inclusive [start, end] line range of the slice text within `file` (CCR-1). Not a list of individual lines."
+            },
+            "language": {
+              "type": "string"
+            }
+          }
+        },
+        "fault": {
+          "type": "object",
+          "description": "The `fault` object from observations.schema.json (with catalog retryable/fatal semantics)."
+        },
+        "observation": {
+          "type": "object",
+          "description": "The `observed` object from observations.schema.json, plus (CCR-4, 2026-09-04) the observation's top-level `log_excerpt` copied verbatim so the prompt's log-excerpt part (LLM-layer spec \u00a76.2) is reachable.",
+          "properties": {
+            "log_excerpt": {
+              "type": "string",
+              "maxLength": 4000,
+              "description": "Reason prefixes plus the last 20 captured log records, verbatim from the observation (observations.schema.json `log_excerpt`)."
+            }
+          }
+        },
+        "dependency_semantics": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "source": {
+              "type": "string",
+              "enum": [
+                "catalog",
+                "openapi",
+                "proto",
+                "docs",
+                "none"
+              ]
+            },
+            "text": {
+              "type": "string",
+              "maxLength": 8000,
+              "description": "Documented failure semantics of the dependency (e.g. 'HTTP 429 is retryable with Retry-After; 4xx other than 408/429 is not')."
+            }
+          },
+          "required": [
+            "source"
+          ],
+          "description": "Documented failure semantics of the dependency. `source` is required so that an absent object and `{source: none}` are distinguishable (CCR-2)."
+        },
+        "observation_ref": {
+          "type": "object",
+          "required": [
+            "target_id",
+            "fault_catalog_id",
+            "test_id"
+          ],
+          "additionalProperties": false,
+          "description": "Composite identity of the observation being classified \u2014 the runtime harness emits one observation per (target, fault, test) triple, so target_id alone is ambiguous (CCR-3, additive, optional).",
+          "properties": {
+            "target_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "test_id": {
+              "type": "string"
+            },
+            "fault_catalog_id": {
+              "type": "string",
+              "description": "fault.catalog_id of the injected fault (probe observations with fault:null are never classified)."
+            }
+          }
+        }
+      }
+    },
+    "response": {
+      "type": "object",
+      "required": [
+        "class",
+        "confidence",
+        "rationale"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "class": {
+          "type": "string",
+          "enum": [
+            "correct",
+            "swallowed_fatal",
+            "retried_non_retryable",
+            "no_retry_on_transient",
+            "partial_as_success",
+            "resource_leak_on_error",
+            "missing_timeout",
+            "unbounded_retry",
+            "unclear",
+            "invalid_output",
+            "provider_error"
+          ]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "rationale": {
+          "type": "string",
+          "maxLength": 600,
+          "description": "One to three sentences citing the observed outcome and the dependency semantics."
+        },
+        "evidence_lines": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "description": "Slice line numbers the rationale relies on."
+        },
+        "suggested_fix": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "regression_test": {
+          "type": "string",
+          "maxLength": 4000,
+          "description": "A test in the target language that injects the same fault and asserts the correct handling."
+        }
+      }
+    }
+  }
+}

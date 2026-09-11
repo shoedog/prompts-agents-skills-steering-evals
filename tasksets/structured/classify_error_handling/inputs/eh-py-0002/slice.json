@@ -1,0 +1,1 @@
+{"text":"22: except HTTPError:\n23:     return None\n","file":"svc/client_2.py","function":"fetch_data","lines":[22,23],"language":"python"}

@@ -1,0 +1,21 @@
+kind: structured_task
+id: st-smoke
+task: classify_error_handling
+request_schema: contracts/classify_error_handling.schema.json#/$defs/request
+response_schema: contracts/classify_error_handling.schema.json#/$defs/response
+taskset: taskset
+split: dev
+versions:
+  - name: v1
+    task_version: "2026-09-04.1"
+    provider: {kind: stub, model: fake-model}
+baseline_version: v1
+samples_per_item: 1
+seed: 20260904
+jobs: 1
+asserts:
+  - {type: schema, hard: true}
+  - {type: label, mode: exact, field: class}
+  - {type: evidence}
+stats: {bootstrap_resamples: 20, seed: 20260904}
+token_budget: {max_cost_usd: 1.0, max_items: 1}

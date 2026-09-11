@@ -1,0 +1,13 @@
+id: plx-py-0001
+task: eh_pipeline
+language: python
+source: synthetic
+split: dev
+contamination_risk: low
+stages:
+  targets: {pin: inputs/plx-py-0001/targets.json, sha256: dc14b63acdfcdfb54236a731feee58d7a783ff771413d37a545262f6a1969ab3, shared: true}
+  observation: {pin: inputs/plx-py-0001/observation.json, sha256: 52198b11905938cd0d349c923ee6310701dac4f99bcd067394657b0cd2b7c075, shared: true}
+  classify: {pin: null}
+expected:
+  classify: {label: no_retry_on_transient, confidence_min: 0.5, evidence_lines_subset: [11]}
+  finding: {rule_id: prism.error_handling.no_retry_on_transient, file: svc/client_1.py, line: 11}

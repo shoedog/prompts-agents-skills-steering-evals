@@ -1,0 +1,16 @@
+Review the code change below. Goal: decide whether this diff is safe to merge, and report any defects it introduces.
+
+Read the context, then the diff. Report every defect you find with its location and why it is wrong. If you find no defects, say so.
+
+Stop when you have examined the whole diff once and reported your conclusion.
+
+End your response with exactly this block:
+
+## FINDINGS
+VERDICT: APPROVE or REJECT
+1. <file>:<line> — <one-sentence defect description>
+(number each finding; write "No findings." instead of a list if none)
+
+Everything above the ## FINDINGS block is your workspace; only the block is graded.
+
+{{task_input}}

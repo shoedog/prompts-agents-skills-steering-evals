@@ -3,6 +3,8 @@
 import sys, yaml
 
 REQUIRED = ["id", "name", "classification", "verdict", "eval_shape", "evidence_tier", "notes"]
+OPTIONAL = {"kind"}
+KIND_ENUM = {"review_ablation", "structured_task", "analyzer", "pipeline"}
 ENUMS = {
     "classification": {"element", "runtime"},
     "verdict": {"build", "exclude", "test_cheap", "must_test"},
@@ -25,8 +27,14 @@ def main(path="moves.yaml"):
                 errors.append(f"moves[{i}] ({m.get('id','?')}): missing/empty '{k}'")
             elif k in ENUMS and v not in ENUMS[k]:
                 errors.append(f"moves[{i}] ({m.get('id','?')}): {k}={v!r} not in {sorted(ENUMS[k])}")
-        if set(m) - set(REQUIRED):
-            errors.append(f"moves[{i}]: unexpected keys {sorted(set(m) - set(REQUIRED))}")
+        unexpected = set(m) - (set(REQUIRED) | OPTIONAL)
+        if unexpected:
+            errors.append(f"moves[{i}]: unexpected keys {sorted(unexpected)}")
+        kind = m.get("kind", "review_ablation")
+        if kind not in KIND_ENUM:
+            errors.append(
+                f"moves[{i}] ({m.get('id','?')}): kind={kind!r} not in {sorted(KIND_ENUM)}"
+            )
         if m.get("id") in ids:
             errors.append(f"duplicate id {m['id']!r}")
         ids.add(m.get("id"))

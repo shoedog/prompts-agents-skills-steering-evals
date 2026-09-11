@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -72,6 +73,125 @@ def test_taskset_check():
     for d in taskset_dirs:
         proc = _run_script("scripts/check_taskset.py", str(d))
         assert proc.returncode == 0, f"{d.name}: {proc.stdout + proc.stderr}"
+
+
+def test_taskset_v2_lint():
+    structured = REPO_ROOT / "tasksets" / "structured"
+    tasksets = sorted(
+        path for path in structured.iterdir()
+        if (path / "manifest.yaml").is_file()
+    )
+    assert tasksets
+    for taskset in tasksets:
+        proc = _run_script("validators/taskset_v2_lint.py", str(taskset))
+        assert proc.returncode == 0, f"{taskset.name}: {proc.stdout + proc.stderr}"
+
+
+def _structured_workflow() -> tuple[dict, str]:
+    path = REPO_ROOT / ".github/workflows/structured-eval.yml"
+    source = path.read_text()
+    value = yaml.load(source, Loader=yaml.BaseLoader)
+    assert isinstance(value, dict)
+    return value, source
+
+
+def _workflow_step(job: dict, name: str) -> dict:
+    return next(step for step in job["steps"] if step.get("name") == name)
+
+
+def test_structured_workflow_has_the_exact_cost_and_holdout_matrix():
+    workflow, source = _structured_workflow()
+    assert set(workflow["on"]) == {"push", "pull_request", "schedule", "workflow_dispatch"}
+    jobs = workflow["jobs"]
+    assert {"cheap", "smoke", "live-smoke", "changes", "dev-set", "test-set"} <= set(jobs)
+    assert "if" not in jobs["cheap"]
+    assert "if" not in jobs["smoke"]
+    assert ".venv/bin/python -m pytest -q -m 'not live'" in source
+    assert (
+        ".venv/bin/python -m harness.structured.run experiments/structured/st-smoke.yaml"
+        in source
+    )
+    assert "github.event_name == 'schedule'" in jobs["live-smoke"]["if"]
+    assert "github.event_name == 'workflow_dispatch'" in jobs["live-smoke"]["if"]
+    live = _workflow_step(jobs["live-smoke"], "Run paid legacy smoke")
+    assert live["env"]["RUN_LIVE"] == "1"
+    assert ".venv/bin/python -m pytest -q ci -k test_smoke_run" in live["run"]
+    filters = _workflow_step(jobs["changes"], "Classify structured paths")["with"]["filters"]
+    for path in ("llm-layer/tasks/**", "harness/structured/**", "tasksets/structured/**"):
+        assert path in filters
+    assert "needs.changes.outputs.structured == 'true'" in jobs["dev-set"]["if"]
+    assert "startsWith(github.ref, 'refs/tags/v')" in jobs["test-set"]["if"]
+    assert "github.event_name != 'pull_request'" in jobs["test-set"]["if"]
+    release_source = "\n".join(str(step.get("run", "")) for step in jobs["test-set"]["steps"])
+    assert "--allow-test" in release_source
+    assert "splits.test.consulted" in release_source
+    assert 'ci/increment_consulted.py "$STRUCTURED_TEST_CONFIG"' in release_source
+    assert "vars.STRUCTURED_TEST_MANIFEST" not in source
+    assert release_source.count("git commit") >= 2
+
+
+def test_dev_set_uses_an_executable_nonpromotion_gate(tmp_path):
+    workflow, _source = _structured_workflow()
+    step = _workflow_step(workflow["jobs"]["dev-set"], "Enforce promotion verdict")
+    command = shlex.split(step["run"])
+    assert command[1] == "-c"
+    gate = command[2]
+    for promotable, expected in ((False, 1), (True, 0)):
+        path = tmp_path / f"{promotable}.json"
+        path.write_text(json.dumps({"promotable": promotable}))
+        proc = subprocess.run(
+            [sys.executable, "-c", gate, str(path)], capture_output=True, text=True
+        )
+        assert proc.returncode == expected, proc.stdout + proc.stderr
+
+
+def test_dev_gate_uses_emitted_run_even_when_stale_metrics_sorts_later(tmp_path):
+    workflow, _source = _structured_workflow()
+    job = workflow["jobs"]["dev-set"]
+    locate = _workflow_step(job, "Locate emitted metrics")
+    new_run = tmp_path / "results/pl-smoke/20260905T000000Z-new"
+    stale = tmp_path / "results/zz-stale/99999999T999999Z-old/metrics.json"
+    new_run.mkdir(parents=True)
+    stale.parent.mkdir(parents=True)
+    (new_run / "metrics.json").write_text("{}")
+    stale.write_text("{}")
+    (tmp_path / "structured-run.out").write_text(f"NO PROMOTION CANDIDATE\nRESULTS_DIR={new_run}\n")
+    output = tmp_path / "github-output"
+    proc = subprocess.run(
+        ["bash", "-e", "-o", "pipefail", "-c", locate["run"]],
+        cwd=tmp_path,
+        env={**os.environ, "GITHUB_OUTPUT": str(output)},
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert output.read_text() == f"path={new_run}/metrics.json\n"
+
+
+def test_release_counter_mutates_only_the_selected_configs_manifest(tmp_path):
+    tasksets = tmp_path / "tasksets"
+    configs = tmp_path / "experiments"
+    configs.mkdir()
+    for name, consulted in (("a", 2), ("b", 7)):
+        taskset = tasksets / name
+        taskset.mkdir(parents=True)
+        (taskset / "manifest.yaml").write_text(
+            f"splits:\n  test:\n    consulted: {consulted}\n"
+        )
+        (configs / f"{name}.yaml").write_text(f"taskset: {taskset}\n")
+    before_b = (tasksets / "b/manifest.yaml").read_bytes()
+
+    proc = subprocess.run(
+        [sys.executable, str(REPO_ROOT / "ci/increment_consulted.py"), str(configs / "a.yaml")],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert yaml.safe_load((tasksets / "a/manifest.yaml").read_text())["splits"]["test"][
+        "consulted"
+    ] == 3
+    assert (tasksets / "b/manifest.yaml").read_bytes() == before_b
 
 
 # --------------------------------------------------------------------------- #

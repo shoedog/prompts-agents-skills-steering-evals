@@ -1,0 +1,21 @@
+id: eh-py-0003
+task: classify_error_handling
+defect_class: error_handling.retried_non_retryable
+language: python
+source: synthetic
+split: dev
+contamination_risk: low
+inputs:
+  target: {path: inputs/eh-py-0003/target.json, sha256: 8c9458762dea9d3add35096a3736e8ba8dbea0335e226cf09b0acaad46311553}
+  slice: {path: inputs/eh-py-0003/slice.json, sha256: f84932ac46039cf5c8f1434bcc88ce924e40548008687644c1e5a9cd31ee70d7}
+  observation: {path: inputs/eh-py-0003/observation.json, sha256: 855909a96446715dfdc5ef6ec8118ceeed1cbb3e6218ad7f4f3f29cdd6e7d5a9}
+  dependency_semantics:
+    source: catalog
+    text: HTTP 400 is non-retryable and fatal for this operation.
+expected:
+  label: retried_non_retryable
+  confidence_min: 0.6
+  rationale_must_mention: [HTTP 400, retried]
+  evidence_lines_subset: [31, 32]
+labels:
+  primary: {by: seed-author, at: "2026-09-04"}

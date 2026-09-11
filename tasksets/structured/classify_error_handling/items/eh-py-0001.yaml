@@ -1,0 +1,21 @@
+id: eh-py-0001
+task: classify_error_handling
+defect_class: error_handling.correct
+language: python
+source: synthetic
+split: dev
+contamination_risk: low
+inputs:
+  target: {path: inputs/eh-py-0001/target.json, sha256: dc14b63acdfcdfb54236a731feee58d7a783ff771413d37a545262f6a1969ab3}
+  slice: {path: inputs/eh-py-0001/slice.json, sha256: e40d8c1f348b2dc94ea2d626fdd12aaff47736220776e4d6b98cde5c2d989008}
+  observation: {path: inputs/eh-py-0001/observation.json, sha256: 52198b11905938cd0d349c923ee6310701dac4f99bcd067394657b0cd2b7c075}
+  dependency_semantics:
+    source: catalog
+    text: Timeouts are retryable, but propagation is valid when no retry policy is declared.
+expected:
+  label: correct
+  confidence_min: 0.6
+  rationale_must_mention: [TimeoutError, propagated]
+  evidence_lines_subset: [11]
+labels:
+  primary: {by: seed-author, at: "2026-09-04"}

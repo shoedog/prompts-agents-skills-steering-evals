@@ -1,0 +1,25 @@
+id: px-py-absence-0001
+task: prism_analyzer
+language: python
+algorithm: absence
+source: fixture
+split: dev
+contamination_risk: low
+inputs:
+  repo:
+    path: inputs/px-py-absence-0001/repo
+    sha256: abf271cc3deb17662c336a2e35a26916a668f919fb41172276bc59010bf3e529
+  diff:
+    path: inputs/px-py-absence-0001/change.patch
+    sha256: 2f4582ff1d1a53f9b66a2d3d55cb0a6451cfdb91e9daa4b9c2c1e88cfc3543e3
+expected:
+  findings:
+    - category: missing_error_handling
+      file: src/client.py
+      line: 4
+      tier: asserted
+  negative_findings:
+    - category: missing_error_handling
+      file: src/client.py
+      line: 12
+  max_findings: 2

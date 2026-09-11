@@ -1,0 +1,5 @@
+{
+  "algorithm": "eval-directory-sha256-v1",
+  "ignore": ["*.tmp"],
+  "digest": "eb6efd48dcfafa5101e0e3125239426dd7dbeb6f2c8a17e83ea4f43f28304d18"
+}

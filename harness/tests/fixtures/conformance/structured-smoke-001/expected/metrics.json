@@ -1,0 +1,1312 @@
+{
+  "experiment": {
+    "config_sha256": "7658236e848e5a232fcc828bb16f6ce96e0ca5ec8cc521b1a05ac388e286dd86",
+    "id": "st-smoke",
+    "inputs_index_sha256": "8069f30731d42cdaa1c37d95dc808a4b16934b9ffa61e0ac1134097bd3f52490",
+    "kind": "structured_task",
+    "n_items": 1,
+    "run_id": "20260904T184011Z-7658236e",
+    "split": "dev",
+    "task": "classify_error_handling",
+    "taskset": "taskset"
+  },
+  "promotions": {},
+  "recomputed_assert_records": 1,
+  "run_cost": {
+    "calls": 1,
+    "cost_usd": 0.001,
+    "p50_ms": 0.0,
+    "p95_ms": 0.0,
+    "population": {
+      "kind": "run",
+      "n_calls": 1,
+      "n_items": 1,
+      "n_versions": 1
+    }
+  },
+  "stats": {
+    "alpha": 0.05,
+    "method": "percentile",
+    "resamples": 20,
+    "seed": 20260904
+  },
+  "stored_assert_records": 1,
+  "versions": {
+    "v1": {
+      "cache_hit_rate": 0.0,
+      "calibration": {
+        "bins": [
+          {
+            "accuracy": null,
+            "item_ids": [],
+            "lower": 0.0,
+            "mean_confidence": null,
+            "n": 0,
+            "upper": 0.1
+          },
+          {
+            "accuracy": null,
+            "item_ids": [],
+            "lower": 0.1,
+            "mean_confidence": null,
+            "n": 0,
+            "upper": 0.2
+          },
+          {
+            "accuracy": null,
+            "item_ids": [],
+            "lower": 0.2,
+            "mean_confidence": null,
+            "n": 0,
+            "upper": 0.3
+          },
+          {
+            "accuracy": null,
+            "item_ids": [],
+            "lower": 0.3,
+            "mean_confidence": null,
+            "n": 0,
+            "upper": 0.4
+          },
+          {
+            "accuracy": null,
+            "item_ids": [],
+            "lower": 0.4,
+            "mean_confidence": null,
+            "n": 0,
+            "upper": 0.5
+          },
+          {
+            "accuracy": null,
+            "item_ids": [],
+            "lower": 0.5,
+            "mean_confidence": null,
+            "n": 0,
+            "upper": 0.6
+          },
+          {
+            "accuracy": null,
+            "item_ids": [],
+            "lower": 0.6,
+            "mean_confidence": null,
+            "n": 0,
+            "upper": 0.7
+          },
+          {
+            "accuracy": null,
+            "item_ids": [],
+            "lower": 0.7,
+            "mean_confidence": null,
+            "n": 0,
+            "upper": 0.8
+          },
+          {
+            "accuracy": 1.0,
+            "item_ids": [
+              "eh-py-0001"
+            ],
+            "lower": 0.8,
+            "mean_confidence": 0.8,
+            "n": 1,
+            "upper": 0.9
+          },
+          {
+            "accuracy": null,
+            "item_ids": [],
+            "lower": 0.9,
+            "mean_confidence": null,
+            "n": 0,
+            "upper": 1.0
+          }
+        ],
+        "maximum_penalty": 0,
+        "n": 1,
+        "score": 0.03999999999999998
+      },
+      "classification": {
+        "confusion": {
+          "correct": {
+            "__invalid__": 0,
+            "correct": 1,
+            "missing_timeout": 0,
+            "no_retry_on_transient": 0,
+            "partial_as_success": 0,
+            "resource_leak_on_error": 0,
+            "retried_non_retryable": 0,
+            "swallowed_fatal": 0,
+            "unbounded_retry": 0,
+            "unclear": 0
+          },
+          "missing_timeout": {
+            "__invalid__": 0,
+            "correct": 0,
+            "missing_timeout": 0,
+            "no_retry_on_transient": 0,
+            "partial_as_success": 0,
+            "resource_leak_on_error": 0,
+            "retried_non_retryable": 0,
+            "swallowed_fatal": 0,
+            "unbounded_retry": 0,
+            "unclear": 0
+          },
+          "no_retry_on_transient": {
+            "__invalid__": 0,
+            "correct": 0,
+            "missing_timeout": 0,
+            "no_retry_on_transient": 0,
+            "partial_as_success": 0,
+            "resource_leak_on_error": 0,
+            "retried_non_retryable": 0,
+            "swallowed_fatal": 0,
+            "unbounded_retry": 0,
+            "unclear": 0
+          },
+          "partial_as_success": {
+            "__invalid__": 0,
+            "correct": 0,
+            "missing_timeout": 0,
+            "no_retry_on_transient": 0,
+            "partial_as_success": 0,
+            "resource_leak_on_error": 0,
+            "retried_non_retryable": 0,
+            "swallowed_fatal": 0,
+            "unbounded_retry": 0,
+            "unclear": 0
+          },
+          "resource_leak_on_error": {
+            "__invalid__": 0,
+            "correct": 0,
+            "missing_timeout": 0,
+            "no_retry_on_transient": 0,
+            "partial_as_success": 0,
+            "resource_leak_on_error": 0,
+            "retried_non_retryable": 0,
+            "swallowed_fatal": 0,
+            "unbounded_retry": 0,
+            "unclear": 0
+          },
+          "retried_non_retryable": {
+            "__invalid__": 0,
+            "correct": 0,
+            "missing_timeout": 0,
+            "no_retry_on_transient": 0,
+            "partial_as_success": 0,
+            "resource_leak_on_error": 0,
+            "retried_non_retryable": 0,
+            "swallowed_fatal": 0,
+            "unbounded_retry": 0,
+            "unclear": 0
+          },
+          "swallowed_fatal": {
+            "__invalid__": 0,
+            "correct": 0,
+            "missing_timeout": 0,
+            "no_retry_on_transient": 0,
+            "partial_as_success": 0,
+            "resource_leak_on_error": 0,
+            "retried_non_retryable": 0,
+            "swallowed_fatal": 0,
+            "unbounded_retry": 0,
+            "unclear": 0
+          },
+          "unbounded_retry": {
+            "__invalid__": 0,
+            "correct": 0,
+            "missing_timeout": 0,
+            "no_retry_on_transient": 0,
+            "partial_as_success": 0,
+            "resource_leak_on_error": 0,
+            "retried_non_retryable": 0,
+            "swallowed_fatal": 0,
+            "unbounded_retry": 0,
+            "unclear": 0
+          },
+          "unclear": {
+            "__invalid__": 0,
+            "correct": 0,
+            "missing_timeout": 0,
+            "no_retry_on_transient": 0,
+            "partial_as_success": 0,
+            "resource_leak_on_error": 0,
+            "retried_non_retryable": 0,
+            "swallowed_fatal": 0,
+            "unbounded_retry": 0,
+            "unclear": 0
+          }
+        },
+        "first_tier_known_n": 1,
+        "first_tier_unknown_n": 0,
+        "first_tier_valid": {
+          "k": 1,
+          "n": 1,
+          "rate": 1.0,
+          "wilson_ci": [
+            0.20654931437723745,
+            1.0
+          ]
+        },
+        "first_tier_valid_n": 1,
+        "macro_f1": 0.1111111111111111,
+        "n": 1,
+        "per_class": {
+          "correct": {
+            "f1": 1.0,
+            "fn": 0,
+            "fp": 0,
+            "precision": 1.0,
+            "recall": 1.0,
+            "tp": 1
+          },
+          "missing_timeout": {
+            "f1": 0.0,
+            "fn": 0,
+            "fp": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "tp": 0
+          },
+          "no_retry_on_transient": {
+            "f1": 0.0,
+            "fn": 0,
+            "fp": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "tp": 0
+          },
+          "partial_as_success": {
+            "f1": 0.0,
+            "fn": 0,
+            "fp": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "tp": 0
+          },
+          "resource_leak_on_error": {
+            "f1": 0.0,
+            "fn": 0,
+            "fp": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "tp": 0
+          },
+          "retried_non_retryable": {
+            "f1": 0.0,
+            "fn": 0,
+            "fp": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "tp": 0
+          },
+          "swallowed_fatal": {
+            "f1": 0.0,
+            "fn": 0,
+            "fp": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "tp": 0
+          },
+          "unbounded_retry": {
+            "f1": 0.0,
+            "fn": 0,
+            "fp": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "tp": 0
+          },
+          "unclear": {
+            "f1": 0.0,
+            "fn": 0,
+            "fp": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "tp": 0
+          }
+        },
+        "repaired": {
+          "count": 0,
+          "n": 1,
+          "rate": 0.0
+        },
+        "repaired_n": 0,
+        "schema_valid_for_eval": {
+          "k": 1,
+          "n": 1,
+          "rate": 1.0,
+          "wilson_ci": [
+            0.20654931437723745,
+            1.0
+          ]
+        }
+      },
+      "cost": {
+        "calls": 1,
+        "cost_usd": 0.001,
+        "p50_ms": 0.0,
+        "p95_ms": 0.0,
+        "population": {
+          "kind": "version",
+          "n_calls": 1,
+          "n_items": 1,
+          "n_versions": 1
+        }
+      },
+      "human_vs_human": {
+        "basis": "unavailable: taskset labels retain agreement flags, not secondary classes",
+        "n_items": 0,
+        "value": null
+      },
+      "identity": {
+        "model": "fake-model",
+        "provider": "stub",
+        "task_version": "2026-09-04.1"
+      },
+      "kappa_vs_human": 1.0,
+      "risk_bands": {
+        "high": {
+          "calibration": {
+            "bins": [
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.0,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.1
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.1,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.2
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.2,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.3
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.3,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.4
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.4,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.5
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.5,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.6
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.6,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.7
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.7,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.8
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.8,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.9
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.9,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 1.0
+              }
+            ],
+            "maximum_penalty": 0,
+            "n": 0,
+            "score": 0.0
+          },
+          "classification": {
+            "confusion": {
+              "correct": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "missing_timeout": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "no_retry_on_transient": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "partial_as_success": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "resource_leak_on_error": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "retried_non_retryable": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "swallowed_fatal": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "unbounded_retry": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "unclear": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              }
+            },
+            "first_tier_known_n": 0,
+            "first_tier_unknown_n": 0,
+            "first_tier_valid": {
+              "k": 0,
+              "n": 0,
+              "rate": null,
+              "wilson_ci": null
+            },
+            "first_tier_valid_n": 0,
+            "macro_f1": 0.0,
+            "n": 0,
+            "per_class": {
+              "correct": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "missing_timeout": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "no_retry_on_transient": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "partial_as_success": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "resource_leak_on_error": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "retried_non_retryable": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "swallowed_fatal": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "unbounded_retry": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "unclear": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              }
+            },
+            "repaired": {
+              "count": 0,
+              "n": 0,
+              "rate": null
+            },
+            "repaired_n": 0,
+            "schema_valid_for_eval": {
+              "k": 0,
+              "n": 0,
+              "rate": 0.0,
+              "wilson_ci": [
+                0.0,
+                0.0
+              ]
+            }
+          },
+          "population": {
+            "declared_item_ids": [],
+            "n_declared_items": 0,
+            "n_scored_items": 0,
+            "n_scored_samples": 0
+          },
+          "stage_errors": {
+            "calls": 0,
+            "item_ids": []
+          }
+        },
+        "low": {
+          "calibration": {
+            "bins": [
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.0,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.1
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.1,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.2
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.2,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.3
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.3,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.4
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.4,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.5
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.5,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.6
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.6,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.7
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.7,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.8
+              },
+              {
+                "accuracy": 1.0,
+                "item_ids": [
+                  "eh-py-0001"
+                ],
+                "lower": 0.8,
+                "mean_confidence": 0.8,
+                "n": 1,
+                "upper": 0.9
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.9,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 1.0
+              }
+            ],
+            "maximum_penalty": 0,
+            "n": 1,
+            "score": 0.03999999999999998
+          },
+          "classification": {
+            "confusion": {
+              "correct": {
+                "__invalid__": 0,
+                "correct": 1,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "missing_timeout": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "no_retry_on_transient": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "partial_as_success": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "resource_leak_on_error": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "retried_non_retryable": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "swallowed_fatal": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "unbounded_retry": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "unclear": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              }
+            },
+            "first_tier_known_n": 1,
+            "first_tier_unknown_n": 0,
+            "first_tier_valid": {
+              "k": 1,
+              "n": 1,
+              "rate": 1.0,
+              "wilson_ci": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "first_tier_valid_n": 1,
+            "macro_f1": 0.1111111111111111,
+            "n": 1,
+            "per_class": {
+              "correct": {
+                "f1": 1.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 1.0,
+                "recall": 1.0,
+                "tp": 1
+              },
+              "missing_timeout": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "no_retry_on_transient": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "partial_as_success": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "resource_leak_on_error": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "retried_non_retryable": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "swallowed_fatal": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "unbounded_retry": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "unclear": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              }
+            },
+            "repaired": {
+              "count": 0,
+              "n": 1,
+              "rate": 0.0
+            },
+            "repaired_n": 0,
+            "schema_valid_for_eval": {
+              "k": 1,
+              "n": 1,
+              "rate": 1.0,
+              "wilson_ci": [
+                0.20654931437723745,
+                1.0
+              ]
+            }
+          },
+          "population": {
+            "declared_item_ids": [
+              "eh-py-0001"
+            ],
+            "n_declared_items": 1,
+            "n_scored_items": 1,
+            "n_scored_samples": 1
+          },
+          "stage_errors": {
+            "calls": 0,
+            "item_ids": []
+          }
+        },
+        "medium": {
+          "calibration": {
+            "bins": [
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.0,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.1
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.1,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.2
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.2,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.3
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.3,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.4
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.4,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.5
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.5,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.6
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.6,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.7
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.7,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.8
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.8,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 0.9
+              },
+              {
+                "accuracy": null,
+                "item_ids": [],
+                "lower": 0.9,
+                "mean_confidence": null,
+                "n": 0,
+                "upper": 1.0
+              }
+            ],
+            "maximum_penalty": 0,
+            "n": 0,
+            "score": 0.0
+          },
+          "classification": {
+            "confusion": {
+              "correct": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "missing_timeout": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "no_retry_on_transient": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "partial_as_success": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "resource_leak_on_error": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "retried_non_retryable": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "swallowed_fatal": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "unbounded_retry": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              },
+              "unclear": {
+                "__invalid__": 0,
+                "correct": 0,
+                "missing_timeout": 0,
+                "no_retry_on_transient": 0,
+                "partial_as_success": 0,
+                "resource_leak_on_error": 0,
+                "retried_non_retryable": 0,
+                "swallowed_fatal": 0,
+                "unbounded_retry": 0,
+                "unclear": 0
+              }
+            },
+            "first_tier_known_n": 0,
+            "first_tier_unknown_n": 0,
+            "first_tier_valid": {
+              "k": 0,
+              "n": 0,
+              "rate": null,
+              "wilson_ci": null
+            },
+            "first_tier_valid_n": 0,
+            "macro_f1": 0.0,
+            "n": 0,
+            "per_class": {
+              "correct": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "missing_timeout": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "no_retry_on_transient": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "partial_as_success": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "resource_leak_on_error": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "retried_non_retryable": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "swallowed_fatal": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "unbounded_retry": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              },
+              "unclear": {
+                "f1": 0.0,
+                "fn": 0,
+                "fp": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "tp": 0
+              }
+            },
+            "repaired": {
+              "count": 0,
+              "n": 0,
+              "rate": null
+            },
+            "repaired_n": 0,
+            "schema_valid_for_eval": {
+              "k": 0,
+              "n": 0,
+              "rate": 0.0,
+              "wilson_ci": [
+                0.0,
+                0.0
+              ]
+            }
+          },
+          "population": {
+            "declared_item_ids": [],
+            "n_declared_items": 0,
+            "n_scored_items": 0,
+            "n_scored_samples": 0
+          },
+          "stage_errors": {
+            "calls": 0,
+            "item_ids": []
+          }
+        }
+      },
+      "stage_errors": {
+        "calls": 0,
+        "item_ids": []
+      }
+    }
+  }
+}

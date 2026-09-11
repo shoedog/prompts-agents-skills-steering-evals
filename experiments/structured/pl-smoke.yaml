@@ -1,0 +1,18 @@
+kind: pipeline
+id: pl-smoke
+taskset: tasksets/structured/eh_pipeline
+split: dev
+stages:
+  - {name: targets, type: prism, pin: from_item}
+  - {name: observation, type: harness, pin: from_item}
+  - {name: classify, type: llm, pin: never, task: classify_error_handling}
+versions:
+  - {name: v2026-09-04.1, stage: classify, task_version: "2026-09-04.1"}
+baseline_version: v2026-09-04.1
+samples_per_item: 1
+seed: 20260904
+asserts:
+  - {type: schema, hard: true}
+  - {type: label, mode: exact, field: class}
+stats: {bootstrap_resamples: 2000, seed: 20260904}
+token_budget: {max_cost_usd: 0.0, max_items: 1}

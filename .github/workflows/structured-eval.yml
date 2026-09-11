@@ -1,0 +1,143 @@
+name: Structured evaluation
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  schedule:
+    - cron: "17 8 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cheap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: python -m venv .venv && .venv/bin/python -m pip install -e .
+      - name: Run non-live suite
+        run: .venv/bin/python -m pytest -q -m 'not live'
+
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: python -m venv .venv && .venv/bin/python -m pip install -e .
+      - name: Run zero-cost structured stub
+        run: .venv/bin/python -m harness.structured.run experiments/structured/st-smoke.yaml
+
+  live-smoke:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: python -m venv .venv && .venv/bin/python -m pip install -e .
+      - name: Run paid legacy smoke
+        env:
+          RUN_LIVE: "1"
+        run: .venv/bin/python -m pytest -q ci -k test_smoke_run
+
+  changes:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      structured: ${{ steps.filter.outputs.structured }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Classify structured paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            structured:
+              - 'llm-layer/tasks/**'
+              - 'harness/structured/**'
+              - 'tasksets/structured/**'
+      - name: Warn when the budgeted dev config is not configured
+        if: steps.filter.outputs.structured == 'true' && vars.STRUCTURED_DEV_CONFIG == ''
+        run: echo "::warning title=dev-set skipped::repository variable STRUCTURED_DEV_CONFIG is not set, so the paid dev-split run did not execute for this change"
+
+  dev-set:
+    needs: changes
+    # runs only when a structured path changed AND the repository variable names
+    # a budgeted dev config; the `changes` job emits a visible warning otherwise
+    if: needs.changes.outputs.structured == 'true' && vars.STRUCTURED_DEV_CONFIG != ''
+    runs-on: ubuntu-latest
+    env:
+      STRUCTURED_DEV_CONFIG: ${{ vars.STRUCTURED_DEV_CONFIG }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: python -m venv .venv && .venv/bin/python -m pip install -e .
+      - name: Require the budgeted dev config
+        run: test -n "$STRUCTURED_DEV_CONFIG"
+      - name: Run full dev split
+        run: |
+          set -o pipefail
+          .venv/bin/python -m harness.structured.run "$STRUCTURED_DEV_CONFIG" --split dev | tee structured-run.out
+      - name: Locate emitted metrics
+        id: metrics
+        run: |
+          RUN_DIR=$(sed -n 's/^RESULTS_DIR=//p' structured-run.out)
+          test -n "$RUN_DIR"
+          test -f "$RUN_DIR/metrics.json"
+          echo "path=$RUN_DIR/metrics.json" >> "$GITHUB_OUTPUT"
+      - name: Enforce promotion verdict
+        env:
+          METRICS_PATH: ${{ steps.metrics.outputs.path }}
+        run: .venv/bin/python -c "import json,sys; m=json.load(open(sys.argv[1])); v=[m['promotable']] if 'promotable' in m else [x['promotable'] for x in m.get('promotions',{}).values()]; raise SystemExit(0 if v and all(v) else 1)" "$METRICS_PATH"
+      - name: Post paired delta table
+        run: find results -name report.md -type f -print -exec cat {} \;
+
+  test-set:
+    if: startsWith(github.ref, 'refs/tags/v') && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      STRUCTURED_TEST_CONFIG: ${{ vars.STRUCTURED_TEST_CONFIG }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: python -m venv .venv && .venv/bin/python -m pip install -e .
+      - name: Require release inputs
+        run: test -n "$STRUCTURED_TEST_CONFIG"
+      - name: Run held-out test split
+        run: .venv/bin/python -m harness.structured.run "$STRUCTURED_TEST_CONFIG" --split test --allow-test
+      - name: Commit release results
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add -f results
+          git commit -m "eval: record ${GITHUB_REF_NAME} test-set results"
+      - name: Increment consult counter in its own commit
+        run: |
+          # increments splits.test.consulted
+          STRUCTURED_TEST_MANIFEST=$(.venv/bin/python ci/increment_consulted.py "$STRUCTURED_TEST_CONFIG")
+          git add "$STRUCTURED_TEST_MANIFEST"
+          git commit -m "eval: increment ${GITHUB_REF_NAME} test-set consultation"
+      - name: Publish the two release commits
+        run: git push origin "HEAD:${{ github.event.repository.default_branch }}"

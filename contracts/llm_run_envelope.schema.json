@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://defect-tooling.local/contracts/llm_run_envelope.schema.json",
+  "title": "LLM layer run envelope",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "invocation_id",
+    "task",
+    "task_version",
+    "provider",
+    "model",
+    "provider_version",
+    "prompt_sha256",
+    "escalation_state",
+    "first_tier_valid",
+    "first_tier_sentinel",
+    "final_sentinel",
+    "cache_hit",
+    "usage",
+    "cost_usd",
+    "response",
+    "log_path"
+  ],
+  "properties": {
+    "schema_version": {"const": "1"},
+    "invocation_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "task": {"type": "string", "minLength": 1},
+    "task_version": {"type": "string", "minLength": 1},
+    "provider": {"type": "string", "minLength": 1},
+    "model": {"type": "string", "minLength": 1},
+    "provider_version": {"type": "string", "minLength": 1},
+    "prompt_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "escalation_state": {"type": "string", "minLength": 1},
+    "first_tier_valid": {"type": ["boolean", "null"]},
+    "first_tier_sentinel": {"type": ["boolean", "null"]},
+    "final_sentinel": {"type": "boolean"},
+    "cache_hit": {"type": "boolean"},
+    "usage": {
+      "type": "object",
+      "required": [
+        "input_tokens",
+        "output_tokens",
+        "cache_creation_input_tokens",
+        "cache_read_input_tokens"
+      ],
+      "properties": {
+        "input_tokens": {"type": "integer", "minimum": 0},
+        "output_tokens": {"type": "integer", "minimum": 0},
+        "cache_creation_input_tokens": {"type": "integer", "minimum": 0},
+        "cache_read_input_tokens": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "cost_usd": {"type": "number", "minimum": 0},
+    "response": {"type": "object"},
+    "log_path": {"type": "string", "minLength": 1}
+  },
+  "additionalProperties": false
+}

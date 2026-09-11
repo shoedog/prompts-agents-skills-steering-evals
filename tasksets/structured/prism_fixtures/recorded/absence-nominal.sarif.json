@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "prism",
+          "version": "0.1.0",
+          "semanticVersion": "0.1.0",
+          "informationUri": "https://github.com/shoedog/prism",
+          "rules": [
+            {
+              "id": "prism/absence/missing_error_handling",
+              "name": "missing_error_handling",
+              "shortDescription": {"text": "absence: missing_error_handling"},
+              "fullDescription": {"text": "A changed call may lack error handling."},
+              "properties": {
+                "algorithm": "absence",
+                "category": "missing_error_handling"
+              }
+            }
+          ]
+        }
+      },
+      "invocations": [{"executionSuccessful": true}],
+      "results": [
+        {
+          "ruleId": "prism/absence/missing_error_handling",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {"text": "A changed call may lack error handling."},
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {"uri": "src/client.py", "uriBaseId": "%SRCROOT%"},
+                "region": {"startLine": 4}
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "prism/finding/v1": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "properties": {
+            "algorithm": "absence",
+            "category": "missing_error_handling",
+            "severity": "warning",
+            "confidence": "exact",
+            "tier": "asserted",
+            "resolution_mode": "nominal",
+            "parse_quality": "clean"
+          }
+        }
+      ],
+      "properties": {
+        "mapping_version": "1",
+        "algorithms_run": ["absence"],
+        "resolution_mode": "nominal",
+        "prism_build_identity": "fixture",
+        "prism_git_sha": "fixture",
+        "binary_input_dirty": false
+      }
+    }
+  ]
+}
