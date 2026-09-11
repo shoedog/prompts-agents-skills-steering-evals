@@ -68,10 +68,15 @@ jobs:
               - 'llm-layer/tasks/**'
               - 'harness/structured/**'
               - 'tasksets/structured/**'
+      - name: Warn when the budgeted dev config is not configured
+        if: steps.filter.outputs.structured == 'true' && vars.STRUCTURED_DEV_CONFIG == ''
+        run: echo "::warning title=dev-set skipped::repository variable STRUCTURED_DEV_CONFIG is not set, so the paid dev-split run did not execute for this change"
 
   dev-set:
     needs: changes
-    if: needs.changes.outputs.structured == 'true'
+    # runs only when a structured path changed AND the repository variable names
+    # a budgeted dev config; the `changes` job emits a visible warning otherwise
+    if: needs.changes.outputs.structured == 'true' && vars.STRUCTURED_DEV_CONFIG != ''
     runs-on: ubuntu-latest
     env:
       STRUCTURED_DEV_CONFIG: ${{ vars.STRUCTURED_DEV_CONFIG }}
